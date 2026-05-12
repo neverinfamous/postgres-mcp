@@ -157,7 +157,14 @@ export const RoleGrantSchemaBase = z.object({
     .describe("Allow grantee to re-grant the privilege (default: false)"),
 });
 
-export const RoleGrantSchema = RoleGrantSchemaBase;
+export const RoleGrantSchema = z.preprocess((val: unknown) => {
+  if (val === null || typeof val !== "object") return val;
+  const obj = val as Record<string, unknown>;
+  return {
+    ...obj,
+    table: obj['table'] ?? obj['tableName'],
+  };
+}, RoleGrantSchemaBase);
 
 /**
  * pg_role_assign — grant role membership to another role/user
