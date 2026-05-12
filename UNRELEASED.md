@@ -60,6 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed an error formatting issue in `pg_drop_view` and `pg_drop_sequence` tools where relation-not-found errors were resolving to generic `"Table ... does not exist"` messages by properly passing `objectType` context to the upstream handler, and added explicit view handling to the core error parser.
 - Fixed a silent payload omission bug in the `cron` tools where `pg_cron_job_run_details` and `pg_cron_list_jobs` completely omitted the `runs` and `jobs` arrays from the result payload when returning empty datasets, violating standard API array mapping expectations. Updated handlers to consistently return empty arrays.
 - Fixed a parameter validation bypass in `pg_detect_connection_spike` where `warningPercent` values outside the valid 10-100 range were silently clamped instead of returning a structured `VALIDATION_ERROR`.
+- **Core Tools**: Fixed an error parser fallback in `error-parser.ts` where `operator does not exist` exceptions (e.g., from `LIKE` operator typecasting failures in text tools) returned generic `OBJECT_NOT_FOUND` errors instead of specific type mismatch errors.
 
 ### Security
 

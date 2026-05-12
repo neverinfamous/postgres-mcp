@@ -429,6 +429,14 @@ export function parsePostgresError(
       throw error;
     }
 
+    // Operator does not exist (e.g., trying to use LIKE on an integer column without cast)
+    if (/operator does not exist:/i.test(msg)) {
+      throw new Error(
+        `Type mismatch or missing operator: ${msg}. You may need to add explicit type casts, or verify the column type.`,
+        { cause: error },
+      );
+    }
+
     // Generic "does not exist" fallback
     const match =
       /(?:table|relation|object|collection) ["']([^"']+)["']/i.exec(msg) ??
