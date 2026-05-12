@@ -367,6 +367,17 @@ export function createStatsSummaryTool(
         const schemaPrefix = schema ? `"${schema}".` : "";
         const whereClause = where ? `WHERE ${sanitizeWhereClause(where)}` : "";
 
+        // Verify table exists first to comply with P154
+        const tableCheck = await adapter.executeQuery(
+          `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
+          [schemaName, table],
+        );
+        if (!tableCheck.rows || tableCheck.rows.length === 0) {
+          throw new ValidationError(
+            `Table "${schemaName}.${table}" does not exist`,
+          );
+        }
+
         // Determine columns to summarize
         let targetColumns: string[];
 
@@ -428,19 +439,6 @@ export function createStatsSummaryTool(
         }
 
         if (targetColumns.length === 0) {
-          // Check if table actually exists or if it just has no numeric columns
-          if (!parsed.columns || parsed.columns.length === 0) {
-            const tableCheck = await adapter.executeQuery(
-              `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
-              [schemaName, table],
-            );
-            if (!tableCheck.rows || tableCheck.rows.length === 0) {
-              throw new ValidationError(
-                `Table "${schemaName}.${table}" does not exist`,
-              );
-            }
-          }
-
           return {
             success: true,
             table: `${schemaName}.${table}`,
