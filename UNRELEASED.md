@@ -63,7 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Core Tools**: Fixed an error parser fallback in `error-parser.ts` where `operator does not exist` exceptions (e.g., from `LIKE` operator typecasting failures in text tools) returned generic `OBJECT_NOT_FOUND` errors instead of specific type mismatch errors.
 - **Transactions Tools**: Added `limit` bounding and truncation logic to `pg_transaction_execute` payload processing to cap query result arrays per statement, preventing massive multi-statement payload bloat.
 - **Transactions Tools**: Updated parameter documentation in `TransactionExecuteSchema` to clarify that `isolationLevel` and `read_only` only apply when creating a new transaction (i.e. when omitting `transactionId`).
-- **Transactions Tools**: Certified full P154 object existence validation and structured error response compliance across the entire 8-tool toolkit through rigorous 7-category advanced Code Mode stress-testing, confirming deep auto-rollback bounding, idempotent state management, and strict validation boundaries without raw MCP exception leaks.
+- **Ltree Tools**: Added explicit handler-side validation in `pg_ltree_subpath` to strictly reject negative `length` values with a structured `VALIDATION_ERROR`, preventing native database "invalid positions" error leakage.
 
 ### Security
 

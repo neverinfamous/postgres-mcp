@@ -230,6 +230,13 @@ function createLtreeSubpathTool(adapter: PostgresAdapter): ToolDefinition {
         );
         const pathDepth = depthResult.rows?.[0]?.["depth"] as number;
 
+        if (length !== undefined && length < 0) {
+          throw new ValidationError(
+            `Invalid length: ${String(length)}. Length cannot be negative.`,
+            { length }
+          );
+        }
+
         // Validate offset is within bounds
         const effectiveOffset = offset < 0 ? pathDepth + offset : offset;
         if (effectiveOffset < 0 || effectiveOffset >= pathDepth) {
