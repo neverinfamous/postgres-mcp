@@ -100,17 +100,20 @@ export const DropCollectionSchema = z.preprocess(
  * pg_doc_collection_info — get collection statistics
  */
 export const CollectionInfoSchemaBase = z.object({
-  collection: z.string().describe("Collection name"),
+  collection: z.string().optional().describe("Collection name"),
   schema: z.string().optional(),
 });
 
-export const CollectionInfoSchema = CollectionInfoSchemaBase;
+export const CollectionInfoSchema = z.object({
+  collection: z.string(),
+  schema: z.string().optional(),
+});
 
 /**
  * pg_doc_find — query documents in a collection
  */
 export const FindSchemaBase = z.object({
-  collection: z.string().describe("Collection name"),
+  collection: z.string().optional().describe("Collection name"),
   schema: z.string().optional(),
   filter: z
     .union([z.string(), z.record(z.string(), z.unknown())])
@@ -145,23 +148,29 @@ export const FindSchema = z.object({
  * pg_doc_add — add documents to a collection
  */
 export const AddDocSchemaBase = z.object({
-  collection: z.string().describe("Collection name"),
+  collection: z.string().optional().describe("Collection name"),
   schema: z.string().optional(),
   documents: z
     .array(z.record(z.string(), z.unknown()))
+    .optional()
     .describe("Documents to add"),
 });
 
-export const AddDocSchema = AddDocSchemaBase;
+export const AddDocSchema = z.object({
+  collection: z.string(),
+  schema: z.string().optional(),
+  documents: z.array(z.record(z.string(), z.unknown())),
+});
 
 /**
  * pg_doc_modify — update documents matching a filter
  */
 export const ModifyDocSchemaBase = z.object({
-  collection: z.string().describe("Collection name"),
+  collection: z.string().optional().describe("Collection name"),
   schema: z.string().optional(),
   filter: z
     .union([z.string(), z.record(z.string(), z.unknown())])
+    .optional()
     .describe(
       "Filter: _id value (32-char hex), field=value, JSON object filter ({\"field\":\"value\"}), or JSON path existence ($.field)",
     ),
@@ -175,24 +184,31 @@ export const ModifyDocSchemaBase = z.object({
     .describe("Field names to remove from documents"),
 });
 
-export const ModifyDocSchema = ModifyDocSchemaBase.extend({
+export const ModifyDocSchema = z.object({
+  collection: z.string(),
+  schema: z.string().optional(),
   filter: z.preprocess((val) => (typeof val === "object" && val !== null ? JSON.stringify(val) : val), z.string()),
+  set: z.record(z.string(), z.unknown()).optional(),
+  unset: z.array(z.string()).optional(),
 });
 
 /**
  * pg_doc_remove — remove documents matching a filter
  */
 export const RemoveDocSchemaBase = z.object({
-  collection: z.string().describe("Collection name"),
+  collection: z.string().optional().describe("Collection name"),
   schema: z.string().optional(),
   filter: z
     .union([z.string(), z.record(z.string(), z.unknown())])
+    .optional()
     .describe(
       "Filter: _id value (32-char hex), field=value, JSON object filter ({\"field\":\"value\"}), or JSON path existence ($.field)",
     ),
 });
 
-export const RemoveDocSchema = RemoveDocSchemaBase.extend({
+export const RemoveDocSchema = z.object({
+  collection: z.string(),
+  schema: z.string().optional(),
   filter: z.preprocess((val) => (typeof val === "object" && val !== null ? JSON.stringify(val) : val), z.string()),
 });
 
@@ -200,7 +216,7 @@ export const RemoveDocSchema = RemoveDocSchemaBase.extend({
  * pg_doc_create_index — create an index on document fields
  */
 export const CreateDocIndexSchemaBase = z.object({
-  collection: z.string().describe("Collection name"),
+  collection: z.string().optional().describe("Collection name"),
   schema: z.string().optional(),
   name: z.string().optional().describe("Index name (generated if omitted)"),
   fields: z
