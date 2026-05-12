@@ -62,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed a parameter validation bypass in `pg_detect_connection_spike` where `warningPercent` values outside the valid 10-100 range were silently clamped instead of returning a structured `VALIDATION_ERROR`.
 - **Core Tools**: Fixed an error parser fallback in `error-parser.ts` where `operator does not exist` exceptions (e.g., from `LIKE` operator typecasting failures in text tools) returned generic `OBJECT_NOT_FOUND` errors instead of specific type mismatch errors.
 - **Transactions Tools**: Added `limit` bounding and truncation logic to `pg_transaction_execute` payload processing to cap query result arrays per statement, preventing massive multi-statement payload bloat.
+- **Transactions Tools**: Updated parameter documentation in `TransactionExecuteSchema` to clarify that `isolationLevel` and `read_only` only apply when creating a new transaction (i.e. when omitting `transactionId`).
 
 ### Security
 
