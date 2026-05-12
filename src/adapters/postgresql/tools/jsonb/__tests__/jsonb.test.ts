@@ -495,7 +495,7 @@ describe("JSONB Validation and Error Paths", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/undefined \(value\)/i);
+      expect(result.error).toMatch(/pg_jsonb_set requires a value parameter/i);
     });
 
     it("should handle empty path - replace entire column", async () => {
@@ -623,6 +623,17 @@ describe("JSONB Validation and Error Paths", () => {
   });
 
   describe("pg_jsonb_insert validations", () => {
+    it("should reject when value is undefined", async () => {
+      const tool = tools.find((t) => t.name === "pg_jsonb_insert")!;
+      const result = (await tool.handler(
+        { table: "users", column: "tags", path: ["tags", 0], where: "id = 1" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/value is required/i);
+    });
+
     it("should reject empty WHERE clause", async () => {
       const tool = tools.find((t) => t.name === "pg_jsonb_insert")!;
 

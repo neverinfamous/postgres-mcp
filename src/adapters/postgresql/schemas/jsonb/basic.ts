@@ -89,6 +89,7 @@ export const JsonbSetSchemaBase = z.object({
     ),
   value: z
     .unknown()
+    .optional()
     .describe("New value to set at the path (will be converted to JSONB)"),
   where: z
     .string()
@@ -256,7 +257,7 @@ export const JsonbInsertSchemaBase = z.object({
     .describe(
       "Path to insert at (for arrays). Accepts both string and array formats.",
     ),
-  value: z.unknown().describe("Value to insert"),
+  value: z.unknown().optional().describe("Value to insert"),
   where: z.string().optional().describe("WHERE clause"),
   filter: z.string().optional().describe("WHERE clause (alias for where)"),
   insertAfter: z
@@ -279,6 +280,9 @@ const JsonbInsertSchemaRefined = JsonbInsertSchemaBase.refine(
   })
   .refine((data) => data.where !== undefined || data.filter !== undefined, {
     message: "Either 'where' or 'filter' is required",
+  })
+  .refine((data) => data.value !== undefined, {
+    message: "value is required",
   });
 
 // Full schema with preprocess (for handler parsing)
