@@ -614,7 +614,7 @@ export const AuditDiffBackupOutputSchema = z
       .boolean()
       .optional()
       .describe("Whether target object still exists"),
-    hasDifferences: z
+    hasDrift: z
       .boolean()
       .optional()
       .describe("Whether schema or volume has drifted"),

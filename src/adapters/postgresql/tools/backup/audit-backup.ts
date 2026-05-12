@@ -586,7 +586,7 @@ export function createAuditDiffBackupTool(
           }
         }
 
-        let hasDifferences = schemaDrift;
+        let hasDrift = schemaDrift;
         if (
           volumeDrift &&
           ((volumeDrift.rowCountCurrent !== undefined &&
@@ -596,14 +596,14 @@ export function createAuditDiffBackupTool(
               volumeDrift.sizeBytesSnapshot !== undefined &&
               volumeDrift.sizeBytesCurrent !== volumeDrift.sizeBytesSnapshot))
         ) {
-          hasDifferences = true;
+          hasDrift = true;
         }
 
         return {
           success: true,
           metadata: snapshot.metadata,
           objectExists,
-          hasDifferences,
+          hasDrift,
           ...(schemaDrift && {
             diff: {
               ...(additions.length > 0 && {
