@@ -122,8 +122,11 @@ export function createDetectQueryAnomaliesTool(
               "pg_stat_statements extension is not installed. " +
               "Install with: CREATE EXTENSION pg_stat_statements; " +
               "(requires shared_preload_libraries configuration)",
+            code: "EXTENSION_NOT_FOUND",
+            category: "resource",
             suggestion:
               "Use pg_diagnose_database_performance for baseline-free health checks",
+            recoverable: false,
           };
         }
 
@@ -259,6 +262,8 @@ export function createDetectBloatRiskTool(
             success: false,
             error: "Validation error: minRows must be between 0 and 1000000",
             code: "VALIDATION_ERROR",
+            category: "validation",
+            recoverable: false,
           };
         }
 
@@ -275,7 +280,8 @@ export function createDetectBloatRiskTool(
               success: false,
               error: `Schema "${schema}" does not exist`,
               code: "NOT_FOUND",
-              category: "query"
+              category: "query",
+              recoverable: false
             };
           }
           

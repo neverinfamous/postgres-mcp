@@ -65,7 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Transactions Tools**: Added `limit` bounding and truncation logic to `pg_transaction_execute` payload processing to cap query result arrays per statement, preventing massive multi-statement payload bloat.
 - **Transactions Tools**: Updated parameter documentation in `TransactionExecuteSchema` to clarify that `isolationLevel` and `read_only` only apply when creating a new transaction (i.e. when omitting `transactionId`).
 - **Ltree Tools**: Added explicit handler-side validation in `pg_ltree_subpath` to strictly reject negative `length` values with a structured `VALIDATION_ERROR`, preventing native database "invalid positions" error leakage.
-
+- **Performance Tools**: Fixed unhandled missing extension errors in `pg_detect_query_anomalies` by mapping them to `EXTENSION_NOT_FOUND` structured errors with correct `category` and `recoverable` properties. Fixed missing `category` and `recoverable` flags on the manual validation error return for `minRows` in `pg_detect_bloat_risk`. Fixed missing `recoverable: false` field in the explicit schema verification error return for `pg_detect_bloat_risk`.
 ### Security
 
 - **Dependencies**: Bumped `hono` to `4.12.18` (HTML Injection), `ip-address` to `10.2.0` (XSS), and `fast-uri` to `3.1.2` (Path Traversal) via package overrides.
