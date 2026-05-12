@@ -60,6 +60,18 @@ function createLtreeExtensionTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         const { schema } = LtreeCreateExtensionSchema.parse(params);
         const schemaName = schema ?? "public";
+
+        const schemaCheck = await adapter.executeQuery(
+          `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
+          [schemaName]
+        );
+        if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
+          throw new ValidationError(
+            `Schema "${schemaName}" does not exist.`,
+            { schema: schemaName }
+          );
+        }
+
         await adapter.executeQuery(`CREATE EXTENSION IF NOT EXISTS ltree SCHEMA "${schemaName}"`);
         return { success: true, message: `ltree extension enabled in schema ${schemaName}` };
       } catch (error: unknown) {
@@ -335,6 +347,20 @@ function createLtreeListColumnsTool(adapter: PostgresAdapter): ToolDefinition {
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const { schema } = LtreeListColumnsSchema.parse(params);
+
+        if (schema !== undefined) {
+          const schemaCheck = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
+            [schema]
+          );
+          if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
+            throw new ValidationError(
+              `Schema "${schema}" does not exist.`,
+              { schema }
+            );
+          }
+        }
+
         const conditions: string[] = [
           "udt_name = 'ltree'",
           "table_schema NOT IN ('pg_catalog', 'information_schema')",

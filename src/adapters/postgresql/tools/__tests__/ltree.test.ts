@@ -28,7 +28,9 @@ describe("Ltree Tools", () => {
 
   describe("pg_ltree_create_extension", () => {
     it("should create ltree extension", async () => {
-      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] })
+        .mockResolvedValueOnce({ rows: [] });
 
       const tool = findTool("pg_ltree_create_extension");
       const result = (await tool!.handler({}, mockContext)) as {
@@ -498,7 +500,9 @@ describe("Ltree Tools", () => {
     });
 
     it("should filter by schema", async () => {
-      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] })
+        .mockResolvedValueOnce({ rows: [] });
 
       const tool = findTool("pg_ltree_list_columns");
       await tool!.handler({ schema: "custom" }, mockContext);
