@@ -123,7 +123,7 @@ export function createRoleListTool(adapter: PostgresAdapter): ToolDefinition {
             replication: row["replication"] as boolean,
             bypassrls: row["bypassrls"] as boolean,
             connectionLimit: Number(row["connectionLimit"] ?? -1),
-            validUntil: row["validUntil"] as string | null,
+            validUntil: row["validUntil"] != null ? new Date(row["validUntil"] as string | Date).toISOString() : null,
           }),
         );
 
@@ -410,7 +410,7 @@ export function createRoleAttributesTool(
             bypassrls: row["bypassrls"] as boolean,
             inherit: row["inherit"] as boolean,
             connectionLimit: Number(row["connectionLimit"] ?? -1),
-            validUntil: row["validUntil"] as string | null,
+            validUntil: row["validUntil"] != null ? new Date(row["validUntil"] as string | Date).toISOString() : null,
             oid: Number(row["oid"]),
           },
         };

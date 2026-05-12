@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Backup Tools**: Fixed `pg_dump_schema` and `pg_copy_import` to strictly verify table and schema object existence prior to command generation, complying with P154 standards.
 - Fixed Zod validation error messages in `DropSchemaSchema`, `DropSequenceSchema`, and `DropViewSchema` to correctly list available aliases instead of only 'name', improving split-schema compliance.
 - Fixed `pg_role_create` and `pg_role_drop` parameter mismatch (used `roleName` instead of `name` in output).
+- **Roles Tools**: Fixed a serialization bug in `pg_role_list` and `pg_role_attributes` where the `validUntil` timestamp was returned as a raw `Date` object instead of an ISO string, ensuring strict adherence to the defined output schema.
 - **Kcache Tools**: Fixed unhandled relation-not-found exceptions when the `pg_stat_kcache` extension is missing by mapping them to gracefully typed `EXTENSION_MISSING` structured errors.
 - **Pgcrypto Tools**: Fixed `gen_random_bytes` to support `raw` natively by returning postgres `escape` encoding. Fixed unhandled exceptions when the `pgcrypto` extension is missing by mapping them to cleanly typed `EXTENSION_MISSING` structured errors. Fixed native error leakage by mapping PostgreSQL `invalid base64 sequence` decryption errors and `Illegal argument` empty-password encryption errors to strictly typed `VALIDATION_ERROR` responses.
 - **Test Prompts**: Consolidated and repaired structurally fragmented Code Mode test prompts.
@@ -66,7 +67,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Transactions Tools**: Updated parameter documentation in `TransactionExecuteSchema` to clarify that `isolationLevel` and `read_only` only apply when creating a new transaction (i.e. when omitting `transactionId`).
 - **Ltree Tools**: Added explicit handler-side validation in `pg_ltree_subpath` to strictly reject negative `length` values with a structured `VALIDATION_ERROR`, preventing native database "invalid positions" error leakage.
 - **Performance Tools**: Fixed unhandled missing extension errors in `pg_detect_query_anomalies` by mapping them to `EXTENSION_NOT_FOUND` structured errors with correct `category` and `recoverable` properties. Fixed missing `category` and `recoverable` flags on the manual validation error return for `minRows` in `pg_detect_bloat_risk`. Fixed missing `recoverable: false` field in the explicit schema verification error return for `pg_detect_bloat_risk`.
-- **Admin Tools**: Certified full P154 object existence and structured error handling compliance across the advanced 11-tool testing matrix, confirming robust parameter coercion and boundary condition protections.
 ### Security
 
 - **Dependencies**: Bumped `hono` to `4.12.18` (HTML Injection), `ip-address` to `10.2.0` (XSS), and `fast-uri` to `3.1.2` (Path Traversal) via package overrides.
