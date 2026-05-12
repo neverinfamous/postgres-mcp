@@ -28,7 +28,6 @@ export {
   TransactionIdSchemaBase,
   SavepointSchema,
   SavepointSchemaBase,
-  ExecuteInTransactionSchema,
   TransactionExecuteSchema,
   TransactionExecuteSchemaBase,
   // Transaction output schemas

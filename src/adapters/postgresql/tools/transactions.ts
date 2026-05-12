@@ -318,7 +318,7 @@ function createTransactionExecuteTool(
         });
       }
 
-      const { statements, transactionId, isolationLevel, read_only } = parsed;
+      const { statements, transactionId, isolationLevel, read_only, limit } = parsed;
 
       // Check if joining an existing transaction or creating a new one
       const isJoiningExisting = transactionId !== undefined;
@@ -352,7 +352,7 @@ function createTransactionExecuteTool(
                 : (result.rowsAffected ?? 0),
             rowCount: result.rows?.length ?? 0,
             // Include returned rows when using RETURNING clause
-            ...(result.rows && result.rows.length > 0 && { rows: result.rows }),
+            ...(result.rows && result.rows.length > 0 && { rows: result.rows.slice(0, limit) }),
           });
         }
 

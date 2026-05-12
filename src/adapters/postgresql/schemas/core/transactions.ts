@@ -129,24 +129,6 @@ export const SavepointSchema = z
     },
   );
 
-// Base schema for MCP visibility
-const ExecuteInTransactionSchemaBase = z.object({
-  transactionId: z.string().optional().describe("Transaction ID"),
-  txId: z.string().optional().describe("Alias for transactionId"),
-  tx: z.string().optional().describe("Alias for transactionId"),
-  sql: z.string().describe("SQL to execute"),
-  params: z.array(z.unknown()).optional().describe("Query parameters"),
-});
-
-// Transformed schema with alias resolution
-export const ExecuteInTransactionSchema =
-  ExecuteInTransactionSchemaBase.transform((data) => ({
-    transactionId: data.transactionId ?? data.txId ?? data.tx ?? "",
-    sql: data.sql,
-    params: data.params,
-  })).refine((data) => data.transactionId !== "", {
-    message: "transactionId (or txId/tx alias) is required",
-  });
 
 // Base schema for MCP visibility — uses z.record() for statement items and
 // z.string() for isolationLevel so invalid values reach the handler's try/catch.
@@ -172,6 +154,10 @@ export const TransactionExecuteSchemaBase = z.object({
     .optional()
     .describe("Set to true for read-only transaction"),
   readOnly: z.boolean().optional().describe("Alias for read_only"),
+  limit: z
+    .number()
+    .optional()
+    .describe("Maximum number of rows to return per statement (default: 1000)"),
 });
 
 // Internal schema with strict validation (used inside handler try/catch)
@@ -209,6 +195,10 @@ const TransactionExecuteValidationSchema = z.object({
     .boolean()
     .optional()
     .describe("Set to true for read-only transaction"),
+  limit: z
+    .number()
+    .optional()
+    .describe("Maximum number of rows to return per statement (default: 1000)"),
 });
 
 // Schema with undefined handling for pg_transaction_execute
@@ -231,6 +221,7 @@ export const TransactionExecuteSchema = z
     transactionId: data.transactionId ?? data.txId ?? data.tx,
     isolationLevel: data.isolationLevel,
     read_only: data.read_only,
+    limit: data.limit ?? 1000,
   }))
   .refine((data) => data.statements.length > 0, {
     message:
