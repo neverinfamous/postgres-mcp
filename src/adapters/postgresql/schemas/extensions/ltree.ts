@@ -89,6 +89,7 @@ export const LtreeQuerySchemaBase = z.object({
     .describe("Alias for mode"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   limit: z.number().optional().describe("Maximum results"),
+  maxResults: z.number().optional().describe("Alias for limit"),
 });
 
 /**
@@ -110,6 +111,7 @@ export const LtreeSubpathSchemaBase = z.object({
     .optional()
     .describe("Number of labels (omit for rest of path)"),
   len: z.number().optional().describe("Alias for length"),
+  end: z.number().optional().describe("End index (calculates length)"),
 });
 
 /**
