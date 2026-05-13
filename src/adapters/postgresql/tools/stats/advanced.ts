@@ -76,7 +76,7 @@ export function createStatsTopNTool(adapter: PostgresAdapter): ToolDefinition {
         const parsed = StatsTopNSchema.parse(params) as {
           table: string;
           column: string;
-          n?: number;
+          n?: number | string;
           direction?: "asc" | "desc";
           selectColumns?: string[];
           schema?: string;
@@ -84,8 +84,8 @@ export function createStatsTopNTool(adapter: PostgresAdapter): ToolDefinition {
         };
 
         const { table, column, schema, where, selectColumns } = parsed;
-        const n =
-          parsed.n === undefined || Number.isNaN(parsed.n) ? 10 : parsed.n;
+        const nRaw = parsed.n !== undefined ? Number(parsed.n) : 10;
+        const n = Number.isNaN(nRaw) ? 10 : nRaw;
         if (n <= 0) {
           throw new ValidationError("Parameter 'n' must be greater than 0.");
         }
@@ -196,14 +196,12 @@ export function createStatsDistinctTool(
           column: string;
           schema?: string;
           where?: string;
-          limit?: number;
+          limit?: number | string;
         };
 
         const { table, column, schema, where } = parsed;
-        const limit =
-          parsed.limit === undefined || Number.isNaN(parsed.limit)
-            ? 100
-            : parsed.limit;
+        const limitRaw = parsed.limit !== undefined ? Number(parsed.limit) : 100;
+        const limit = Number.isNaN(limitRaw) ? 100 : limitRaw;
         if (limit <= 0) {
           throw new ValidationError(
             "Parameter 'limit' must be greater than 0.",
@@ -275,14 +273,12 @@ export function createStatsFrequencyTool(
           column: string;
           schema?: string;
           where?: string;
-          limit?: number;
+          limit?: number | string;
         };
 
         const { table, column, schema, where } = parsed;
-        const limit =
-          parsed.limit === undefined || Number.isNaN(parsed.limit)
-            ? 20
-            : parsed.limit;
+        const limitRaw = parsed.limit !== undefined ? Number(parsed.limit) : 20;
+        const limit = Number.isNaN(limitRaw) ? 20 : limitRaw;
         if (limit <= 0) {
           throw new ValidationError(
             "Parameter 'limit' must be greater than 0.",
