@@ -233,6 +233,13 @@ export function createRoleGrantTool(
         }
 
         // Validate privileges
+        if (parsed.privileges.length === 0) {
+          return formatHandlerErrorResponse(
+            new ValidationError("At least one privilege must be specified"),
+            { tool: "pg_role_grant" },
+          );
+        }
+
         const privCheck = validatePrivileges(parsed.privileges);
         if (!privCheck.valid) {
           return formatHandlerErrorResponse(
