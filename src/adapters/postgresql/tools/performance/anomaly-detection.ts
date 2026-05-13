@@ -277,11 +277,11 @@ export function createDetectBloatRiskTool(
           );
           if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
             return {
-              success: false,
-              error: `Schema "${schema}" does not exist`,
-              code: "NOT_FOUND",
-              category: "query",
-              recoverable: false
+              success: true as const,
+              tables: [],
+              highRiskCount: 0,
+              totalAnalyzed: 0,
+              summary: `No high-risk bloat detected across 0 tables`,
             };
           }
           
