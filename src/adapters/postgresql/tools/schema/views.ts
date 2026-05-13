@@ -66,9 +66,9 @@ export function createListViewsTool(adapter: PostgresAdapter): ToolDefinition {
         const kindClause =
           parsed.includeMaterialized !== false ? "IN ('v', 'm')" : "= 'v'";
 
-        // Default truncation: 500 chars, 0 = no truncation (safe coercion)
+        // Default truncation: 100 chars, 0 = no truncation (safe coercion)
         const rawTruncate = Number(parsed.truncateDefinition);
-        const truncateLimit = Number.isFinite(rawTruncate) ? rawTruncate : 500;
+        const truncateLimit = Number.isFinite(rawTruncate) ? rawTruncate : 100;
 
         // Default limit: 50, 0 = no limit (safe coercion)
         const rawLimit = Number(parsed.limit);

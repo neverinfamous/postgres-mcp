@@ -367,7 +367,7 @@ export const ListViewsSchemaBase = z.object({
     .unknown()
     .optional()
     .describe(
-      "Max length for view definitions (number, default: 500). Use 0 for no truncation.",
+      "Max length for view definitions (number, default: 100). Use 0 for no truncation.",
     ),
   limit: z
     .unknown()
