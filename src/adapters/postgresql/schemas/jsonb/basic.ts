@@ -167,6 +167,9 @@ const JsonbContainsSchemaRefined = JsonbContainsSchemaBase.extend({
   })
   .refine((data) => data.column !== undefined || data.col !== undefined, {
     message: "Either 'column' or 'col' is required",
+  })
+  .refine((data) => data.value !== undefined || data.contains !== undefined, {
+    message: "Either 'value' or 'contains' is required",
   });
 
 // Full schema with preprocess (for handler parsing)

@@ -92,6 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Admin Tools**: Fixed parameter alias resolution in `pg_set_config` where the `setting` alias was incorrectly mapping to `name` instead of `value`.
 - **Docstore Tools**: Fixed a Split Schema validation leak in `pg_doc_create_index` and `pg_doc_find` where passing the `fields` parameter as a comma-separated string or an array of strings (instead of an array of objects) triggered raw `-32602` Zod errors by adding robust string mapping to the preprocessing layer.
 - **Testing**: Fixed a fragile E2E test in `codemode-worker.spec.ts` that intermittently failed because it strictly checked for `"timed out"` without accounting for the exact `"Worker exited with code 1"` behavior from the Node worker thread limits.
+- **JSONB Tools**: Added missing refine check to enforce the presence of either `value` or `contains` parameter in `pg_jsonb_contains`, preventing silent `NULL` containment matching when parameters are omitted.
 ### Security
 
 - **Dependencies**: Bumped `hono` to `4.12.18` (HTML Injection), `ip-address` to `10.2.0` (XSS), and `fast-uri` to `3.1.2` (Path Traversal) via package overrides.
