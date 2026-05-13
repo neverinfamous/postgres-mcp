@@ -78,11 +78,26 @@ export const MaskDataSchemaBase = z.object({
     .string()
     .default("*")
     .describe("Character to use for masking"),
-});
+}).partial();
 
 export const MaskDataSchema = z.preprocess(
   defaultToEmpty,
-  MaskDataSchemaBase,
+  z.object({
+    value: z.string().describe("Value to mask"),
+    type: z.string().describe("Masking type (email, phone, ssn, credit_card, partial)"),
+    keepFirst: z
+      .number()
+      .default(0)
+      .describe("Characters to keep from start (partial type)"),
+    keepLast: z
+      .number()
+      .default(0)
+      .describe("Characters to keep from end (partial type)"),
+    maskChar: z
+      .string()
+      .default("*")
+      .describe("Character to use for masking"),
+  })
 );
 
 /**
@@ -179,11 +194,13 @@ export const EncryptionStatusSchema = z.preprocess(
  */
 export const PasswordValidateSchemaBase = z.object({
   password: z.string().describe("Password to validate"),
-});
+}).partial();
 
 export const PasswordValidateSchema = z.preprocess(
   defaultToEmpty,
-  PasswordValidateSchemaBase,
+  z.object({
+    password: z.string().describe("Password to validate"),
+  })
 );
 
 // =============================================================================
