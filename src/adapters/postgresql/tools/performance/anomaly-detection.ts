@@ -278,20 +278,6 @@ export function createDetectBloatRiskTool(
         if (schema) {
           validateIdentifier(schema);
           
-          const schemaCheck = await adapter.executeQuery(
-            `SELECT 1 FROM pg_namespace WHERE nspname = $1`,
-            [schema]
-          );
-          if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
-            return {
-              success: false,
-              error: `Schema '${schema}' not found. Use pg_list_tables to see available schemas.`,
-              code: "SCHEMA_NOT_FOUND",
-              category: "resource",
-              recoverable: false,
-            };
-          }
-          
           schemaFilter = `AND schemaname = '${schema}'`;
         } else {
           schemaFilter = `AND schemaname NOT IN ('pg_catalog', 'information_schema', 'cron', 'topology', 'tiger', 'tiger_data')`;
