@@ -17,29 +17,29 @@ import { z } from "zod";
  */
 export const KcacheQueryStatsSchema = z.object({
   limit: z
-    .number()
+    .unknown()
     .optional()
     .describe(
       "Maximum number of queries to return (default: 5, min: 1, max: 100).",
     ),
   orderBy: z
-    .string()
+    .unknown()
     .optional()
     .describe(
       "Order results by metric (default: total_time). Valid: total_time, cpu_time, reads, writes",
     ),
   minCalls: z
-    .number()
+    .unknown()
     .optional()
     .describe("Minimum call count to include"),
   queryPreviewLength: z
-    .number()
+    .unknown()
     .optional()
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
     ),
   compact: z
-    .boolean()
+    .unknown()
     .optional()
     .describe("If true, omits 0/empty fields to save output tokens"),
 });
@@ -50,19 +50,19 @@ export const KcacheQueryStatsSchema = z.object({
  */
 export const KcacheTopCpuSchema = z.object({
   limit: z
-    .number()
+    .unknown()
     .optional()
     .describe(
       "Number of top queries to return (default: 5, min: 1, max: 100).",
     ),
   queryPreviewLength: z
-    .number()
+    .unknown()
     .optional()
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
     ),
   compact: z
-    .boolean()
+    .unknown()
     .optional()
     .describe("If true, omits 0/empty fields to save output tokens"),
 });
@@ -72,22 +72,22 @@ export const KcacheTopCpuSchema = z.object({
  * Base schema for MCP visibility - pg_kcache_top_io parameters.
  */
 export const KcacheTopIoSchema = z.object({
-  type: z.string().optional().describe("I/O type to rank by (default: both)"),
-  ioType: z.string().optional().describe("Alias for type"),
+  type: z.unknown().optional().describe("I/O type to rank by (default: both)"),
+  ioType: z.unknown().optional().describe("Alias for type"),
   limit: z
-    .number()
+    .unknown()
     .optional()
     .describe(
       "Number of top queries to return (default: 5, min: 1, max: 100).",
     ),
   queryPreviewLength: z
-    .number()
+    .unknown()
     .optional()
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
     ),
   compact: z
-    .boolean()
+    .unknown()
     .optional()
     .describe("If true, omits 0/empty fields to save output tokens"),
 });
@@ -98,11 +98,11 @@ export const KcacheTopIoSchema = z.object({
  */
 export const KcacheDatabaseStatsSchema = z.object({
   database: z
-    .string()
+    .unknown()
     .optional()
     .describe("Database name (all databases if omitted)"),
   compact: z
-    .boolean()
+    .unknown()
     .optional()
     .describe("If true, omits 0/empty fields to save output tokens"),
 });
@@ -113,31 +113,31 @@ export const KcacheDatabaseStatsSchema = z.object({
  */
 export const KcacheResourceAnalysisSchema = z.object({
   queryId: z
-    .string()
+    .unknown()
     .optional()
     .describe("Specific query ID to analyze (all if omitted)"),
   threshold: z
-    .number()
+    .unknown()
     .optional()
     .describe("CPU/IO ratio threshold for classification (default: 0.5)"),
   limit: z
-    .number()
+    .unknown()
     .optional()
     .describe(
       "Maximum number of queries to return (default: 5, min: 1, max: 100).",
     ),
   minCalls: z
-    .number()
+    .unknown()
     .optional()
     .describe("Minimum call count to include"),
   queryPreviewLength: z
-    .number()
+    .unknown()
     .optional()
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
     ),
   compact: z
-    .boolean()
+    .unknown()
     .optional()
     .describe("If true, omits 0/empty fields to save output tokens"),
 });
