@@ -186,13 +186,16 @@ export function createSecurityUserPrivilegesTool(
     icons: getToolIcons("security", admin("User Privileges")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { user, includeRoles, summary, includeGrants } =
+        const { user, includeRoles, summary, includeGrants, limit } =
           UserPrivilegesSchema.parse(params) as {
             user?: string;
             includeRoles: boolean;
             summary: boolean;
             includeGrants: boolean;
+            limit?: number;
           };
+
+        const resultLimit = limit ?? 50;
 
         // P154: Validate role existence when explicitly provided
         if (user) {
@@ -235,7 +238,8 @@ export function createSecurityUserPrivilegesTool(
           // Exclude system roles for cleaner output
           rolesQuery += ` WHERE r.rolname NOT LIKE 'pg_%'`;
         }
-        rolesQuery += ` ORDER BY r.rolname`;
+        rolesQuery += ` ORDER BY r.rolname LIMIT $${String(queryParams.length + 1)}`;
+        queryParams.push(String(resultLimit));
 
         const rolesResult = await adapter.executeQuery(rolesQuery, queryParams);
 
@@ -340,11 +344,20 @@ export function createSecurityUserPrivilegesTool(
           }
         }
 
+        // Find out total available vs limited
+        let limited = false;
+        if (!user) {
+          const totalCountResult = await adapter.executeQuery(`SELECT count(*) as cnt FROM pg_roles WHERE rolname NOT LIKE 'pg_%'`);
+          const totalCount = Number(totalCountResult.rows?.[0]?.["cnt"] ?? 0);
+          limited = totalCount > resultLimit;
+        }
+
         return {
           success: true,
           users: userPrivileges,
           count: userPrivileges.length,
           summary,
+          ...(limited ? { limited: true } : {}),
         };
       } catch (err) {
         return formatHandlerErrorResponse(err, {

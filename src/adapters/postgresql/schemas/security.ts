@@ -119,6 +119,10 @@ export const UserPrivilegesSchemaBase = z.object({
     .boolean()
     .default(false)
     .describe("Include up to 100 object-level table grants per role"),
+  limit: z
+    .number()
+    .optional()
+    .describe("Maximum number of roles to return (default: 50)"),
 });
 
 export const UserPrivilegesSchema = z.preprocess(
@@ -316,6 +320,7 @@ export const UserPrivilegesOutputSchema = z
       .optional()
       .describe("User privilege details"),
     count: z.number().optional().describe("Number of users returned"),
+    limited: z.boolean().optional().describe("Whether results were truncated"),
     summary: z.boolean().optional().describe("Whether summary mode was used"),
     success: z.boolean().optional().describe("Whether operation succeeded"),
     error: z.string().optional().describe("Error message if failed"),
