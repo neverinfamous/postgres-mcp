@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **JSONB Tools**: Refactored raw `json` parameter coercion to elegantly handle invalid parameter types.
 - **Backup Tools**: Fixed a spec compliance issue in `pg_audit_diff_backup` where the returned payload field was named `hasDifferences` instead of `hasDrift`.
 - **Backup Tools**: Fixed `pg_dump_schema` and `pg_copy_import` to strictly verify table and schema object existence prior to command generation, complying with P154 standards.
+- **Backup Tools**: Fixed a framework-level Zod validation leak in `pg_backup_schedule_optimize` caused by `.strict()` which resulted in raw `-32602` MCP errors on unknown parameters.
 - Fixed Zod validation error messages in `DropSchemaSchema`, `DropSequenceSchema`, and `DropViewSchema` to correctly list available aliases instead of only 'name', improving split-schema compliance.
 - Fixed `pg_role_create` and `pg_role_drop` parameter mismatch (used `roleName` instead of `name` in output).
 - **Roles Tools**: Fixed Split Schema violation in `RoleGrantSchema` where `tableName` alias was not properly mapped to `table`.

@@ -222,7 +222,7 @@ export const RestoreValidateSchema = z.object({
     .describe("Backup type (pg_dump, pg_basebackup)"),
 });
 
-export const BackupScheduleOptimizeSchema = z.object({}).strict();
+export const BackupScheduleOptimizeSchema = z.object({});
 
 // ============================================================================
 // Output Schemas
