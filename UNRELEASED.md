@@ -89,6 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Stats Tools**: Fixed a parameter aliasing bug in `pg_stats_rank` code mode maps and server instructions where `rankType` was mistakenly documented instead of the parsed `method` alias.
 - **Stats Tools**: Fixed a Zod refinement leak across the entire tool group by strictly implementing the Split Schema pattern (migrating numeric parameters to `z.unknown().optional()`), ensuring wrong-type inputs bypass framework-level `-32602` exceptions and gracefully return structured handler validation errors.
 - **Stats Tools**: Fixed a numeric coercion bug in `pg_stats_top_n`, `pg_stats_distinct`, and `pg_stats_frequency` where passing string inputs to optional numeric parameters (`n`, `limit`) resolved to `NaN` and generated invalid `LIMIT NaN` SQL queries, bypassing PostgreSQL column resolution.
+- **Admin Tools**: Fixed parameter alias resolution in `pg_set_config` where the `setting` alias was incorrectly mapping to `name` instead of `value`.
 ### Security
 
 - **Dependencies**: Bumped `hono` to `4.12.18` (HTML Injection), `ip-address` to `10.2.0` (XSS), and `fast-uri` to `3.1.2` (Path Traversal) via package overrides.

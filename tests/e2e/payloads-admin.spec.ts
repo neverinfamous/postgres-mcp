@@ -150,9 +150,9 @@ test.describe("Payload Contracts: Admin + Monitoring", () => {
 
   test("pg_set_config returns { success }", async () => {
     const payload = await callToolAndParse(client, "pg_set_config", {
-      setting: "work_mem",
+      name: "work_mem",
       value: "4MB",
-      local: true,
+      isLocal: true,
     });
     expectSuccess(payload);
     expect(payload.success).toBe(true);

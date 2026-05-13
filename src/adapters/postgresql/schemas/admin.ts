@@ -275,8 +275,8 @@ function preprocessSetConfigParams(input: unknown): unknown {
   if (result["param"] !== undefined && result["name"] === undefined) {
     result["name"] = result["param"];
   }
-  if (result["setting"] !== undefined && result["name"] === undefined) {
-    result["name"] = result["setting"];
+  if (result["setting"] !== undefined && result["value"] === undefined) {
+    result["value"] = result["setting"];
   }
   return result;
 }
@@ -285,7 +285,7 @@ function preprocessSetConfigParams(input: unknown): unknown {
 export const SetConfigSchemaBase = z.object({
   name: z.string().optional().describe("Configuration parameter name"),
   param: z.string().optional().describe("Alias for name"),
-  setting: z.string().optional().describe("Alias for name"),
+  setting: z.string().optional().describe("Alias for value"),
   value: z.string().optional().describe("New value"),
   isLocal: z.boolean().optional().describe("Apply only to current transaction"),
 });
