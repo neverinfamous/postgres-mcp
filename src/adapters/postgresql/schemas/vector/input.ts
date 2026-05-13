@@ -39,7 +39,7 @@ export const VectorSearchSchemaBase = z.object({
   vector: FiniteNumberArray.optional().describe("Query vector"),
   queryVector: FiniteNumberArray.optional().describe("Alias for vector"),
   metric: z
-    .enum(["l2", "cosine", "inner_product"])
+    .string()
     .optional()
     .describe("Distance metric"),
   limit: z.unknown().optional().describe("Number of results"),
@@ -121,10 +121,10 @@ export const VectorCreateIndexSchemaBase = z.object({
   tableName: z.string().optional().describe("Alias for table"),
   column: z.string().optional().describe("Vector column name"),
   col: z.string().optional().describe("Alias for column"),
-  type: z.enum(["ivfflat", "hnsw"]).optional().describe("Index type"),
-  method: z.enum(["ivfflat", "hnsw"]).optional().describe("Alias for type"),
+  type: z.string().optional().describe("Index type"),
+  method: z.string().optional().describe("Alias for type"),
   metric: z
-    .enum(["l2", "cosine", "inner_product"])
+    .string()
     .optional()
     .describe("Distance metric (default: l2)"),
   distanceMetric: z.string().optional().describe("Alias for metric"),
