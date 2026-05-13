@@ -139,7 +139,10 @@ export const FindSchema = z.object({
   collection: z.string(),
   schema: z.string().optional(),
   filter: z.preprocess((val) => (typeof val === "object" && val !== null ? JSON.stringify(val) : val), z.string().optional()),
-  fields: z.array(z.string()).optional(),
+  fields: z.preprocess((val) => {
+    if (typeof val === "string") return val.split(",").map((s) => s.trim());
+    return val;
+  }, z.array(z.string()).optional()),
   limit: z.preprocess((val) => (val !== undefined ? Number(val) : 50), z.number().default(50)),
   offset: z.preprocess((val) => (val !== undefined ? Number(val) : 0), z.number().default(0)),
 });
@@ -238,6 +241,17 @@ export const CreateDocIndexSchema = z.preprocess(
       // Map 'field' to 'fields' array if 'fields' is missing
       if (processed["fields"] === undefined && typeof processed["field"] === "string") {
         processed["fields"] = [{ path: processed["field"], type: "TEXT" }];
+      } else if (typeof processed["fields"] === "string") {
+        // Handle comma-separated string for fields
+        processed["fields"] = processed["fields"]
+          .split(",")
+          .map((s) => ({ path: s.trim(), type: "TEXT" }));
+      } else if (Array.isArray(processed["fields"])) {
+        // Handle array of strings for fields
+        processed["fields"] = processed["fields"].map((f: unknown) => {
+          if (typeof f === "string") return { path: f, type: "TEXT" };
+          return f;
+        });
       }
       // Auto-generate name if missing, using collection and the first field
       if (

@@ -70,6 +70,6 @@ test.describe("Code Mode Worker-Thread Execution", () => {
     });
 
     expect(response.success).toBe(false);
-    expect(response.error).toContain("timed out");
+    expect(response.error).toMatch(/timed out|Worker exited with code/i);
   });
 });

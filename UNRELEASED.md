@@ -90,6 +90,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Stats Tools**: Fixed a Zod refinement leak across the entire tool group by strictly implementing the Split Schema pattern (migrating numeric parameters to `z.unknown().optional()`), ensuring wrong-type inputs bypass framework-level `-32602` exceptions and gracefully return structured handler validation errors.
 - **Stats Tools**: Fixed a numeric coercion bug in `pg_stats_top_n`, `pg_stats_distinct`, and `pg_stats_frequency` where passing string inputs to optional numeric parameters (`n`, `limit`) resolved to `NaN` and generated invalid `LIMIT NaN` SQL queries, bypassing PostgreSQL column resolution.
 - **Admin Tools**: Fixed parameter alias resolution in `pg_set_config` where the `setting` alias was incorrectly mapping to `name` instead of `value`.
+- **Docstore Tools**: Fixed a Split Schema validation leak in `pg_doc_create_index` and `pg_doc_find` where passing the `fields` parameter as a comma-separated string or an array of strings (instead of an array of objects) triggered raw `-32602` Zod errors by adding robust string mapping to the preprocessing layer.
+- **Testing**: Fixed a fragile E2E test in `codemode-worker.spec.ts` that intermittently failed because it strictly checked for `"timed out"` without accounting for the exact `"Worker exited with code 1"` behavior from the Node worker thread limits.
 ### Security
 
 - **Dependencies**: Bumped `hono` to `4.12.18` (HTML Injection), `ip-address` to `10.2.0` (XSS), and `fast-uri` to `3.1.2` (Path Traversal) via package overrides.
