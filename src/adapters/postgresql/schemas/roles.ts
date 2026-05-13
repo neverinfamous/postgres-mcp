@@ -233,6 +233,10 @@ export const RoleRevokeSchemaBase = z.object({
     .string()
     .optional()
     .describe("Table name for object-level privilege revocation"),
+  tableName: z
+    .string()
+    .optional()
+    .describe("Alias for table"),
   objectType: z
     .string()
     .optional()
@@ -247,6 +251,7 @@ export const RoleRevokeSchema = z.preprocess((val: unknown) => {
   return {
     ...obj,
     user: obj['user'] ?? obj['member'],
+    table: obj['table'] ?? obj['tableName'],
   };
 }, RoleRevokeSchemaBase);
 
