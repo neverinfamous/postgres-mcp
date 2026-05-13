@@ -99,7 +99,7 @@ export function createRoleGrantsTool(
     description:
       "Show privileges and memberships for a PostgreSQL role. Includes role attributes, membership in other roles, and optionally table-level grants.",
     group: "roles",
-    inputSchema: RoleGrantsSchemaBase,
+    inputSchema: RoleGrantsSchemaBase.partial(),
     outputSchema: RoleGrantsOutputSchema,
     annotations: readOnly("Role Grants"),
     icons: getToolIcons("roles", readOnly("Role Grants")),
@@ -194,7 +194,7 @@ export function createRoleGrantTool(
     description:
       "Grant privileges (SELECT, INSERT, UPDATE, DELETE, ALL, etc.) on tables, schemas, sequences, or functions to a PostgreSQL role.",
     group: "roles",
-    inputSchema: RoleGrantSchemaBase,
+    inputSchema: RoleGrantSchemaBase.partial(),
     outputSchema: RoleGrantOutputSchema,
     annotations: admin("Grant Privileges"),
     icons: getToolIcons("roles", admin("Grant Privileges")),
@@ -352,7 +352,7 @@ export function createRoleAssignTool(
     description:
       "Assign (grant) a role to a user/role, establishing role membership. Optionally with ADMIN OPTION to allow re-granting.",
     group: "roles",
-    inputSchema: RoleAssignSchemaBase,
+    inputSchema: RoleAssignSchemaBase.partial(),
     outputSchema: RoleAssignOutputSchema,
     annotations: admin("Assign Role"),
     icons: getToolIcons("roles", admin("Assign Role")),
@@ -443,7 +443,7 @@ export function createRoleRevokeTool(
     description:
       "Revoke role membership from a user, or revoke specific privileges on objects from a role. For membership: provide role + user. For privileges: provide role + privileges + table/schema.",
     group: "roles",
-    inputSchema: RoleRevokeSchemaBase,
+    inputSchema: RoleRevokeSchemaBase.partial(),
     outputSchema: RoleRevokeOutputSchema,
     annotations: admin("Revoke Role/Privileges"),
     icons: getToolIcons("roles", admin("Revoke Role/Privileges")),

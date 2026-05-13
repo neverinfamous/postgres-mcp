@@ -68,7 +68,7 @@ export function createUserRolesTool(
     description:
       "List all roles assigned to a user/role, including admin option and SET option (PG 16+).",
     group: "roles",
-    inputSchema: UserRolesSchemaBase,
+    inputSchema: UserRolesSchemaBase.partial(),
     outputSchema: UserRolesOutputSchema,
     annotations: readOnly("User Roles"),
     icons: getToolIcons("roles", readOnly("User Roles")),
@@ -168,7 +168,7 @@ export function createRoleSetTool(
     description:
       "Set the session's active role using SET ROLE, or reset to the original session role with RESET ROLE. Session-scoped and reversible.",
     group: "roles",
-    inputSchema: RoleSetSchemaBase,
+    inputSchema: RoleSetSchemaBase.partial(),
     outputSchema: RoleSetOutputSchema,
     annotations: admin("Set Role"),
     icons: getToolIcons("roles", admin("Set Role")),
@@ -263,7 +263,7 @@ export function createRoleRlsEnableTool(
     description:
       "Enable or disable row-level security (RLS) on a table. Optionally use FORCE to apply RLS even to the table owner.",
     group: "roles",
-    inputSchema: RoleRlsEnableSchemaBase,
+    inputSchema: RoleRlsEnableSchemaBase.partial(),
     outputSchema: RoleRlsEnableOutputSchema,
     annotations: admin("RLS Enable/Disable"),
     icons: getToolIcons("roles", admin("RLS Enable/Disable")),
@@ -378,7 +378,7 @@ export function createRoleRlsPoliciesTool(
     description:
       "List row-level security (RLS) policies for a table or all tables in a schema. Shows policy name, command, roles, USING/WITH CHECK expressions, and permissive/restrictive type.",
     group: "roles",
-    inputSchema: RoleRlsPoliciesSchemaBase,
+    inputSchema: RoleRlsPoliciesSchemaBase.partial(),
     outputSchema: RoleRlsPoliciesOutputSchema,
     annotations: readOnly("RLS Policies"),
     icons: getToolIcons("roles", readOnly("RLS Policies")),

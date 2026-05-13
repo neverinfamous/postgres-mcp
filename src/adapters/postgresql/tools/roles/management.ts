@@ -65,7 +65,7 @@ export function createRoleListTool(adapter: PostgresAdapter): ToolDefinition {
     description:
       "List PostgreSQL roles with attributes (login, superuser, createdb, etc.) and optional name filtering.",
     group: "roles",
-    inputSchema: RoleListSchemaBase,
+    inputSchema: RoleListSchemaBase.partial(),
     outputSchema: RoleListOutputSchema,
     annotations: readOnly("List Roles"),
     icons: getToolIcons("roles", readOnly("List Roles")),
@@ -155,7 +155,7 @@ export function createRoleCreateTool(adapter: PostgresAdapter): ToolDefinition {
     description:
       "Create a new PostgreSQL role with optional attributes (LOGIN, PASSWORD, SUPERUSER, CREATEDB, CREATEROLE, REPLICATION, BYPASSRLS, CONNECTION LIMIT, VALID UNTIL).",
     group: "roles",
-    inputSchema: RoleCreateSchemaBase,
+    inputSchema: RoleCreateSchemaBase.partial(),
     outputSchema: RoleCreateOutputSchema,
     annotations: admin("Create Role"),
     icons: getToolIcons("roles", admin("Create Role")),
@@ -285,7 +285,7 @@ export function createRoleDropTool(adapter: PostgresAdapter): ToolDefinition {
     description:
       "Drop a PostgreSQL role. Use ifExists (default: true) to skip gracefully if the role does not exist.",
     group: "roles",
-    inputSchema: RoleDropSchemaBase,
+    inputSchema: RoleDropSchemaBase.partial(),
     outputSchema: RoleDropOutputSchema,
     annotations: destructive("Drop Role"),
     icons: getToolIcons("roles", destructive("Drop Role")),
@@ -355,7 +355,7 @@ export function createRoleAttributesTool(
     description:
       "Get detailed attributes for a PostgreSQL role: login, superuser, createdb, createrole, replication, bypassrls, inherit, connection limit, expiration, and OID.",
     group: "roles",
-    inputSchema: RoleAttributesSchemaBase,
+    inputSchema: RoleAttributesSchemaBase.partial(),
     outputSchema: RoleAttributesOutputSchema,
     annotations: readOnly("Role Attributes"),
     icons: getToolIcons("roles", readOnly("Role Attributes")),

@@ -145,6 +145,10 @@ export const RoleGrantSchemaBase = z.object({
     .describe(
       "Table name or '*' for all tables in schema. Omit for schema-level grants.",
     ),
+  tableName: z
+    .string()
+    .optional()
+    .describe("Alias for table"),
   objectType: z
     .string()
     .optional()
@@ -172,6 +176,7 @@ export const RoleGrantSchema = z.preprocess((val: unknown) => {
 export const RoleAssignSchemaBase = z.object({
   role: z.string().describe("Role to grant (the membership)"),
   user: z.string().describe("User/role that receives the membership"),
+  member: z.string().optional().describe("Alias for user"),
   withAdminOption: z
     .boolean()
     .optional()
@@ -210,6 +215,10 @@ export const RoleRevokeSchemaBase = z.object({
     .describe(
       "User/role to revoke from (for membership revocation). Required when revoking role membership.",
     ),
+  member: z
+    .string()
+    .optional()
+    .describe("Alias for user"),
   privileges: z
     .array(z.string())
     .optional()
@@ -246,6 +255,7 @@ export const RoleRevokeSchema = z.preprocess((val: unknown) => {
  */
 export const UserRolesSchemaBase = z.object({
   user: z.string().describe("User/role name to inspect"),
+  role: z.string().optional().describe("Alias for user"),
 });
 
 export const UserRolesSchema = z.preprocess((val: unknown) => {
