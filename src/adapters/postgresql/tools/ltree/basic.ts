@@ -306,6 +306,9 @@ function createLtreeLcaTool(adapter: PostgresAdapter): ToolDefinition {
         // (Postgres lca() natively returns the parent if given identical paths)
         const allIdentical = paths.every((p) => p === paths[0]);
         if (allIdentical) {
+          // Validate syntax by casting to ltree
+          await adapter.executeQuery(`SELECT $1::ltree`, [paths[0]]);
+          
           return {
             success: true,
             paths,
