@@ -449,7 +449,33 @@ export function createVectorPerformanceTool(
                     ORDER BY ${columnName} <-> '${vectorStr}'::vector
                     LIMIT 10
                 `;
-          const benchResult = await adapter.executeQuery(benchSql);
+          let benchResult;
+          try {
+            benchResult = await adapter.executeQuery(benchSql);
+          } catch (error: unknown) {
+            if (error instanceof Error) {
+              const dimMatch = /different vector dimensions (\d+) and (\d+)/.exec(
+                error.message,
+              );
+              if (dimMatch) {
+                const dim1 = parseInt(dimMatch[1] ?? "0", 10);
+                const dim2 = parseInt(dimMatch[2] ?? "0", 10);
+                const providedDim = testVector.length;
+                const expectedDim = dim1 === providedDim ? dim2 : dim1;
+                return {
+                  success: false,
+                  error: `Vector dimension mismatch: column expects ${String(expectedDim)} dimensions, but you provided ${String(providedDim)} dimensions.`,
+                  code: "DIMENSION_MISMATCH",
+                  category: "query",
+                  expectedDimensions: expectedDim,
+                  providedDimensions: providedDim,
+                  suggestion:
+                    "Ensure your test vector has the same dimensions as the column.",
+                };
+              }
+            }
+            throw error;
+          }
 
           // Truncate large vectors in EXPLAIN output to reduce payload size
           // Pattern matches vector literals like '[0.1,0.2,...,0.9]'::vector
