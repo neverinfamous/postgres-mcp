@@ -134,8 +134,19 @@ export function createVectorSearchTool(
           case "inner_product":
             distanceExpr = `${columnName} <#>'${vectorStr}'`;
             break;
-          default: // l2
+          case "l2":
+          case undefined:
+          case null:
             distanceExpr = `${columnName} <-> '${vectorStr}'`;
+            break;
+          default:
+            return {
+              success: false,
+              error: `Validation error: Invalid metric '${metric}'`,
+              code: "VALIDATION_ERROR",
+              category: "validation",
+              suggestion: "Metric must be one of: 'l2', 'cosine', 'inner_product'",
+            };
         }
 
         // Query limitVal + 1 to detect if there are more rows than requested
@@ -288,6 +299,26 @@ export function createVectorCreateIndexTool(
         // Refine guarantees type is defined, but TypeScript can't narrow through .refine()
         if (type === undefined) {
           throw new ValidationError("type (or method alias) is required");
+        }
+        
+        if (type !== "ivfflat" && type !== "hnsw") {
+          return {
+            success: false,
+            error: `Validation error: Invalid index type '${type}'`,
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            suggestion: "Index type must be one of: 'ivfflat', 'hnsw'",
+          };
+        }
+        
+        if (metric !== undefined && metric !== "l2" && metric !== "cosine" && metric !== "inner_product") {
+          return {
+            success: false,
+            error: `Validation error: Invalid distance metric '${metric}'`,
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            suggestion: "Metric must be one of: 'l2', 'cosine', 'inner_product'",
+          };
         }
 
         // P154: Verify table and column exist before attempting index creation

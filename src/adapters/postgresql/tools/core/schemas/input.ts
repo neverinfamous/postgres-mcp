@@ -63,19 +63,27 @@ export const ListObjectsSchemaBase = z.object({
     .optional()
     .describe("Alias for types (singular or array)"),
   limit: z
-    .number()
+    .unknown()
     .optional()
     .describe("Maximum number of objects to return (default: 20)"),
   exclude: z
-    .array(z.string())
+    .unknown()
     .optional()
     .describe("Schemas to exclude"),
+});
+
+const ListObjectsParseSchema = z.object({
+  schema: z.string().optional(),
+  types: z.array(z.string()).optional(),
+  type: z.union([z.string(), z.array(z.string())]).optional(),
+  limit: z.number().optional(),
+  exclude: z.array(z.string()).optional(),
 });
 
 // Transformed schema with preprocess for handler parsing
 export const ListObjectsSchema = z.preprocess(
   preprocessListObjectsParams,
-  ListObjectsSchemaBase,
+  ListObjectsParseSchema,
 );
 
 // Inner schema for ObjectDetails (used by preprocess and as base for MCP visibility)
@@ -163,41 +171,53 @@ export const ObjectDetailsSchema = z
 
 export const AnalyzeDbHealthSchemaBase = z.object({
   includeIndexes: z
-    .boolean()
+    .unknown()
     .optional()
     .describe("Include unused indexes analysis (default: true)"),
   includeVacuum: z
-    .boolean()
+    .unknown()
     .optional()
     .describe("Include tables needing vacuum analysis (default: true)"),
   includeConnections: z
-    .boolean()
+    .unknown()
     .optional()
     .describe("Include connection stats (default: true)"),
 });
 
+const AnalyzeDbHealthParseSchema = z.object({
+  includeIndexes: z.boolean().optional(),
+  includeVacuum: z.boolean().optional(),
+  includeConnections: z.boolean().optional(),
+});
+
 export const AnalyzeDbHealthSchema = z.preprocess(
   defaultToEmpty,
-  AnalyzeDbHealthSchemaBase,
+  AnalyzeDbHealthParseSchema,
 );
 
 export const AnalyzeWorkloadIndexesSchemaBase = z.object({
   topQueries: z
-    .number()
+    .unknown()
     .optional()
     .describe("Number of top queries to analyze (default: 20)"),
-  minCalls: z.number().optional().describe("Minimum call count threshold"),
+  minCalls: z.unknown().optional().describe("Minimum call count threshold"),
   queryPreviewLength: z
-    .number()
+    .unknown()
     .optional()
     .describe(
       "Maximum characters for query preview (default: 200). Truncated queries end with '…'",
     ),
 });
 
+const AnalyzeWorkloadIndexesParseSchema = z.object({
+  topQueries: z.number().optional(),
+  minCalls: z.number().optional(),
+  queryPreviewLength: z.number().optional(),
+});
+
 export const AnalyzeWorkloadIndexesSchema = z.preprocess(
   defaultToEmpty,
-  AnalyzeWorkloadIndexesSchemaBase,
+  AnalyzeWorkloadIndexesParseSchema,
 );
 
 // Base schema for MCP visibility - exported so tool can use it for inputSchema
@@ -207,7 +227,7 @@ export const AnalyzeQueryIndexesSchemaBase = z.object({
     .optional()
     .describe("Query to analyze for index recommendations"),
   query: z.string().optional().describe("Alias for sql"),
-  params: z.array(z.unknown()).optional().describe("Query parameters"),
+  params: z.unknown().optional().describe("Query parameters"),
   verbosity: z
     .string()
     .optional()
@@ -216,9 +236,16 @@ export const AnalyzeQueryIndexesSchemaBase = z.object({
     ),
 });
 
+const AnalyzeQueryIndexesParseSchema = z.object({
+  sql: z.string().optional(),
+  query: z.string().optional(),
+  params: z.array(z.unknown()).optional(),
+  verbosity: z.string().optional(),
+});
+
 // Transformed schema with alias resolution
 export const AnalyzeQueryIndexesSchema =
-  AnalyzeQueryIndexesSchemaBase.transform((data) => ({
+  AnalyzeQueryIndexesParseSchema.transform((data) => ({
     sql: data.sql ?? data.query ?? "",
     params: data.params,
     verbosity: data.verbosity ?? "summary",

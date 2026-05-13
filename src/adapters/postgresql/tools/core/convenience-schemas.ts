@@ -268,7 +268,7 @@ export const CountSchemaBase = z.object({
     .optional()
     .describe("WHERE clause (supports $1, $2 placeholders)"),
   params: z
-    .array(z.unknown())
+    .unknown()
     .optional()
     .describe("Parameters for WHERE clause placeholders"),
   condition: z.string().optional().describe("Alias for where"),
@@ -354,7 +354,7 @@ export const ExistsSchemaBase = z.object({
     .optional()
     .describe("WHERE clause (supports $1, $2 placeholders)"),
   params: z
-    .array(z.unknown())
+    .unknown()
     .optional()
     .describe("Parameters for WHERE clause placeholders"),
   condition: z.string().optional().describe("Alias for where"),
@@ -425,11 +425,11 @@ export const TruncateSchemaBase = z.object({
   tableName: z.string().optional().describe("Alias for table"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   cascade: z
-    .boolean()
+    .unknown()
     .optional()
     .describe("Use CASCADE to truncate dependent tables"),
   restartIdentity: z
-    .boolean()
+    .unknown()
     .optional()
     .describe("Restart identity sequences"),
 });
@@ -443,11 +443,11 @@ const TruncateParseSchema = z.object({
   tableName: z.string().optional().describe("Alias for table"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   cascade: z
-    .boolean()
+    .unknown()
     .optional()
     .describe("Use CASCADE to truncate dependent tables"),
   restartIdentity: z
-    .boolean()
+    .unknown()
     .optional()
     .describe("Restart identity sequences"),
 });
