@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dependencies**: Updated `typescript` (6.0.3), `eslint` (10.3.0), `jose` (6.2.3), `zod` (4.4.3), `@playwright/test` (1.60.0), `@types/node` (25.7.0), `vitest` and `@vitest/coverage-v8` (4.1.6), and `typescript-eslint` (8.59.3).
 - **Docker Dependencies**: Pinned transitive Dockerfile dependencies to address known CVEs: `diff` (9.0.0), `tar` (7.5.15), and `brace-expansion` (5.0.6).
 - **GitHub Actions**: Updated CI workflows to the latest tagged versions with strict SHA pinning.
+- **Performance Tools**: Added a `limit` parameter (default 20, max 100) to `pg_detect_query_anomalies` and enforced truncation within the SQL query to prevent excessive JSON token payload bloat when low z-score thresholds generate large result sets.
 - **Core Tools**: Lowered the default limit from 50 to 20 in `pg_list_objects` and `pg_list_tables` to improve LLM token efficiency.
 - **Introspection Tools**: Streamlined `pg_schema_snapshot` compact mode to default exclusively to tables, views, and indexes.
 - **Monitoring Tools**: Reduced the default limit from 50 to 15 in `pg_show_settings` to prevent unmanageable token payload bloat.

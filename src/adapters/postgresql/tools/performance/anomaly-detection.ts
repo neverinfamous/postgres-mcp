@@ -68,6 +68,10 @@ const QueryAnomaliesInputBase = z.object({
     .unknown()
     .optional()
     .describe("Minimum call count to filter noise (default: 10)"),
+  limit: z
+    .unknown()
+    .optional()
+    .describe("Max anomalies to return (default: 20, max: 50)"),
 });
 
 const QueryAnomaliesInput = z.preprocess(
@@ -78,6 +82,7 @@ const QueryAnomaliesInput = z.preprocess(
   z.object({
     threshold: z.preprocess(coerceNumber, z.number().optional()),
     minCalls: z.preprocess(coerceNumber, z.number().optional()),
+    limit: z.preprocess(coerceNumber, z.number().optional()),
   }),
 );
 
@@ -107,9 +112,11 @@ export function createDetectQueryAnomaliesTool(
 
         let threshold = parsed.data.threshold ?? 2.0;
         let minCalls = parsed.data.minCalls ?? 10;
+        let limit = parsed.data.limit ?? 20;
 
         threshold = Math.max(0.01, Math.min(100, threshold));
         minCalls = Math.max(1, Math.min(1000000, minCalls));
+        limit = Math.max(1, Math.min(100, limit));
 
         // Check if pg_stat_statements is available
         const extCheck = await adapter.executeQuery(
@@ -151,7 +158,7 @@ export function createDetectQueryAnomaliesTool(
             AND stddev_exec_time > 0
             AND mean_exec_time > (stddev_exec_time * ${String(threshold)})
           ORDER BY (mean_exec_time / NULLIF(stddev_exec_time, 0)) DESC
-          LIMIT 20
+          LIMIT ${String(limit)}
         `);
 
         const anomalies = (result.rows ?? []).map(
