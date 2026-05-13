@@ -156,18 +156,6 @@ export function createDocIndexTool(adapter: PostgresAdapter): ToolDefinition {
             tool: "pg_doc_create_index",
           });
         }
-        const message = err instanceof Error ? err.message : String(err);
-        if (
-          message.toLowerCase().includes("already exists") ||
-          message.toLowerCase().includes("duplicate")
-        ) {
-          return formatHandlerErrorResponse(
-            new Error(
-              `Index '${(params as { name?: string })?.name ?? "unknown"}' already exists on '${(params as { collection?: string })?.collection ?? "unknown"}'`,
-            ),
-            { tool: "pg_doc_create_index" },
-          );
-        }
         return formatHandlerErrorResponse(err, {
           tool: "pg_doc_create_index",
         });

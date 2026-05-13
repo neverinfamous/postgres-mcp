@@ -38,11 +38,11 @@ export const CreateCollectionSchemaBase = z.object({
   name: z.string().optional().describe("Collection name"),
   collection: z.string().optional().describe("Alias for name"),
   schema: z
-    .string()
+    .unknown()
     .optional()
     .describe("Schema to create in (defaults to current_schema())"),
   ifNotExists: z
-    .boolean()
+    .unknown()
     .optional()
     .describe("Skip without error if collection already exists (default: false)"),
 });
@@ -61,7 +61,7 @@ export const CreateCollectionSchema = z.preprocess(
   z.object({
     name: z.string().describe("Collection name"),
     schema: z.string().optional(),
-    ifNotExists: z.boolean().default(false),
+    ifNotExists: z.preprocess((val) => val === "true" || val === true, z.boolean().default(false)),
   })
 );
 
@@ -71,9 +71,9 @@ export const CreateCollectionSchema = z.preprocess(
 export const DropCollectionSchemaBase = z.object({
   name: z.string().optional().describe("Collection name to drop"),
   collection: z.string().optional().describe("Alias for name"),
-  schema: z.string().optional(),
+  schema: z.unknown().optional(),
   ifExists: z
-    .boolean()
+    .unknown()
     .optional()
     .describe("Skip without error if collection does not exist (default: false)"),
 });
@@ -92,7 +92,7 @@ export const DropCollectionSchema = z.preprocess(
   z.object({
     name: z.string(),
     schema: z.string().optional(),
-    ifExists: z.boolean().default(false),
+    ifExists: z.preprocess((val) => val === "true" || val === true, z.boolean().default(false)),
   })
 );
 
@@ -116,21 +116,21 @@ export const FindSchemaBase = z.object({
   collection: z.string().optional().describe("Collection name"),
   schema: z.string().optional(),
   filter: z
-    .union([z.string(), z.record(z.string(), z.unknown())])
+    .unknown()
     .optional()
     .describe(
       "Filter: _id value (32-char hex), field=value, JSON object filter ({\"field\":\"value\"}), or JSON path existence ($.field)",
     ),
   fields: z
-    .array(z.string())
+    .unknown()
     .optional()
     .describe("Fields to project (returns full doc if omitted)"),
   limit: z
-    .number()
+    .unknown()
     .optional()
     .describe("Maximum documents to return (default: 100)"),
   offset: z
-    .number()
+    .unknown()
     .optional()
     .describe("Number of documents to skip (default: 0)"),
 });
@@ -140,8 +140,8 @@ export const FindSchema = z.object({
   schema: z.string().optional(),
   filter: z.preprocess((val) => (typeof val === "object" && val !== null ? JSON.stringify(val) : val), z.string().optional()),
   fields: z.array(z.string()).optional(),
-  limit: z.number().default(50),
-  offset: z.number().default(0),
+  limit: z.preprocess((val) => (val !== undefined ? Number(val) : 50), z.number().default(50)),
+  offset: z.preprocess((val) => (val !== undefined ? Number(val) : 0), z.number().default(0)),
 });
 
 /**
@@ -149,9 +149,9 @@ export const FindSchema = z.object({
  */
 export const AddDocSchemaBase = z.object({
   collection: z.string().optional().describe("Collection name"),
-  schema: z.string().optional(),
+  schema: z.unknown().optional(),
   documents: z
-    .array(z.record(z.string(), z.unknown()))
+    .unknown()
     .optional()
     .describe("Documents to add"),
 });
@@ -169,17 +169,17 @@ export const ModifyDocSchemaBase = z.object({
   collection: z.string().optional().describe("Collection name"),
   schema: z.string().optional(),
   filter: z
-    .union([z.string(), z.record(z.string(), z.unknown())])
+    .unknown()
     .optional()
     .describe(
       "Filter: _id value (32-char hex), field=value, JSON object filter ({\"field\":\"value\"}), or JSON path existence ($.field)",
     ),
   set: z
-    .record(z.string(), z.unknown())
+    .unknown()
     .optional()
     .describe("Fields to set (key→value)"),
   unset: z
-    .array(z.string())
+    .unknown()
     .optional()
     .describe("Field names to remove from documents"),
 });
@@ -199,7 +199,7 @@ export const RemoveDocSchemaBase = z.object({
   collection: z.string().optional().describe("Collection name"),
   schema: z.string().optional(),
   filter: z
-    .union([z.string(), z.record(z.string(), z.unknown())])
+    .unknown()
     .optional()
     .describe(
       "Filter: _id value (32-char hex), field=value, JSON object filter ({\"field\":\"value\"}), or JSON path existence ($.field)",
@@ -218,22 +218,14 @@ export const RemoveDocSchema = z.object({
 export const CreateDocIndexSchemaBase = z.object({
   collection: z.string().optional().describe("Collection name"),
   schema: z.string().optional(),
-  name: z.string().optional().describe("Index name (generated if omitted)"),
+  name: z.unknown().optional().describe("Index name (generated if omitted)"),
   fields: z
-    .array(
-      z.object({
-        path: z.string().describe("JSON field path (e.g. 'name', 'address.city')"),
-        type: z
-          .enum(["TEXT", "INT", "DOUBLE", "DATE", "TIMESTAMP", "BOOLEAN"])
-          .optional()
-          .describe("Cast type for expression index (default: TEXT)"),
-      }),
-    )
+    .unknown()
     .optional()
     .describe("Fields to index"),
-  field: z.string().optional().describe("Alias for fields (single path string)"),
+  field: z.unknown().optional().describe("Alias for fields (single path string)"),
   unique: z
-    .boolean()
+    .unknown()
     .optional()
     .describe("Create a UNIQUE index (default: false)"),
 });
@@ -274,7 +266,7 @@ export const CreateDocIndexSchema = z.preprocess(
           .default("TEXT"),
       }),
     ),
-    unique: z.boolean().default(false),
+    unique: z.preprocess((val) => val === "true" || val === true, z.boolean().default(false)),
   })
 );
 

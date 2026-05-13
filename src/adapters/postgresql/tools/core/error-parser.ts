@@ -150,6 +150,7 @@ export function parsePostgresError(
     if (
       context.tool === "pg_create_index" ||
       context.tool === "pg_vector_create_index" ||
+      context.tool === "pg_doc_create_index" ||
       /index/i.test(msg) ||
       context.index ||
       /^idx_/i.test(objectName)
