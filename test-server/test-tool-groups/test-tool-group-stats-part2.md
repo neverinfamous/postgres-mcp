@@ -275,7 +275,7 @@ stats Group (19 tools +1 for code mode)
 
 **Wrong-type numeric param coercion (🔴):**
 
-34. 🔴 `pg_stats_top_n({table: "test_measurements", column: "temperature", n: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `n` (wrong-type numeric param)
+34. ✅ 🔴 `pg_stats_top_n({table: "test_measurements", column: "temperature", n: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `n` (wrong-type numeric param)
 
 **Code mode parity:**
 

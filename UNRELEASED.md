@@ -80,6 +80,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Performance Tools**: Applied Split Schema pattern to `IndexRecommendationsInputSchemaBase`, `DiagnoseInputSchemaBase`, `QueryPlanCompareSchemaBase`, `PerformanceBaselineSchemaBase`, `PartitionStrategySchemaBase`, and `UnusedIndexesSchemaBase` by migrating to `z.unknown().optional()` to ensure graceful type mismatches at the handler level instead of raw Zod errors. Fixed TypeScript strict-boolean-expression and stringification typing errors that surfaced post-migration.
 - **Security Tools**: Fixed a SQL syntax error in `pg_security_sensitive_tables` when the `patterns` array is empty by returning an empty result set immediately instead of generating a malformed query.
 - **Stats Tools**: Fixed a parameter aliasing bug in `pg_stats_rank` code mode maps and server instructions where `rankType` was mistakenly documented instead of the parsed `method` alias.
+- **Stats Tools**: Fixed a Zod refinement leak across the entire tool group by strictly implementing the Split Schema pattern (migrating numeric parameters to `z.unknown().optional()`), ensuring wrong-type inputs bypass framework-level `-32602` exceptions and gracefully return structured handler validation errors.
 ### Security
 
 - **Dependencies**: Bumped `hono` to `4.12.18` (HTML Injection), `ip-address` to `10.2.0` (XSS), and `fast-uri` to `3.1.2` (Path Traversal) via package overrides.

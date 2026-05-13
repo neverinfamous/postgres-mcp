@@ -7,7 +7,6 @@
 import { z } from "zod";
 import { ErrorResponseFields } from "../error-response-fields.js";
 import { preprocessBasicStatsParams } from "./preprocessing.js";
-import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 // =============================================================================
 // Base Schemas (for MCP visibility)
@@ -25,7 +24,8 @@ export const StatsRowNumberSchemaBase = z.object({
   schema: z.string().optional().describe("Schema name (default: public)"),
   where: z.string().optional().describe("Filter condition"),
   limit: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe("Maximum rows to return (default: 20)"),
 });
 
@@ -45,7 +45,8 @@ export const StatsRankSchemaBase = z.object({
   schema: z.string().optional().describe("Schema name (default: public)"),
   where: z.string().optional().describe("Filter condition"),
   limit: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe("Maximum rows to return (default: 20)"),
 });
 
@@ -58,7 +59,8 @@ export const StatsLagLeadSchemaBase = z.object({
     .enum(["lag", "lead"])
     .describe("LAG (previous row) or LEAD (next row)"),
   offset: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe("Number of rows to look back/ahead (default: 1)"),
   defaultValue: z
     .string()
@@ -72,7 +74,8 @@ export const StatsLagLeadSchemaBase = z.object({
   schema: z.string().optional().describe("Schema name (default: public)"),
   where: z.string().optional().describe("Filter condition"),
   limit: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe("Maximum rows to return (default: 20)"),
 });
 
@@ -92,7 +95,8 @@ export const StatsRunningTotalSchemaBase = z.object({
   schema: z.string().optional().describe("Schema name (default: public)"),
   where: z.string().optional().describe("Filter condition"),
   limit: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe("Maximum rows to return (default: 20)"),
 });
 
@@ -102,7 +106,8 @@ export const StatsMovingAvgSchemaBase = z.object({
   column: z.string().describe("Numeric column to average"),
   orderBy: z.string().describe("Column(s) to order by"),
   windowSize: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe("Number of rows in the moving window"),
   partitionBy: z.string().optional().describe("Column(s) to partition by"),
   selectColumns: z
@@ -112,7 +117,8 @@ export const StatsMovingAvgSchemaBase = z.object({
   schema: z.string().optional().describe("Schema name (default: public)"),
   where: z.string().optional().describe("Filter condition"),
   limit: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe("Maximum rows to return (default: 20)"),
 });
 
@@ -121,7 +127,8 @@ export const StatsNtileSchemaBase = z.object({
   tableName: z.string().optional().describe("Alias for table"),
   orderBy: z.string().describe("Column(s) to order by"),
   buckets: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe("Number of buckets (e.g., 4 for quartiles)"),
   partitionBy: z.string().optional().describe("Column(s) to partition by"),
   selectColumns: z
@@ -131,7 +138,8 @@ export const StatsNtileSchemaBase = z.object({
   schema: z.string().optional().describe("Schema name (default: public)"),
   where: z.string().optional().describe("Filter condition"),
   limit: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe("Maximum rows to return (default: 20)"),
 });
 

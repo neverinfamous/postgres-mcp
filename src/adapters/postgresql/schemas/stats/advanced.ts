@@ -21,17 +21,17 @@ export const StatsOutliersSchemaBase = z.object({
     .optional()
     .describe("Detection method (default: iqr)"),
   threshold: z
-    .number()
+    .unknown()
     .optional()
     .describe("IQR multiplier (default 1.5) or Z-score threshold (default 3)"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   where: z.string().optional().describe("Filter condition"),
   limit: z
-    .number()
+    .unknown()
     .optional()
     .describe("Maximum rows to scan (default: 10000)"),
   maxOutliers: z
-    .number()
+    .unknown()
     .optional()
     .describe(
       "Maximum outliers to return (default: 50). Reduces payload for large datasets.",
@@ -43,7 +43,7 @@ export const StatsTopNSchemaBase = z.object({
   tableName: z.string().optional().describe("Alias for table"),
   column: z.string().describe("Column to rank by"),
   n: z
-    .number()
+    .unknown()
     .optional()
     .describe("Number of top values (default: 10, max: 100)"),
   direction: z
@@ -65,7 +65,7 @@ export const StatsDistinctSchemaBase = z.object({
   schema: z.string().optional().describe("Schema name (default: public)"),
   where: z.string().optional().describe("Filter condition"),
   limit: z
-    .number()
+    .unknown()
     .optional()
     .describe("Maximum values to return (default: 100, max: 1000)"),
 });
@@ -77,7 +77,7 @@ export const StatsFrequencySchemaBase = z.object({
   schema: z.string().optional().describe("Schema name (default: public)"),
   where: z.string().optional().describe("Filter condition"),
   limit: z
-    .number()
+    .unknown()
     .optional()
     .describe("Maximum frequency entries (default: 20, max: 1000)"),
 });

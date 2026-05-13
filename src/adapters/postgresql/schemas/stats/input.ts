@@ -124,7 +124,7 @@ export const StatsTimeSeriesSchema = z.preprocess(
 export const StatsDistributionSchema = z.preprocess(
   preprocessDistributionParams,
   StatsDistributionSchemaBase.refine(
-    (data) => data.buckets === undefined || data.buckets > 0,
+    (data) => data.buckets === undefined || Number(data.buckets) > 0,
     {
       message: "buckets must be greater than 0",
       path: ["buckets"],
@@ -165,7 +165,7 @@ export const StatsHypothesisSchema = z.preprocess(
     )
     .refine(
       (data) =>
-        data.populationStdDev === undefined || data.populationStdDev > 0,
+        data.populationStdDev === undefined || Number(data.populationStdDev) > 0,
       {
         message: "populationStdDev must be greater than 0",
         path: ["populationStdDev"],
@@ -176,7 +176,7 @@ export const StatsHypothesisSchema = z.preprocess(
 export const StatsSamplingSchema = z.preprocess(
   preprocessSamplingParams,
   StatsSamplingSchemaBase.refine(
-    (data) => data.sampleSize === undefined || data.sampleSize > 0,
+    (data) => data.sampleSize === undefined || Number(data.sampleSize) > 0,
     {
       message: "sampleSize must be greater than 0",
       path: ["sampleSize"],
@@ -184,7 +184,7 @@ export const StatsSamplingSchema = z.preprocess(
   ).refine(
     (data) =>
       data.percentage === undefined ||
-      (data.percentage >= 0 && data.percentage <= 100),
+      (Number(data.percentage) >= 0 && Number(data.percentage) <= 100),
     {
       message: "percentage must be between 0 and 100",
       path: ["percentage"],
