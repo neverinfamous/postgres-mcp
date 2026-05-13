@@ -29,19 +29,19 @@ export function createUnusedIndexesTool(
 ): ToolDefinition {
   const UnusedIndexesSchemaBase = z.object({
     schema: z
-      .string()
+      .unknown()
       .optional()
       .describe("Schema to filter (default: all user schemas)"),
     minSize: z
-      .string()
+      .unknown()
       .optional()
       .describe('Minimum index size to include (e.g., "1 MB")'),
     limit: z
-      .number()
+      .unknown()
       .optional()
       .describe("Max indexes to return (default: 20, use 0 for all)"),
     summary: z
-      .boolean()
+      .unknown()
       .optional()
       .describe("Return aggregated summary instead of full list"),
   });

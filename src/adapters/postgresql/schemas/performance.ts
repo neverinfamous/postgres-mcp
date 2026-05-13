@@ -241,7 +241,7 @@ export const CacheHitRatioInputSchema = z.object({});
 
 export const DiagnoseInputSchemaBase = z.object({
   schema: z
-    .string()
+    .unknown()
     .optional()
     .describe("Filter top tables to a specific schema"),
   topN: z
@@ -280,17 +280,17 @@ export const SeqScanTablesSchema = z.preprocess(
 );
 
 export const IndexRecommendationsInputSchemaBase = z.object({
-  table: z.string().optional().describe("Table name to analyze"),
+  table: z.unknown().optional().describe("Table name to analyze"),
   sql: z
-    .string()
+    .unknown()
     .optional()
     .describe("SQL query to analyze for index recommendations"),
-  query: z.string().optional().describe("Alias for sql - SQL query to analyze"),
+  query: z.unknown().optional().describe("Alias for sql - SQL query to analyze"),
   params: z
-    .array(z.unknown())
+    .unknown()
     .optional()
     .describe("Query parameters for $1, $2, etc. placeholders"),
-  schema: z.string().optional().describe("Schema name (default: public)"),
+  schema: z.unknown().optional().describe("Schema name (default: public)"),
 });
 
 export const IndexRecommendationsInputSchema = z.preprocess((input) => {

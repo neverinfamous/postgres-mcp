@@ -60,28 +60,28 @@ export function createQueryPlanCompareTool(
 ): ToolDefinition {
   // Base schema for MCP visibility (no preprocess)
   const QueryPlanCompareSchemaBase = z.object({
-    query1: z.string().optional().describe("First SQL query"),
-    query2: z.string().optional().describe("Second SQL query"),
-    sql1: z.string().optional().describe("Alias for query1"),
-    sql2: z.string().optional().describe("Alias for query2"),
-    sqlA: z.string().optional().describe("Alias for query1"),
-    sqlB: z.string().optional().describe("Alias for query2"),
-    queryA: z.string().optional().describe("Alias for query1"),
-    queryB: z.string().optional().describe("Alias for query2"),
+    query1: z.unknown().optional().describe("First SQL query"),
+    query2: z.unknown().optional().describe("Second SQL query"),
+    sql1: z.unknown().optional().describe("Alias for query1"),
+    sql2: z.unknown().optional().describe("Alias for query2"),
+    sqlA: z.unknown().optional().describe("Alias for query1"),
+    sqlB: z.unknown().optional().describe("Alias for query2"),
+    queryA: z.unknown().optional().describe("Alias for query1"),
+    queryB: z.unknown().optional().describe("Alias for query2"),
     params1: z
-      .array(z.unknown())
+      .unknown()
       .optional()
       .describe("Parameters for first query ($1, $2, etc.)"),
     params2: z
-      .array(z.unknown())
+      .unknown()
       .optional()
       .describe("Parameters for second query ($1, $2, etc.)"),
     analyze: z
-      .boolean()
+      .unknown()
       .optional()
       .describe("Run EXPLAIN ANALYZE (executes queries)"),
     compact: z
-      .boolean()
+      .unknown()
       .optional()
       .describe("Omit full execution plans from output to save tokens"),
   });
@@ -119,7 +119,7 @@ export function createQueryPlanCompareTool(
         const parsed = QueryPlanCompareSchema.parse(params);
 
         // Validate required parameters
-        if (!parsed.query1 || !parsed.query2) {
+        if (typeof parsed.query1 !== "string" || !parsed.query1 || typeof parsed.query2 !== "string" || !parsed.query2) {
           return {
             success: false as const,
             error:
@@ -138,11 +138,11 @@ export function createQueryPlanCompareTool(
         const [result1, result2] = await Promise.all([
           adapter.executeQuery(
             `${explainType} ${parsed.query1}`,
-            parsed.params1 ?? [],
+            Array.isArray(parsed.params1) ? parsed.params1 : [],
           ),
           adapter.executeQuery(
             `${explainType} ${parsed.query2}`,
-            parsed.params2 ?? [],
+            Array.isArray(parsed.params2) ? parsed.params2 : [],
           ),
         ]);
 
@@ -184,7 +184,7 @@ export function createQueryPlanCompareTool(
                 : null,
             recommendation: "",
           },
-          ...(parsed.compact
+          ...(parsed.compact === true
             ? {}
             : {
                 fullPlans: {

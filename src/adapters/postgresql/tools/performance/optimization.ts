@@ -41,7 +41,7 @@ export function createPerformanceBaselineTool(
 ): ToolDefinition {
   // Base schema for MCP visibility (no preprocess)
   const PerformanceBaselineSchemaBase = z.object({
-    name: z.string().optional().describe("Baseline name for reference"),
+    name: z.unknown().optional().describe("Baseline name for reference"),
   });
 
   // Full schema with defaultToEmpty preprocessing for handler-side parsing
@@ -63,7 +63,7 @@ export function createPerformanceBaselineTool(
       try {
         const parsed = PerformanceBaselineSchema.parse(params);
         const baselineName =
-          parsed.name ?? `baseline_${new Date().toISOString()}`;
+          typeof parsed.name === "string" ? parsed.name : `baseline_${new Date().toISOString()}`;
 
         const [cacheHit, tableStats, indexStats, connections, dbSize] =
           await Promise.all([
@@ -267,8 +267,8 @@ export function createPartitionStrategySuggestTool(
 ): ToolDefinition {
   // Base schema for MCP visibility (no preprocess)
   const PartitionStrategySchemaBase = z.object({
-    table: z.string().optional().describe("Table to analyze"),
-    schema: z.string().optional().describe("Schema name"),
+    table: z.unknown().optional().describe("Table to analyze"),
+    schema: z.unknown().optional().describe("Schema name"),
   });
 
   // Full schema with preprocessing for aliases
@@ -290,7 +290,7 @@ export function createPartitionStrategySuggestTool(
         const parsed = PartitionStrategySchema.parse(params);
 
         // Validate required parameter
-        if (!parsed.table) {
+        if (typeof parsed.table !== "string" || !parsed.table) {
           return {
             success: false as const,
             error: "Validation error: table is required",
@@ -301,7 +301,7 @@ export function createPartitionStrategySuggestTool(
         }
 
         // Parse schema from table if it contains a dot (e.g., 'public.users')
-        let schemaName = parsed.schema ?? "public";
+        let schemaName = typeof parsed.schema === "string" ? parsed.schema : "public";
         let tableName = parsed.table;
         if (tableName.includes(".")) {
           const parts = tableName.split(".");
