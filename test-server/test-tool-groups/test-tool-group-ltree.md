@@ -249,18 +249,18 @@ Paths: `electronics`, `electronics.phones`, `electronics.phones.smartphones`, `e
 
 **Checklist:**
 
-1. `pg_ltree_query({table: "test_categories", column: "path", path: "electronics"})` → verify descendants include `phones`, `smartphones`, `accessories`
-2. `pg_ltree_query({table: "test_categories", column: "path", path: "electronics", mode: "exact"})` → exactly 1 result
-3. `pg_ltree_subpath({path: "electronics.phones.smartphones", offset: 1, length: 2})` → `"phones.smartphones"`
-4. `pg_ltree_lca({paths: ["electronics.phones", "electronics.accessories"]})` → `"electronics"`
-5. `pg_ltree_match({table: "test_categories", column: "path", pattern: "electronics.*"})` → results include `phones`, `accessories`
-6. `pg_ltree_list_columns()` → verify `test_categories.path` appears
-7. 🔴 `pg_ltree_query({table: "nonexistent_xyz", column: "path", path: "a"})` → `{success: false, error: "..."}` handler error
-8. 🔴 `pg_ltree_subpath({})` → `{success: false, error: "..."}` (Zod validation)
+1. ✅ `pg_ltree_query({table: "test_categories", column: "path", path: "electronics"})` → verify descendants include `phones`, `smartphones`, `accessories`
+2. ✅ `pg_ltree_query({table: "test_categories", column: "path", path: "electronics", mode: "exact"})` → exactly 1 result
+3. ✅ `pg_ltree_subpath({path: "electronics.phones.smartphones", offset: 1, length: 2})` → `"phones.smartphones"`
+4. ✅ `pg_ltree_lca({paths: ["electronics.phones", "electronics.accessories"]})` → `"electronics"`
+5. ✅ `pg_ltree_match({table: "test_categories", column: "path", pattern: "electronics.*"})` → results include `phones`, `accessories`
+6. ✅ `pg_ltree_list_columns()` → verify `test_categories.path` appears
+7. ✅ 🔴 `pg_ltree_query({table: "nonexistent_xyz", column: "path", path: "a"})` → `{success: false, error: "..."}` handler error
+8. ✅ 🔴 `pg_ltree_subpath({})` → `{success: false, error: "..."}` (Zod validation)
 
-9. `pg_ltree_create_extension()` → verify happy path expected behavior
-10. 🔴 `pg_ltree_create_extension({})` → verify structured P154 error response or valid defaults
-11. `pg_ltree_convert_column()` → verify happy path expected behavior
-12. 🔴 `pg_ltree_convert_column({})` → verify structured P154 error response or valid defaults
-13. `pg_ltree_create_index()` → verify happy path expected behavior
-14. 🔴 `pg_ltree_create_index({})` → verify structured P154 error response or valid defaults
+9. ✅ `pg_ltree_create_extension()` → verify happy path expected behavior
+10. ✅ 🔴 `pg_ltree_create_extension({})` → verify structured P154 error response or valid defaults
+11. ✅ `pg_ltree_convert_column()` → verify happy path expected behavior
+12. ✅ 🔴 `pg_ltree_convert_column({})` → verify structured P154 error response or valid defaults
+13. ✅ `pg_ltree_create_index()` → verify happy path expected behavior
+14. ✅ 🔴 `pg_ltree_create_index({})` → verify structured P154 error response or valid defaults

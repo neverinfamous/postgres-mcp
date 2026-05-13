@@ -180,6 +180,10 @@ export const LtreeQuerySchema = z.preprocess(
     if ("type" in result && !("mode" in result)) {
       result["mode"] = result["type"];
     }
+    // Alias: maxResults -> limit
+    if (result["maxResults"] !== undefined && result["limit"] === undefined) {
+      result["limit"] = result["maxResults"];
+    }
     return result;
   },
   z.object({
