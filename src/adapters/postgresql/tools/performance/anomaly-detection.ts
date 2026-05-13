@@ -284,11 +284,11 @@ export function createDetectBloatRiskTool(
           );
           if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
             return {
-              success: true as const,
-              tables: [],
-              highRiskCount: 0,
-              totalAnalyzed: 0,
-              summary: `No high-risk bloat detected across 0 tables`,
+              success: false,
+              error: `Schema '${schema}' not found. Use pg_list_tables to see available schemas.`,
+              code: "SCHEMA_NOT_FOUND",
+              category: "resource",
+              recoverable: false,
             };
           }
           

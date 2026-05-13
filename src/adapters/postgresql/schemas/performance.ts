@@ -41,6 +41,27 @@ export function preprocessExplainParams(input: unknown): unknown {
   return result;
 }
 
+/**
+ * Preprocess table params to normalize aliases.
+ * Exported so tools can apply it in their handlers.
+ */
+export function preprocessTableAliasParams(input: unknown): unknown {
+  const normalized = input ?? {};
+  if (typeof normalized !== "object" || normalized === null) {
+    return normalized;
+  }
+  const result = { ...(normalized as Record<string, unknown>) };
+
+  // Alias: tableName, name → table
+  if (result["tableName"] !== undefined && result["table"] === undefined) {
+    result["table"] = result["tableName"];
+  } else if (result["name"] !== undefined && result["table"] === undefined) {
+    result["table"] = result["name"];
+  }
+
+  return result;
+}
+
 // =============================================================================
 // Base Schema (for MCP inputSchema visibility - no preprocess)
 // =============================================================================
@@ -77,6 +98,8 @@ export const ExplainSchema = z.preprocess(
 
 export const IndexStatsSchemaBase = z.object({
   table: z.string().optional().describe("Table name (all tables if omitted)"),
+  tableName: z.string().optional().describe("Alias for table"),
+  name: z.string().optional().describe("Alias for table"),
   schema: z.string().optional().describe("Schema name"),
   limit: z
     .unknown()
@@ -84,17 +107,20 @@ export const IndexStatsSchemaBase = z.object({
     .describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
 });
 
-export const IndexStatsSchema = z.preprocess(
-  defaultToEmpty,
-  z.object({
+export const IndexStatsSchema = z.preprocess((input) => {
+  const tableMapped = preprocessTableAliasParams(input);
+  return defaultToEmpty(tableMapped);
+}, z.object({
     table: z.string().optional(),
     schema: z.string().optional(),
     limit: z.preprocess(coerceNumber, z.number().optional()),
-  }),
+  })
 );
 
 export const TableStatsSchemaBase = z.object({
   table: z.string().optional().describe("Table name (all tables if omitted)"),
+  tableName: z.string().optional().describe("Alias for table"),
+  name: z.string().optional().describe("Alias for table"),
   schema: z.string().optional().describe("Schema name"),
   limit: z
     .unknown()
@@ -102,13 +128,14 @@ export const TableStatsSchemaBase = z.object({
     .describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
 });
 
-export const TableStatsSchema = z.preprocess(
-  defaultToEmpty,
-  z.object({
+export const TableStatsSchema = z.preprocess((input) => {
+  const tableMapped = preprocessTableAliasParams(input);
+  return defaultToEmpty(tableMapped);
+}, z.object({
     table: z.string().optional(),
     schema: z.string().optional(),
     limit: z.preprocess(coerceNumber, z.number().optional()),
-  }),
+  })
 );
 
 export const VacuumStatsSchemaBase = z.object({

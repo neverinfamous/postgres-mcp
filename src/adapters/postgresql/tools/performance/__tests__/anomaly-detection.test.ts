@@ -378,20 +378,18 @@ describe("pg_detect_bloat_risk", () => {
     expect(sql).toContain("schemaname = 'sales'");
   });
 
-  it("should return empty results for non-existent schema", async () => {
+  it("should return structured error for non-existent schema", async () => {
     // Schema existence check returns empty
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = findTool(tools, "pg_detect_bloat_risk");
     const result = (await tool.handler({ schema: "nonexistent" }, mockContext)) as {
       success: boolean;
-      tables: unknown[];
-      totalAnalyzed: number;
+      error: string;
     };
 
-    expect(result.success).toBe(true);
-    expect(result.tables).toHaveLength(0);
-    expect(result.totalAnalyzed).toBe(0);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Schema 'nonexistent' not found");
   });
 
   it("should exclude system schemas by default", async () => {
