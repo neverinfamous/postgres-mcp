@@ -284,7 +284,7 @@ export const VectorDimensionReduceSchemaBase = z.object({
   column: z.string().optional().describe("Vector column name (for table mode)"),
   col: z.string().optional().describe("Alias for column"),
   idColumn: z.string().optional().describe("ID column to include in results (default: id)"),
-  limit: z.preprocess(coerceNumber, z.number().optional()).describe("Max rows to process (default: 20, max: 100)"),
+  limit: z.preprocess(coerceNumber, z.number().optional()).describe("Max rows to process (default: 5, max: 100)"),
   targetDimensions: z.preprocess(coerceNumber, z.number().optional()).describe("Target number of dimensions"),
   target_dimensions: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for targetDimensions"),
   dimensions: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for targetDimensions"),

@@ -308,7 +308,7 @@ export function createVectorDimensionReduceTool(
           }
 
           const idCol = parsed.idColumn ?? "id";
-          let limitVal = parsed.limit ?? 20;
+          let limitVal = parsed.limit ?? 5;
           if (limitVal > 100) limitVal = 100;
 
           // Fetch vectors from table
