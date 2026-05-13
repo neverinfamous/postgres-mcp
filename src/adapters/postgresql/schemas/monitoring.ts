@@ -14,39 +14,47 @@ const defaultToEmpty = (val: unknown): unknown => val ?? {};
 // Base schemas for MCP visibility (Split Schema pattern)
 export const DatabaseSizeSchemaBase = z.object({
   database: z
-    .string()
+    .unknown()
     .optional()
     .describe("Database name (current if omitted)"),
 });
 
 export const ConnectionStatsSchemaBase = z.object({
-  database: z.string().optional().describe("Filter by specific database name"),
+  database: z.unknown().optional().describe("Filter by specific database name"),
 });
 
 export const ConnectionStatsSchema = z.preprocess(
   defaultToEmpty,
-  ConnectionStatsSchemaBase,
+  ConnectionStatsSchemaBase.extend({
+    database: z.string().optional(),
+  }),
 );
 
 export const DatabaseSizeSchema = z.preprocess(
   defaultToEmpty,
-  DatabaseSizeSchemaBase,
+  DatabaseSizeSchemaBase.extend({
+    database: z.string().optional(),
+  }),
 );
 
 export const TableSizesSchemaBase = z.object({
-  schema: z.string().optional().describe("Schema name exact match"),
+  schema: z.unknown().optional().describe("Schema name exact match"),
   pattern: z
-    .string()
+    .unknown()
     .optional()
     .describe("Table name pattern (LIKE syntax or exact)"),
-  table: z.string().optional().describe("Alias for pattern - table name"),
-  name: z.string().optional().describe("Alias for pattern - table name"),
+  table: z.unknown().optional().describe("Alias for pattern - table name"),
+  name: z.unknown().optional().describe("Alias for pattern - table name"),
   limit: z.unknown().optional().describe("Max tables to return"),
 });
 
 export const TableSizesSchema = z.preprocess(
   defaultToEmpty,
   TableSizesSchemaBase.extend({
+    schema: z.string().optional(),
+    pattern: z.string().optional(),
+    table: z.string().optional(),
+    name: z.string().optional(),
     limit: z.preprocess(coerceStrictNumber, z.number().optional()).optional(),
   }).transform((data) => ({
     schema: data.schema,
@@ -57,19 +65,19 @@ export const TableSizesSchema = z.preprocess(
 
 export const ShowSettingsSchemaBase = z.object({
   pattern: z
-    .string()
+    .unknown()
     .optional()
     .describe("Setting name pattern (LIKE syntax with %)"),
   like: z
-    .string()
+    .unknown()
     .optional()
     .describe("Alias for pattern - setting name or pattern"),
   setting: z
-    .string()
+    .unknown()
     .optional()
     .describe("Alias for pattern - setting name or pattern"),
   name: z
-    .string()
+    .unknown()
     .optional()
     .describe("Alias for pattern - setting name or pattern"),
   limit: z
@@ -81,6 +89,10 @@ export const ShowSettingsSchemaBase = z.object({
 export const ShowSettingsSchema = z.preprocess(
   defaultToEmpty,
   ShowSettingsSchemaBase.extend({
+    pattern: z.string().optional(),
+    like: z.string().optional(),
+    setting: z.string().optional(),
+    name: z.string().optional(),
     limit: z.preprocess(coerceStrictNumber, z.number().optional()).optional(),
   }).transform((data) => {
     // Resolve alias: like, setting or name → pattern
@@ -93,30 +105,36 @@ export const ShowSettingsSchema = z.preprocess(
 
 export const AlertThresholdSetSchemaBase = z.object({
   metric: z
-    .string()
+    .unknown()
     .optional()
     .describe("Specific metric to set thresholds for"),
   warning_threshold: z
-    .string()
+    .unknown()
     .optional()
     .describe("Alias for warningThreshold"),
   warningThreshold: z
-    .string()
+    .unknown()
     .optional()
     .describe("Warning threshold (e.g. '70%')"),
   critical_threshold: z
-    .string()
+    .unknown()
     .optional()
     .describe("Alias for criticalThreshold"),
   criticalThreshold: z
-    .string()
+    .unknown()
     .optional()
     .describe("Critical threshold (e.g. '90%')"),
 });
 
 export const AlertThresholdSetSchema = z.preprocess(
   defaultToEmpty,
-  AlertThresholdSetSchemaBase.transform((data) => ({
+  AlertThresholdSetSchemaBase.extend({
+    metric: z.string().optional(),
+    warning_threshold: z.string().optional(),
+    warningThreshold: z.string().optional(),
+    critical_threshold: z.string().optional(),
+    criticalThreshold: z.string().optional(),
+  }).transform((data) => ({
     metric: data.metric,
     warningThreshold: data.warningThreshold ?? data.warning_threshold,
     criticalThreshold: data.criticalThreshold ?? data.critical_threshold,
