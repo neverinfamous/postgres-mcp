@@ -260,6 +260,8 @@ export {
 
 // pg_partman schemas
 export {
+  PartmanCreateExtensionSchema,
+  PartmanCreateExtensionSchemaBase,
   PartmanCreateParentSchema,
   PartmanCreateParentSchemaBase,
   DEPRECATED_INTERVALS,
@@ -277,7 +279,6 @@ export {
   PartmanRetentionSchemaBase,
   PartmanUndoPartitionSchema,
   PartmanUndoPartitionSchemaBase,
-  PartmanUpdateConfigSchema,
   PartmanAnalyzeHealthSchema,
   PartmanAnalyzeHealthSchemaBase,
   // Output schemas

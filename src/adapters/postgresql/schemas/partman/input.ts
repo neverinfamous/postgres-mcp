@@ -113,6 +113,25 @@ function preprocessPartmanParams(input: unknown): unknown {
 }
 
 /**
+ * Schema for enabling the pg_partman extension.
+ */
+export const PartmanCreateExtensionSchemaBase = z.object({
+  schema: z
+    .string()
+    .optional()
+    .describe("Schema to install the extension in (default: public)"),
+});
+
+export const PartmanCreateExtensionSchema = z
+  .preprocess(
+    preprocessPartmanParams,
+    z.object({
+      schema: z.string().optional().default("public"),
+    }),
+  )
+  .default({ schema: "public" });
+
+/**
  * Schema for creating a partition set with pg_partman.
  * Uses partman.create_parent() function.
  */
@@ -410,36 +429,7 @@ export const PartmanUndoPartitionSchema = z
   )
   .default({});
 
-/**
- * Schema for updating partition configuration.
- */
-export const PartmanUpdateConfigSchema = z.preprocess(
-  preprocessPartmanParams,
-  z.object({
-    parentTable: z
-      .string()
-      .optional()
-      .describe("Parent table name (schema.table format)"),
-    premake: z.number().optional().describe("Number of partitions to pre-make"),
-    optimizeTrigger: z
-      .number()
-      .optional()
-      .describe("Trigger optimization threshold"),
-    optimizeConstraint: z
-      .number()
-      .optional()
-      .describe("Constraint optimization threshold"),
-    inheritFk: z
-      .boolean()
-      .optional()
-      .describe("Inherit foreign keys to children"),
-    retention: z.string().optional().describe("Retention period"),
-    retentionKeepTable: z
-      .boolean()
-      .optional()
-      .describe("Keep tables after detaching"),
-  }),
-);
+
 
 /**
  * Schema for analyzing partition health.
