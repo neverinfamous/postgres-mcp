@@ -11,11 +11,13 @@ import {
   type RequestContext,
   ValidationError,
 } from "../../../../types/index.js";
-import { z } from "zod";
+
 import { write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
+  PartmanCreateExtensionSchema,
+  PartmanCreateExtensionSchemaBase,
   PartmanCreateParentSchema,
   PartmanCreateParentSchemaBase,
   DEPRECATED_INTERVALS,
@@ -36,14 +38,14 @@ export function createPartmanExtensionTool(
     description:
       "Enable the pg_partman extension for automated partition management. Requires superuser privileges.",
     group: "partman",
-    inputSchema: z.object({}).strict(),
+    inputSchema: PartmanCreateExtensionSchemaBase,
     outputSchema: PartmanCreateExtensionOutputSchema,
     annotations: write("Create Partman Extension"),
     icons: getToolIcons("partman", write("Create Partman Extension")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        z.object({}).strict().parse(params);
-        await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS pg_partman");
+        const { schema } = PartmanCreateExtensionSchema.parse(params);
+        await adapter.executeQuery(`CREATE EXTENSION IF NOT EXISTS pg_partman WITH SCHEMA ${schema}`);
         return { success: true, message: "pg_partman extension enabled" };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {

@@ -243,31 +243,31 @@ admin Tool Group (11 tools +1 code mode):
 
 > **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
-1. ✅ `pg_analyze({table: "test_products"})` → `{success: true}`
-2. ✅ `pg_vacuum({table: "test_products"})` → `{success: true}`
-3. ✅ `pg_reindex({target: "table", name: "test_products"})` → `{success: true}`
-4. ✅ `pg_cancel_backend({pid: 99999})` → `{success: false}` (invalid PID, no error thrown)
-5. ✅ `pg_set_config({name: "statement_timeout", value: "30000"})` → `{success: true}`
+1. `pg_analyze({table: "test_products"})` → `{success: true}`
+2. `pg_vacuum({table: "test_products"})` → `{success: true}`
+3. `pg_reindex({target: "table", name: "test_products"})` → `{success: true}`
+4. `pg_cancel_backend({pid: 99999})` → `{success: false}` (invalid PID, no error thrown)
+5. `pg_set_config({name: "statement_timeout", value: "30000"})` → `{success: true}`
 
 **pg_append_insight:**
 
-6. ✅ `pg_append_insight({text: "Test insight from checklist"})` → verify `{success: true, insightCount: N, message: "..."}` where `insightCount >= 1`
-7. ✅ `pg_append_insight({text: "Second insight for testing"})` → verify `insightCount` is previous value + 1
-8. ✅ 🔴 `pg_append_insight({})` → `{success: false, error: "..."}` (Zod validation — missing required `text`)
+6. `pg_append_insight({text: "Test insight from checklist"})` → verify `{success: true, insightCount: N, message: "..."}` where `insightCount >= 1`
+7. `pg_append_insight({text: "Second insight for testing"})` → verify `insightCount` is previous value + 1
+8. 🔴 `pg_append_insight({})` → `{success: false, error: "..."}` (Zod validation — missing required `text`)
 
 **Domain error paths (🔴):**
 
-9. ✅ 🔴 `pg_analyze({table: "nonexistent_table_xyz"})` → `{success: false, error: "..."}` handler error
-10. ✅ 🔴 `pg_reindex({})` → `{success: false, error: "..."}` (Zod validation)
-11. ✅ 🔴 `pg_cancel_backend({pid: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or `{success: false}` (wrong-type numeric param)
+9. 🔴 `pg_analyze({table: "nonexistent_table_xyz"})` → `{success: false, error: "..."}` handler error
+10. 🔴 `pg_reindex({})` → `{success: false, error: "..."}` (Zod validation)
+11. 🔴 `pg_cancel_backend({pid: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or `{success: false}` (wrong-type numeric param)
 
-12. ✅ `pg_terminate_backend()` → verify happy path expected behavior
-13. ✅ 🔴 `pg_terminate_backend({})` → verify structured P154 error response or valid defaults
-14. ✅ `pg_reload_conf()` → verify happy path expected behavior
-15. ✅ 🔴 `pg_reload_conf({})` → verify structured P154 error response or valid defaults
-16. ✅ `pg_reset_stats()` → verify happy path expected behavior
-17. ✅ 🔴 `pg_reset_stats({})` → verify structured P154 error response or valid defaults
-18. ✅ `pg_cluster()` → verify happy path expected behavior
-19. ✅ 🔴 `pg_cluster({})` → verify structured P154 error response or valid defaults
-20. ✅ `pg_vacuum_analyze()` → verify happy path expected behavior
-21. ✅ 🔴 `pg_vacuum_analyze({})` → verify structured P154 error response or valid defaults
+12. `pg_terminate_backend()` → verify happy path expected behavior
+13. 🔴 `pg_terminate_backend({})` → verify structured P154 error response or valid defaults
+14. `pg_reload_conf()` → verify happy path expected behavior
+15. 🔴 `pg_reload_conf({})` → verify structured P154 error response or valid defaults
+16. `pg_reset_stats()` → verify happy path expected behavior
+17. 🔴 `pg_reset_stats({})` → verify structured P154 error response or valid defaults
+18. `pg_cluster()` → verify happy path expected behavior
+19. 🔴 `pg_cluster({})` → verify structured P154 error response or valid defaults
+20. `pg_vacuum_analyze()` → verify happy path expected behavior
+21. 🔴 `pg_vacuum_analyze({})` → verify structured P154 error response or valid defaults

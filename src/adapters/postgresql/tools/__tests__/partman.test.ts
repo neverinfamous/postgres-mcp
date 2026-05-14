@@ -69,7 +69,7 @@ describe("pg_partman_create_extension", () => {
     };
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      "CREATE EXTENSION IF NOT EXISTS pg_partman",
+      "CREATE EXTENSION IF NOT EXISTS pg_partman WITH SCHEMA public",
     );
     expect(result.success).toBe(true);
     expect(result.message).toContain("pg_partman");
