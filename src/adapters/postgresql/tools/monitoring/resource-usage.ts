@@ -11,7 +11,10 @@ import type {
 import { readOnly } from "../../../../utils/annotations.js";
 
 import { getToolIcons } from "../../../../utils/icons.js";
-import { SystemHealthSchemaBase, SystemHealthOutputSchema } from "../../schemas/index.js";
+import {
+  SystemHealthSchemaBase,
+  SystemHealthOutputSchema,
+} from "../../schemas/index.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 
 export function createSystemHealthTool(

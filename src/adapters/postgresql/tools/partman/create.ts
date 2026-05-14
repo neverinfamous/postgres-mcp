@@ -45,7 +45,9 @@ export function createPartmanExtensionTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const { schema } = PartmanCreateExtensionSchema.parse(params);
-        await adapter.executeQuery(`CREATE EXTENSION IF NOT EXISTS pg_partman WITH SCHEMA ${schema}`);
+        await adapter.executeQuery(
+          `CREATE EXTENSION IF NOT EXISTS pg_partman WITH SCHEMA ${schema}`,
+        );
         return { success: true, message: "pg_partman extension enabled" };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
@@ -116,7 +118,7 @@ A startPartition far in the past (e.g., '2024-01-01' with daily intervals) creat
             {
               hint: 'Example: pg_partman_create_parent({ parentTable: "public.events", controlColumn: "created_at", interval: "1 month" })',
               aliases: { control: "controlColumn" },
-            }
+            },
           );
         }
 

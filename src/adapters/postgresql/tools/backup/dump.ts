@@ -369,9 +369,7 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
   };
 }
 
-export function createDumpSchemaTool(
-  adapter: PostgresAdapter,
-): ToolDefinition {
+export function createDumpSchemaTool(adapter: PostgresAdapter): ToolDefinition {
   return {
     name: "pg_dump_schema",
     description: "Get the pg_dump command for a schema or database.",
@@ -388,7 +386,7 @@ export function createDumpSchemaTool(
           // Verify schema exists
           const schemaResult = await adapter.executeQuery(
             "SELECT 1 FROM pg_namespace WHERE nspname = $1",
-            [schema]
+            [schema],
           );
           if (schemaResult.rows?.length === 0) {
             throw new Error(`Schema "${schema}" does not exist`);
@@ -400,20 +398,20 @@ export function createDumpSchemaTool(
           const checkSchema = schema ?? "public";
           let tableNamePart = table;
           let schemaNamePart = checkSchema;
-          
+
           if (table.includes(".")) {
-             const parts = table.split(".");
-             if (parts.length === 2 && parts[0] && parts[1]) {
-                schemaNamePart = parts[0];
-                tableNamePart = parts[1];
-             }
+            const parts = table.split(".");
+            if (parts.length === 2 && parts[0] && parts[1]) {
+              schemaNamePart = parts[0];
+              tableNamePart = parts[1];
+            }
           }
           const tableExists = await adapter.executeQuery(
             "SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relname = $1 AND n.nspname = $2",
-            [tableNamePart, schemaNamePart]
+            [tableNamePart, schemaNamePart],
           );
           if (tableExists.rows === undefined || tableExists.rows.length === 0) {
-             throw new Error(`relation "${tableNamePart}" does not exist`);
+            throw new Error(`relation "${tableNamePart}" does not exist`);
           }
         }
 

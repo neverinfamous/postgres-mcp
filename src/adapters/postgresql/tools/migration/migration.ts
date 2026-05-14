@@ -132,7 +132,10 @@ export function createMigrationRecordTool(
         const parsed = MigrationRecordSchema.parse(params);
         const targetSchema = parsed.schema ?? "public";
         const sanitizedSchema = sanitizeIdentifier(targetSchema);
-        const qualifiedTable = targetSchema === "public" ? TRACKING_TABLE : `${sanitizedSchema}."${TRACKING_TABLE}"`;
+        const qualifiedTable =
+          targetSchema === "public"
+            ? TRACKING_TABLE
+            : `${sanitizedSchema}."${TRACKING_TABLE}"`;
 
         await ensureTrackingTable(adapter, targetSchema);
 
@@ -205,7 +208,10 @@ export function createMigrationApplyTool(
         const parsed = MigrationApplySchema.parse(params);
         const targetSchema = parsed.schema ?? "public";
         const sanitizedSchema = sanitizeIdentifier(targetSchema);
-        const qualifiedTable = targetSchema === "public" ? TRACKING_TABLE : `${sanitizedSchema}."${TRACKING_TABLE}"`;
+        const qualifiedTable =
+          targetSchema === "public"
+            ? TRACKING_TABLE
+            : `${sanitizedSchema}."${TRACKING_TABLE}"`;
 
         await ensureTrackingTable(adapter, targetSchema);
 

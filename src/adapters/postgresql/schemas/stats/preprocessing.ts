@@ -5,7 +5,10 @@
  * Handles tableName→table, col→column, schema.table parsing, percentile normalization, etc.
  */
 
-import { coerceNumber, coerceStrictNumber } from "../../../../utils/query-helpers.js";
+import {
+  coerceNumber,
+  coerceStrictNumber,
+} from "../../../../utils/query-helpers.js";
 
 // =============================================================================
 // Schema.Table Parsing

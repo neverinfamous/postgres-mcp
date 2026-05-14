@@ -175,11 +175,7 @@ test.describe("Payload Contracts: Admin + Monitoring", () => {
   });
 
   test("pg_system_health returns shape", async () => {
-    const payload = await callToolAndParse(
-      client,
-      "pg_system_health",
-      {},
-    );
+    const payload = await callToolAndParse(client, "pg_system_health", {});
     expectSuccess(payload);
     expect(typeof payload).toBe("object");
   });

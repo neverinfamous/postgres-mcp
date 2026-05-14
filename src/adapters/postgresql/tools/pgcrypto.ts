@@ -73,7 +73,7 @@ function createPgcryptoExtensionTool(adapter: PostgresAdapter): ToolDefinition {
         if (schema) {
           const checkResult = await adapter.executeQuery(
             `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
-            [schema]
+            [schema],
           );
           if (checkResult.rows?.length === 0) {
             throw new ValidationError(`Schema "${schema}" does not exist`);
@@ -284,13 +284,14 @@ function createPgcryptoGenRandomBytesTool(
       try {
         const { length, encoding } = PgcryptoRandomBytesSchema.parse(params);
         const enc = encoding ?? "hex";
-        
-        const encodeFormat = enc === "base64" ? "base64" : enc === "raw" ? "escape" : "hex";
+
+        const encodeFormat =
+          enc === "base64" ? "base64" : enc === "raw" ? "escape" : "hex";
         const result = await adapter.executeQuery(
           `SELECT encode(gen_random_bytes($1), $2) as random_bytes`,
           [length, encodeFormat],
         );
-        
+
         return {
           success: true,
           randomBytes: result.rows?.[0]?.["random_bytes"] as string,
@@ -406,20 +407,25 @@ function handlePgcryptoError(error: unknown, toolName: string): ErrorResponse {
     }
     if (msg.includes("invalid symbol") || msg.includes("invalid base64")) {
       return formatHandlerErrorResponse(
-        new ValidationError("Decryption failed: Invalid base64 encoding in encrypted data"),
-        { tool: toolName }
+        new ValidationError(
+          "Decryption failed: Invalid base64 encoding in encrypted data",
+        ),
+        { tool: toolName },
       );
     }
-    if (msg.includes("Illegal argument to function") && toolName.includes("encrypt")) {
+    if (
+      msg.includes("Illegal argument to function") &&
+      toolName.includes("encrypt")
+    ) {
       return formatHandlerErrorResponse(
         new ValidationError("Encryption failed: Password must not be empty"),
-        { tool: toolName }
+        { tool: toolName },
       );
     }
     if (msg.includes("Wrong key or corrupt data")) {
       return formatHandlerErrorResponse(
         new ValidationError("Decryption failed: Wrong key or corrupt data"),
-        { tool: toolName }
+        { tool: toolName },
       );
     }
   }

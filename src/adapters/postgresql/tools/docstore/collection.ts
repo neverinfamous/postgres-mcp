@@ -138,10 +138,9 @@ export function createCreateCollectionTool(
           );
         }
         if (schema && !IDENTIFIER_RE.test(schema)) {
-          return formatHandlerErrorResponse(
-            new Error("Invalid schema name"),
-            { tool: "pg_doc_create_collection" },
-          );
+          return formatHandlerErrorResponse(new Error("Invalid schema name"), {
+            tool: "pg_doc_create_collection",
+          });
         }
 
         // P154: Pre-check existence
@@ -224,10 +223,9 @@ export function createDropCollectionTool(
           );
         }
         if (schema && !IDENTIFIER_RE.test(schema)) {
-          return formatHandlerErrorResponse(
-            new Error("Invalid schema name"),
-            { tool: "pg_doc_drop_collection" },
-          );
+          return formatHandlerErrorResponse(new Error("Invalid schema name"), {
+            tool: "pg_doc_drop_collection",
+          });
         }
 
         // P154: Schema existence check
@@ -335,8 +333,13 @@ export function createCollectionInfoTool(
         const countResult = await adapter.executeQuery(
           `SELECT COUNT(*) AS "rowCount" FROM ${tableRef}`,
         );
-        const countRow = countResult.rows?.[0] as { rowCount: string | number } | undefined;
-        const rowCount = typeof countRow?.rowCount === "string" ? parseInt(countRow.rowCount, 10) : (countRow?.rowCount ?? 0);
+        const countRow = countResult.rows?.[0] as
+          | { rowCount: string | number }
+          | undefined;
+        const rowCount =
+          typeof countRow?.rowCount === "string"
+            ? parseInt(countRow.rowCount, 10)
+            : (countRow?.rowCount ?? 0);
 
         // Get size info
         const sizeResult = await adapter.executeQuery(

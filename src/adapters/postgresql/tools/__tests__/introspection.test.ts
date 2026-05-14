@@ -951,7 +951,10 @@ describe("pg_schema_snapshot", () => {
     }
 
     const tool = tools.find((t) => t.name === "pg_schema_snapshot")!;
-    const result = (await tool.handler({ schema: "public", compact: false }, mockContext)) as {
+    const result = (await tool.handler(
+      { schema: "public", compact: false },
+      mockContext,
+    )) as {
       snapshot: Record<string, unknown>;
       stats: Record<string, number>;
     };

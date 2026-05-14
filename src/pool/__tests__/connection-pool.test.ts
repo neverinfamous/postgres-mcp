@@ -143,7 +143,8 @@ describe("ConnectionPool", () => {
       });
       await poolWithInit.initialize();
 
-      const internalPool = (poolWithInit as unknown as { pool: unknown }).pool as {
+      const internalPool = (poolWithInit as unknown as { pool: unknown })
+        .pool as {
         connect: typeof mockPoolConnect;
       };
       const mockConn = {
@@ -176,7 +177,8 @@ describe("ConnectionPool", () => {
       });
       await poolWithInit.initialize();
 
-      const internalPool = (poolWithInit as unknown as { pool: unknown }).pool as {
+      const internalPool = (poolWithInit as unknown as { pool: unknown })
+        .pool as {
         connect: typeof mockPoolConnect;
       };
       const mockConn = {
@@ -205,7 +207,8 @@ describe("ConnectionPool", () => {
       });
       await poolWithInit.initialize();
 
-      const internalPool = (poolWithInit as unknown as { pool: unknown }).pool as {
+      const internalPool = (poolWithInit as unknown as { pool: unknown })
+        .pool as {
         connect: typeof mockPoolConnect;
       };
       const mockConn = {
@@ -231,7 +234,8 @@ describe("ConnectionPool", () => {
       });
       await poolWithInit.initialize();
 
-      const internalPool = (poolWithInit as unknown as { pool: unknown }).pool as {
+      const internalPool = (poolWithInit as unknown as { pool: unknown })
+        .pool as {
         connect: typeof mockPoolConnect;
       };
       const mockConn = {

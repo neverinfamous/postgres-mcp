@@ -56,8 +56,14 @@ export async function ensureTrackingTable(
   const existed = firstRow?.["table_exists"] === true;
 
   if (!existed) {
-    const sanitizedSchema = targetSchema === "public" ? "public" : `"${targetSchema.replace(/"/g, '""')}"`;
-    const qualifiedTable = targetSchema === "public" ? TRACKING_TABLE : `${sanitizedSchema}."${TRACKING_TABLE}"`;
+    const sanitizedSchema =
+      targetSchema === "public"
+        ? "public"
+        : `"${targetSchema.replace(/"/g, '""')}"`;
+    const qualifiedTable =
+      targetSchema === "public"
+        ? TRACKING_TABLE
+        : `${sanitizedSchema}."${TRACKING_TABLE}"`;
     await adapter.executeQuery(buildCreateTrackingTableSql(qualifiedTable));
   }
   return !existed;

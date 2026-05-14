@@ -21,14 +21,12 @@ import {
   ConnectionPoolOptimizeInputSchemaBase,
   PartitionStrategySuggestOutputSchema,
   PartitionStrategySchemaBase,
-  PartitionStrategySchema
+  PartitionStrategySchema,
 } from "../../schemas/index.js";
-
 
 export function createPerformanceBaselineTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-
   return {
     name: "pg_performance_baseline",
     description:
@@ -42,7 +40,9 @@ export function createPerformanceBaselineTool(
       try {
         const parsed = PerformanceBaselineSchema.parse(params);
         const baselineName =
-          typeof parsed.name === "string" ? parsed.name : `baseline_${new Date().toISOString()}`;
+          typeof parsed.name === "string"
+            ? parsed.name
+            : `baseline_${new Date().toISOString()}`;
 
         const [cacheHit, tableStats, indexStats, connections, dbSize] =
           await Promise.all([
@@ -244,7 +244,6 @@ export function createConnectionPoolOptimizeTool(
 export function createPartitionStrategySuggestTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-
   return {
     name: "pg_partition_strategy_suggest",
     description: "Analyze a table and suggest optimal partitioning strategy.",
@@ -269,7 +268,8 @@ export function createPartitionStrategySuggestTool(
         }
 
         // Parse schema from table if it contains a dot (e.g., 'public.users')
-        let schemaName = typeof parsed.schema === "string" ? parsed.schema : "public";
+        let schemaName =
+          typeof parsed.schema === "string" ? parsed.schema : "public";
         let tableName = parsed.table;
         if (tableName.includes(".")) {
           const parts = tableName.split(".");

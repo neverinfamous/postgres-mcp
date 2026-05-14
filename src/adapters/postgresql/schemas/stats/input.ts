@@ -165,7 +165,8 @@ export const StatsHypothesisSchema = z.preprocess(
     )
     .refine(
       (data) =>
-        data.populationStdDev === undefined || Number(data.populationStdDev) > 0,
+        data.populationStdDev === undefined ||
+        Number(data.populationStdDev) > 0,
       {
         message: "populationStdDev must be greater than 0",
         path: ["populationStdDev"],

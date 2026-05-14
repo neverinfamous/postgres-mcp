@@ -200,7 +200,8 @@ export function createStatsDistinctTool(
         };
 
         const { table, column, schema, where } = parsed;
-        const limitRaw = parsed.limit !== undefined ? Number(parsed.limit) : 100;
+        const limitRaw =
+          parsed.limit !== undefined ? Number(parsed.limit) : 100;
         const limit = Number.isNaN(limitRaw) ? 100 : limitRaw;
         if (limit <= 0) {
           throw new ValidationError(

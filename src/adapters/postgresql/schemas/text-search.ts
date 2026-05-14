@@ -285,7 +285,7 @@ export const TextSearchSchema = z.preprocess(
   preprocessTextParams,
   TextSearchSchemaBase.extend({
     limit: z.number().optional(),
-  })
+  }),
 );
 
 export const TrigramSimilaritySchema = z.preprocess(
@@ -293,51 +293,52 @@ export const TrigramSimilaritySchema = z.preprocess(
   TrigramSimilaritySchemaBase.extend({
     limit: z.number().optional(),
     threshold: z.number().optional(),
-  })
+  }),
 );
 
 export const RegexpMatchSchema = z.preprocess(
   preprocessTextParams,
   RegexpMatchSchemaBase.extend({
     limit: z.number().optional(),
-  })
+  }),
 );
 
 export const TextRankSchema = z.preprocess(
   preprocessTextParams,
   TextRankSchemaBase.extend({
     limit: z.number().optional(),
-  })
+  }),
 );
 
 export const HeadlineSchema = z.preprocess(
   preprocessTextParams,
   HeadlineSchemaBase.extend({
     limit: z.number().optional(),
-  })
+  }),
 );
 
-export const FtsIndexSchema = z.preprocess(preprocessTextParams, FtsIndexSchemaBase);
+export const FtsIndexSchema = z.preprocess(
+  preprocessTextParams,
+  FtsIndexSchemaBase,
+);
 
 export const FuzzyMatchSchema = z.preprocess(
   preprocessTextParams,
   FuzzyMatchSchemaBase.extend({
     limit: z.number().optional(),
     maxDistance: z.number().optional(),
-  })
+  }),
 );
 
 export const LikeSearchSchema = z.preprocess(
   preprocessTextParams,
   LikeSearchSchemaBase.extend({
     limit: z.number().optional(),
-  })
+  }),
 );
 
 export const SentimentSchema = z.object({
-  text: z
-    .string()
-    .describe("Text to analyze"),
+  text: z.string().describe("Text to analyze"),
   returnWords: z
     .boolean()
     .optional()

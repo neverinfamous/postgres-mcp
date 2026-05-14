@@ -7,10 +7,10 @@
 - **Nonexistent schema handling**: All docstore tools that accept a `schema` parameter return a structured error when a nonexistent schema is explicitly provided, matching the P154 pattern.
 - **Index creation**: `pg_doc_create_index` creates PostgreSQL expression indexes on JSONB paths. Returns `{ success: false, error }` if the index already exists. Supports typed indexes (`TEXT`, `INT`, `DOUBLE`, `DATE`, `TIMESTAMP`, `BOOLEAN`).
 - **Filter Syntax** (for `pg_doc_find`, `pg_doc_modify`, `pg_doc_remove`):
-  - **By _id**: Pass the 32-character hex _id directly: `filter: "686dd247b9724bcfa08ce6f1efed8b77"`
+  - **By \_id**: Pass the 32-character hex \_id directly: `filter: "686dd247b9724bcfa08ce6f1efed8b77"`
   - **By field value**: Use `field=value` format: `filter: "name=Alice"` or `filter: "age=30"`
   - **By existence**: Use JSON path: `filter: "$.address"` (matches docs where address field exists)
   - ❌ Incorrect: `filter: "$.name == 'Alice'"` (comparison operators not supported in path)
   - ✅ Correct: `filter: "name=Alice"` (field=value format)
-- **Find Filters** (`pg_doc_find`): The filter parameter supports _id, field=value, and JSON path existence (e.g., `$.address.zip`). The path must be a valid JSON path; invalid paths return `{ success: false, error }`.
+- **Find Filters** (`pg_doc_find`): The filter parameter supports \_id, field=value, and JSON path existence (e.g., `$.address.zip`). The path must be a valid JSON path; invalid paths return `{ success: false, error }`.
 - **PostgreSQL-specific**: Uses JSONB operators (`@>`, `?`, `->`, `->>`), `jsonb_set()` for modifications, `#-` for field removal, and expression indexes instead of generated columns.

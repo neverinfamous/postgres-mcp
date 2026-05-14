@@ -52,7 +52,10 @@ export const FirewallStatusSchema = z.preprocess(
  */
 export const FirewallRulesSchemaBase = z.object({
   user: z.string().optional().describe("Filter by username"),
-  type: z.string().optional().describe("Filter by rule type (host, local, etc.)"),
+  type: z
+    .string()
+    .optional()
+    .describe("Filter by rule type (host, local, etc.)"),
 });
 
 export const FirewallRulesSchema = z.preprocess(
@@ -63,28 +66,12 @@ export const FirewallRulesSchema = z.preprocess(
 /**
  * pg_security_mask_data — data masking (pure JS, no DB)
  */
-export const MaskDataSchemaBase = z.object({
-  value: z.string().describe("Value to mask"),
-  type: z.string().describe("Masking type (email, phone, ssn, credit_card, partial)"),
-  keepFirst: z
-    .number()
-    .default(0)
-    .describe("Characters to keep from start (partial type)"),
-  keepLast: z
-    .number()
-    .default(0)
-    .describe("Characters to keep from end (partial type)"),
-  maskChar: z
-    .string()
-    .default("*")
-    .describe("Character to use for masking"),
-}).partial();
-
-export const MaskDataSchema = z.preprocess(
-  defaultToEmpty,
-  z.object({
+export const MaskDataSchemaBase = z
+  .object({
     value: z.string().describe("Value to mask"),
-    type: z.string().describe("Masking type (email, phone, ssn, credit_card, partial)"),
+    type: z
+      .string()
+      .describe("Masking type (email, phone, ssn, credit_card, partial)"),
     keepFirst: z
       .number()
       .default(0)
@@ -93,11 +80,27 @@ export const MaskDataSchema = z.preprocess(
       .number()
       .default(0)
       .describe("Characters to keep from end (partial type)"),
-    maskChar: z
-      .string()
-      .default("*")
-      .describe("Character to use for masking"),
+    maskChar: z.string().default("*").describe("Character to use for masking"),
   })
+  .partial();
+
+export const MaskDataSchema = z.preprocess(
+  defaultToEmpty,
+  z.object({
+    value: z.string().describe("Value to mask"),
+    type: z
+      .string()
+      .describe("Masking type (email, phone, ssn, credit_card, partial)"),
+    keepFirst: z
+      .number()
+      .default(0)
+      .describe("Characters to keep from start (partial type)"),
+    keepLast: z
+      .number()
+      .default(0)
+      .describe("Characters to keep from end (partial type)"),
+    maskChar: z.string().default("*").describe("Character to use for masking"),
+  }),
 );
 
 /**
@@ -196,15 +199,17 @@ export const EncryptionStatusSchema = z.preprocess(
 /**
  * pg_security_password_validate — password strength check (pure JS)
  */
-export const PasswordValidateSchemaBase = z.object({
-  password: z.string().describe("Password to validate"),
-}).partial();
+export const PasswordValidateSchemaBase = z
+  .object({
+    password: z.string().describe("Password to validate"),
+  })
+  .partial();
 
 export const PasswordValidateSchema = z.preprocess(
   defaultToEmpty,
   z.object({
     password: z.string().describe("Password to validate"),
-  })
+  }),
 );
 
 // =============================================================================
@@ -220,10 +225,15 @@ export const SecurityAuditOutputSchema = z
       .array(
         z.object({
           check: z.string().describe("Security check name"),
-          severity: z.string().describe("Finding severity (info, warning, critical)"),
+          severity: z
+            .string()
+            .describe("Finding severity (info, warning, critical)"),
           status: z.string().describe("Check status (pass, warn, fail)"),
           message: z.string().describe("Finding description"),
-          recommendation: z.string().optional().describe("Suggested remediation"),
+          recommendation: z
+            .string()
+            .optional()
+            .describe("Suggested remediation"),
         }),
       )
       .optional()
@@ -278,8 +288,14 @@ export const FirewallRulesOutputSchema = z
     rules: z
       .array(
         z.object({
-          line_number: z.number().optional().describe("Line number in pg_hba.conf"),
-          type: z.string().optional().describe("Rule type (local, host, hostssl)"),
+          line_number: z
+            .number()
+            .optional()
+            .describe("Line number in pg_hba.conf"),
+          type: z
+            .string()
+            .optional()
+            .describe("Rule type (local, host, hostssl)"),
           database: z.unknown().optional().describe("Database(s)"),
           user_name: z.unknown().optional().describe("User(s)"),
           address: z.string().nullable().optional().describe("Client address"),
@@ -304,7 +320,10 @@ export const MaskDataOutputSchema = z
     original: z.string().optional().describe("Original value"),
     masked: z.string().optional().describe("Masked value"),
     type: z.string().optional().describe("Masking type applied"),
-    warning: z.string().optional().describe("Warning if masking was ineffective"),
+    warning: z
+      .string()
+      .optional()
+      .describe("Warning if masking was ineffective"),
     success: z.boolean().optional().describe("Whether operation succeeded"),
     error: z.string().optional().describe("Error message if failed"),
   })
@@ -353,10 +372,7 @@ export const SensitiveTablesOutputSchema = z
       .array(z.string())
       .optional()
       .describe("Column name patterns used"),
-    limited: z
-      .boolean()
-      .optional()
-      .describe("Whether results were truncated"),
+    limited: z.boolean().optional().describe("Whether results were truncated"),
     totalAvailable: z
       .number()
       .optional()
@@ -379,7 +395,11 @@ export const SSLStatusOutputSchema = z
           ssl: z.boolean().optional().describe("Using SSL"),
           version: z.string().nullable().optional().describe("TLS version"),
           cipher: z.string().nullable().optional().describe("Cipher suite"),
-          client_dn: z.string().nullable().optional().describe("Client cert DN"),
+          client_dn: z
+            .string()
+            .nullable()
+            .optional()
+            .describe("Client cert DN"),
         }),
       )
       .optional()
@@ -392,10 +412,7 @@ export const SSLStatusOutputSchema = z
       .number()
       .optional()
       .describe("Total active connections"),
-    sslConnectionCount: z
-      .number()
-      .optional()
-      .describe("Connections using SSL"),
+    sslConnectionCount: z.number().optional().describe("Connections using SSL"),
     success: z.boolean().optional().describe("Whether operation succeeded"),
     error: z.string().optional().describe("Error message if failed"),
   })
@@ -422,9 +439,15 @@ export const EncryptionStatusOutputSchema = z
     certificates: z
       .object({
         ssl_ca_file: z.string().optional().describe("CA certificate file"),
-        ssl_cert_file: z.string().optional().describe("Server certificate file"),
+        ssl_cert_file: z
+          .string()
+          .optional()
+          .describe("Server certificate file"),
         ssl_key_file: z.string().optional().describe("Server key file"),
-        ssl_crl_file: z.string().optional().describe("Certificate revocation list"),
+        ssl_crl_file: z
+          .string()
+          .optional()
+          .describe("Certificate revocation list"),
       })
       .optional()
       .describe("SSL certificate paths"),

@@ -63,17 +63,21 @@ function createLtreeExtensionTool(adapter: PostgresAdapter): ToolDefinition {
 
         const schemaCheck = await adapter.executeQuery(
           `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
-          [schemaName]
+          [schemaName],
         );
         if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
-          throw new ValidationError(
-            `Schema "${schemaName}" does not exist.`,
-            { schema: schemaName }
-          );
+          throw new ValidationError(`Schema "${schemaName}" does not exist.`, {
+            schema: schemaName,
+          });
         }
 
-        await adapter.executeQuery(`CREATE EXTENSION IF NOT EXISTS ltree SCHEMA "${schemaName}"`);
-        return { success: true, message: `ltree extension enabled in schema ${schemaName}` };
+        await adapter.executeQuery(
+          `CREATE EXTENSION IF NOT EXISTS ltree SCHEMA "${schemaName}"`,
+        );
+        return {
+          success: true,
+          message: `ltree extension enabled in schema ${schemaName}`,
+        };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
           tool: "pg_ltree_create_extension",
@@ -245,7 +249,7 @@ function createLtreeSubpathTool(adapter: PostgresAdapter): ToolDefinition {
         if (length !== undefined && length < 0) {
           throw new ValidationError(
             `Invalid length: ${String(length)}. Length cannot be negative.`,
-            { length }
+            { length },
           );
         }
 
@@ -308,7 +312,7 @@ function createLtreeLcaTool(adapter: PostgresAdapter): ToolDefinition {
         if (allIdentical) {
           // Validate syntax by casting to ltree
           await adapter.executeQuery(`SELECT $1::ltree`, [paths[0]]);
-          
+
           return {
             success: true,
             paths,
@@ -354,13 +358,12 @@ function createLtreeListColumnsTool(adapter: PostgresAdapter): ToolDefinition {
         if (schema !== undefined) {
           const schemaCheck = await adapter.executeQuery(
             `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
-            [schema]
+            [schema],
           );
           if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
-            throw new ValidationError(
-              `Schema "${schema}" does not exist.`,
-              { schema }
-            );
+            throw new ValidationError(`Schema "${schema}" does not exist.`, {
+              schema,
+            });
           }
         }
 

@@ -66,16 +66,14 @@ export function createDocIndexTool(adapter: PostgresAdapter): ToolDefinition {
           );
         }
         if (schema && !IDENTIFIER_RE.test(schema)) {
-          return formatHandlerErrorResponse(
-            new Error("Invalid schema name"),
-            { tool: "pg_doc_create_index" },
-          );
+          return formatHandlerErrorResponse(new Error("Invalid schema name"), {
+            tool: "pg_doc_create_index",
+          });
         }
         if (!IDENTIFIER_RE.test(name)) {
-          return formatHandlerErrorResponse(
-            new Error("Invalid index name"),
-            { tool: "pg_doc_create_index" },
-          );
+          return formatHandlerErrorResponse(new Error("Invalid index name"), {
+            tool: "pg_doc_create_index",
+          });
         }
 
         const idxCheck = await checkCollectionExists(

@@ -129,7 +129,6 @@ export const SavepointSchema = z
     },
   );
 
-
 // Base schema for MCP visibility — uses z.record() for statement items and
 // z.string() for isolationLevel so invalid values reach the handler's try/catch.
 export const TransactionExecuteSchemaBase = z.object({
@@ -147,12 +146,19 @@ export const TransactionExecuteSchemaBase = z.object({
     ),
   txId: z.string().optional().describe("Alias for transactionId"),
   tx: z.string().optional().describe("Alias for transactionId"),
-  isolationLevel: z.string().optional().describe("Transaction isolation level (only applies if transactionId is omitted)"),
+  isolationLevel: z
+    .string()
+    .optional()
+    .describe(
+      "Transaction isolation level (only applies if transactionId is omitted)",
+    ),
   isolation_level: z.string().optional().describe("Alias for isolationLevel"),
   read_only: z
     .boolean()
     .optional()
-    .describe("Set to true for read-only transaction (only applies if transactionId is omitted)"),
+    .describe(
+      "Set to true for read-only transaction (only applies if transactionId is omitted)",
+    ),
   readOnly: z.boolean().optional().describe("Alias for read_only"),
   limit: z
     .number()

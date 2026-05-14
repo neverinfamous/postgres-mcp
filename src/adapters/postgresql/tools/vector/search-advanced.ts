@@ -454,9 +454,10 @@ export function createVectorPerformanceTool(
             benchResult = await adapter.executeQuery(benchSql);
           } catch (error: unknown) {
             if (error instanceof Error) {
-              const dimMatch = /different vector dimensions (\d+) and (\d+)/.exec(
-                error.message,
-              );
+              const dimMatch =
+                /different vector dimensions (\d+) and (\d+)/.exec(
+                  error.message,
+                );
               if (dimMatch) {
                 const dim1 = parseInt(dimMatch[1] ?? "0", 10);
                 const dim2 = parseInt(dimMatch[2] ?? "0", 10);

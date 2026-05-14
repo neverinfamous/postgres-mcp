@@ -191,7 +191,6 @@ export function createVectorIndexOptimizeTool(
 export function createVectorDimensionReduceTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-
   // Helper function for dimension reduction
   const reduceVector = (
     vector: number[],
@@ -280,7 +279,8 @@ export function createVectorDimensionReduceTool(
           if (parsed.table === "") {
             return {
               success: false,
-              error: "table (or tableName) parameter is required for table mode",
+              error:
+                "table (or tableName) parameter is required for table mode",
               code: "VALIDATION_ERROR",
               category: "validation",
               requiredParams: ["table", "column"],
@@ -359,7 +359,11 @@ export function createVectorDimensionReduceTool(
             // Apply summarization if requested
             const outputObj = shouldSummarize
               ? truncateVector(reducedVector)
-              : { preview: reducedVector, dimensions: reducedVector.length, truncated: false };
+              : {
+                  preview: reducedVector,
+                  dimensions: reducedVector.length,
+                  truncated: false,
+                };
 
             reducedRows.push({
               id: row["id"],

@@ -71,7 +71,7 @@ export async function getPartmanSchema(
  */
 export async function ensurePartmanSchemaAlias(
   adapter: PostgresAdapter,
-  partmanSchema: string
+  partmanSchema: string,
 ): Promise<void> {
   try {
     await adapter.executeQuery("CREATE SCHEMA IF NOT EXISTS partman");

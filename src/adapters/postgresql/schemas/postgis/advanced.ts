@@ -151,7 +151,8 @@ export const GeoClusterSchema = z
       schema: data.schema,
       column: data.column ?? data.geom ?? data.geometryColumn ?? "",
       method: data.method ?? data.algorithm,
-      eps: data.eps ?? data.distance ?? data.radius ?? data.epsg ?? paramsObj.eps,
+      eps:
+        data.eps ?? data.distance ?? data.radius ?? data.epsg ?? paramsObj.eps,
       minPoints: data.minPoints ?? paramsObj.minPoints,
       numClusters:
         data.numClusters ??
@@ -236,8 +237,7 @@ export const GeometryBufferSchema = GeometryBufferSchemaBase.transform(
     message: "geometry (or wkt/geojson alias) is required",
   })
   .refine((data) => data.distance !== 0, {
-    message:
-      "distance (or radius/meters alias) is required and cannot be zero",
+    message: "distance (or radius/meters alias) is required and cannot be zero",
   })
   .refine((data) => data.simplify === undefined || data.simplify >= 0, {
     message: "simplify must be a non-negative number if provided",

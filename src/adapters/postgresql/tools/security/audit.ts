@@ -74,8 +74,7 @@ export function createSecurityAuditTool(
           const sslResult = await adapter.executeQuery(
             `SELECT current_setting('ssl', true) as ssl_enabled`,
           );
-          const sslEnabled =
-            sslResult.rows?.[0]?.["ssl_enabled"] === "on";
+          const sslEnabled = sslResult.rows?.[0]?.["ssl_enabled"] === "on";
           findings.push({
             check: "SSL/TLS",
             severity: sslEnabled ? "info" : "critical",
@@ -156,9 +155,7 @@ export function createSecurityAuditTool(
           const superResult = await adapter.executeQuery(`
             SELECT count(*) as cnt FROM pg_roles WHERE rolsuper = true
           `);
-          const superCount = Number(
-            superResult.rows?.[0]?.["cnt"] ?? 0,
-          );
+          const superCount = Number(superResult.rows?.[0]?.["cnt"] ?? 0);
           findings.push({
             check: "Superuser Exposure",
             severity: superCount > 2 ? "warning" : "info",
@@ -181,9 +178,7 @@ export function createSecurityAuditTool(
             WHERE rolcanlogin = true
               AND rolpassword IS NULL
           `);
-          const noPwCount = Number(
-            noPwResult.rows?.[0]?.["cnt"] ?? 0,
-          );
+          const noPwCount = Number(noPwResult.rows?.[0]?.["cnt"] ?? 0);
           if (noPwCount > 0) {
             findings.push({
               check: "Passwordless Login Roles",
@@ -207,8 +202,7 @@ export function createSecurityAuditTool(
             check: "Passwordless Login Roles",
             severity: "info",
             status: "warn",
-            message:
-              "Cannot check pg_authid (requires superuser). Skipped.",
+            message: "Cannot check pg_authid (requires superuser). Skipped.",
           });
         }
 
@@ -224,8 +218,7 @@ export function createSecurityAuditTool(
             `);
 
             const trustRules = (hbaResult.rows ?? []).filter(
-              (r: Record<string, unknown>) =>
-                r["auth_method"] === "trust",
+              (r: Record<string, unknown>) => r["auth_method"] === "trust",
             );
             const trustCount = trustRules.reduce(
               (sum: number, r: Record<string, unknown>) =>
@@ -357,8 +350,10 @@ export function createSecurityFirewallStatusTool(
           };
         } catch {
           return formatHandlerErrorResponse(
-            new Error("pg_hba_file_rules not accessible. Requires superuser or pg_read_all_settings role."),
-            { tool: "pg_security_firewall_status" }
+            new Error(
+              "pg_hba_file_rules not accessible. Requires superuser or pg_read_all_settings role.",
+            ),
+            { tool: "pg_security_firewall_status" },
           );
         }
       } catch (err) {
@@ -411,10 +406,7 @@ export function createSecurityFirewallRulesTool(
           "hostgssenc",
           "hostnogssenc",
         ] as const;
-        if (
-          type &&
-          !validTypes.includes(type as (typeof validTypes)[number])
-        ) {
+        if (type && !validTypes.includes(type as (typeof validTypes)[number])) {
           return formatHandlerErrorResponse(
             new Error(
               `Invalid type: '${type}' — expected one of: ${validTypes.join(", ")}`,
@@ -443,9 +435,7 @@ export function createSecurityFirewallRulesTool(
 
           if (user) {
             queryParams.push(user);
-            conditions.push(
-              `$${String(queryParams.length)} = ANY(user_name)`,
-            );
+            conditions.push(`$${String(queryParams.length)} = ANY(user_name)`);
           }
           if (type) {
             queryParams.push(type);
@@ -467,8 +457,10 @@ export function createSecurityFirewallRulesTool(
           };
         } catch {
           return formatHandlerErrorResponse(
-            new Error("pg_hba_file_rules not accessible. Requires superuser or pg_read_all_settings role."),
-            { tool: "pg_security_firewall_rules" }
+            new Error(
+              "pg_hba_file_rules not accessible. Requires superuser or pg_read_all_settings role.",
+            ),
+            { tool: "pg_security_firewall_rules" },
           );
         }
       } catch (err) {

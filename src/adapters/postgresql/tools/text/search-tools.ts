@@ -54,14 +54,12 @@ export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
         const resolvedTable = parsed.table ?? parsed.tableName;
         if (!resolvedTable) {
           throw new ValidationError(
-            "Either 'table' or 'tableName' is required"
+            "Either 'table' or 'tableName' is required",
           );
         }
         const tableName = sanitizeTableName(resolvedTable, parsed.schema);
         if (!parsed.column || !parsed.pattern) {
-          throw new ValidationError(
-            "column and pattern are required"
-          );
+          throw new ValidationError("column and pattern are required");
         }
         const columnName = sanitizeIdentifier(parsed.column);
         const selectCols =

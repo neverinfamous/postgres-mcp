@@ -109,7 +109,7 @@ export function createVectorSearchTool(
             "limit: 0 is not permitted. Please specify a reasonable limit (max 100) or omit for the default limit.",
           );
         }
-        
+
         let limitVal = requestedLimit;
         let limitWasLowered = false;
         if (limitVal > 100) {
@@ -145,7 +145,8 @@ export function createVectorSearchTool(
               error: `Validation error: Invalid metric '${metric}'`,
               code: "VALIDATION_ERROR",
               category: "validation",
-              suggestion: "Metric must be one of: 'l2', 'cosine', 'inner_product'",
+              suggestion:
+                "Metric must be one of: 'l2', 'cosine', 'inner_product'",
             };
         }
 
@@ -164,7 +165,7 @@ export function createVectorSearchTool(
             hasMore = true;
             result.rows.pop(); // Remove the extra row
           }
-          
+
           const isTruncated = hasMore;
 
           // Check for NULL distance values (from NULL vectors)
@@ -196,21 +197,27 @@ export function createVectorSearchTool(
             count: finalRows.length,
             metric: metric ?? "l2",
           };
-          
+
           const hints: string[] = [];
 
           if (isTruncated) {
             response["truncated"] = true;
             if (limitWasLowered) {
-              hints.push(`Results truncated to max limit of ${String(limitVal)} rows.`);
+              hints.push(
+                `Results truncated to max limit of ${String(limitVal)} rows.`,
+              );
             } else {
-              hints.push(`Results truncated to requested limit of ${String(limitVal)} rows.`);
+              hints.push(
+                `Results truncated to requested limit of ${String(limitVal)} rows.`,
+              );
             }
           }
 
           // Add hint when no select columns specified
           if (select === undefined || select.length === 0) {
-            hints.push('Results only contain distance. Use select param (e.g., select: ["id", "name"]) to include identifying columns.');
+            hints.push(
+              'Results only contain distance. Use select param (e.g., select: ["id", "name"]) to include identifying columns.',
+            );
           }
 
           if (hints.length > 0) {
@@ -300,7 +307,7 @@ export function createVectorCreateIndexTool(
         if (type === undefined) {
           throw new ValidationError("type (or method alias) is required");
         }
-        
+
         if (type !== "ivfflat" && type !== "hnsw") {
           return {
             success: false,
@@ -310,14 +317,20 @@ export function createVectorCreateIndexTool(
             suggestion: "Index type must be one of: 'ivfflat', 'hnsw'",
           };
         }
-        
-        if (metric !== undefined && metric !== "l2" && metric !== "cosine" && metric !== "inner_product") {
+
+        if (
+          metric !== undefined &&
+          metric !== "l2" &&
+          metric !== "cosine" &&
+          metric !== "inner_product"
+        ) {
           return {
             success: false,
             error: `Validation error: Invalid distance metric '${metric}'`,
             code: "VALIDATION_ERROR",
             category: "validation",
-            suggestion: "Metric must be one of: 'l2', 'cosine', 'inner_product'",
+            suggestion:
+              "Metric must be one of: 'l2', 'cosine', 'inner_product'",
           };
         }
 

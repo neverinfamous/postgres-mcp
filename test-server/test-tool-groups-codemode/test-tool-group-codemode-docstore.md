@@ -41,7 +41,7 @@ The test database (`postgres`) contains these tables:
 | `test_projects`     | 2    | id, name, lead_id (FK SET NULL), department_id (FK RESTRICT)                       | —                        | Introspection         |
 | `test_assignments`  | 3    | id, employee_id (FK CASCADE), project_id (FK CASCADE), role — UNIQUE(emp,proj)     | —                        | Introspection         |
 | `test_audit_log`    | 3    | entry_id (no PK!), employee_id (FK, no index!), action, created_at                 | —                        | Introspection         |
-| `test_documents`    | 5    | _id (TEXT PK), doc (JSONB)                                                         | doc                      | Docstore (9 tools)    |
+| `test_documents`    | 5    | \_id (TEXT PK), doc (JSONB)                                                        | doc                      | Docstore (9 tools)    |
 
 Schema objects: `test_schema`, `test_schema.order_seq` (starts at 1000), `test_order_summary` (view), `test_get_order_count()` (function).
 Indexes: `idx_orders_status`, `idx_orders_date`, `idx_articles_fts` (GIN), `idx_locations_geo` (GIST), `idx_categories_path` (GIST), HNSW on `test_embeddings.embedding`.

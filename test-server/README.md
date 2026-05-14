@@ -53,7 +53,7 @@
 | `test_projects`     | 2    | lead_id FK SET NULL, department_id FK RESTRICT                  | —                                                    | Introspection             |
 | `test_assignments`  | 3    | employee_id FK CASCADE, project_id FK CASCADE, UNIQUE(emp,proj) | —                                                    | Introspection             |
 | `test_audit_log`    | 3    | employee_id FK (**no PK, no index on FK** — intentional)        | —                                                    | Introspection             |
-| `test_documents`    | 5    | _id (TEXT PK), doc (JSONB)                                      | **doc** (JSONB)                                      | Docstore (9 tools)        |
+| `test_documents`    | 5    | \_id (TEXT PK), doc (JSONB)                                     | **doc** (JSONB)                                      | Docstore (9 tools)        |
 
 **Schema objects:** `test_schema`, `test_schema.order_seq` (starts 1000), `test_order_summary` (view), `test_get_order_count()` (function).
 

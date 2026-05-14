@@ -108,9 +108,10 @@ Shows total CPU time, I/O, and page faults across all queries.`,
         if (database !== undefined) {
           const dbExistsResult = await adapter.executeQuery(
             "SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = $1) as exists",
-            [database]
+            [database],
           );
-          const exists = (dbExistsResult.rows?.[0]?.["exists"] as boolean) ?? false;
+          const exists =
+            (dbExistsResult.rows?.[0]?.["exists"] as boolean) ?? false;
           if (!exists) {
             throw new ValidationError(`Database "${database}" does not exist`);
           }

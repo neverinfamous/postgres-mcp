@@ -62,11 +62,14 @@ Partitions older than the retention period will be dropped or detached during ma
 
         // If retention is omitted (undefined), it's required
         if (retention === undefined) {
-          throw new ValidationError("Validation error: Missing required parameter: retention.", {
-            hint:
-              'Provide a retention period (e.g., "30 days") or pass null to explicitly disable retention. ' +
-              'Example: pg_partman_set_retention({ parentTable: "public.events", retention: "30 days" })',
-          });
+          throw new ValidationError(
+            "Validation error: Missing required parameter: retention.",
+            {
+              hint:
+                'Provide a retention period (e.g., "30 days") or pass null to explicitly disable retention. ' +
+                'Example: pg_partman_set_retention({ parentTable: "public.events", retention: "30 days" })',
+            },
+          );
         }
 
         // Special case: explicit null or empty string means disable/clear retention

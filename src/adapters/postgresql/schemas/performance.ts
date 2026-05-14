@@ -107,14 +107,16 @@ export const IndexStatsSchemaBase = z.object({
     .describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
 });
 
-export const IndexStatsSchema = z.preprocess((input) => {
-  const tableMapped = preprocessTableAliasParams(input);
-  return defaultToEmpty(tableMapped);
-}, z.object({
+export const IndexStatsSchema = z.preprocess(
+  (input) => {
+    const tableMapped = preprocessTableAliasParams(input);
+    return defaultToEmpty(tableMapped);
+  },
+  z.object({
     table: z.string().optional(),
     schema: z.string().optional(),
     limit: z.preprocess(coerceNumber, z.number().optional()),
-  })
+  }),
 );
 
 export const TableStatsSchemaBase = z.object({
@@ -128,14 +130,16 @@ export const TableStatsSchemaBase = z.object({
     .describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
 });
 
-export const TableStatsSchema = z.preprocess((input) => {
-  const tableMapped = preprocessTableAliasParams(input);
-  return defaultToEmpty(tableMapped);
-}, z.object({
+export const TableStatsSchema = z.preprocess(
+  (input) => {
+    const tableMapped = preprocessTableAliasParams(input);
+    return defaultToEmpty(tableMapped);
+  },
+  z.object({
     table: z.string().optional(),
     schema: z.string().optional(),
     limit: z.preprocess(coerceNumber, z.number().optional()),
-  })
+  }),
 );
 
 export const VacuumStatsSchemaBase = z.object({
@@ -312,7 +316,10 @@ export const IndexRecommendationsInputSchemaBase = z.object({
     .unknown()
     .optional()
     .describe("SQL query to analyze for index recommendations"),
-  query: z.unknown().optional().describe("Alias for sql - SQL query to analyze"),
+  query: z
+    .unknown()
+    .optional()
+    .describe("Alias for sql - SQL query to analyze"),
   params: z
     .unknown()
     .optional()
@@ -343,26 +350,36 @@ export const PerformanceBaselineSchema = z.preprocess(
 );
 
 export const ConnectionPoolOptimizeInputSchemaBase = z.object({}).strict();
-export const ConnectionPoolOptimizeInputSchema = ConnectionPoolOptimizeInputSchemaBase;
+export const ConnectionPoolOptimizeInputSchema =
+  ConnectionPoolOptimizeInputSchemaBase;
 
 export const PartitionStrategySchemaBase = z.object({
   table: z.unknown().optional().describe("Table to analyze"),
   schema: z.unknown().optional().describe("Schema name"),
 });
 
-export const PartitionStrategySchema = z.preprocess(
-  (input) => {
-    const defaultObj = defaultToEmpty(input);
-    return preprocessTableAliasParams(defaultObj);
-  },
-  PartitionStrategySchemaBase,
-);
+export const PartitionStrategySchema = z.preprocess((input) => {
+  const defaultObj = defaultToEmpty(input);
+  return preprocessTableAliasParams(defaultObj);
+}, PartitionStrategySchemaBase);
 
 export const UnusedIndexesSchemaBase = z.object({
-  schema: z.unknown().optional().describe("Schema to filter (default: all user schemas)"),
-  minSize: z.unknown().optional().describe('Minimum index size to include (e.g., "1 MB")'),
-  limit: z.unknown().optional().describe("Max indexes to return (default: 20, use 0 for all)"),
-  summary: z.unknown().optional().describe("Return aggregated summary instead of full list"),
+  schema: z
+    .unknown()
+    .optional()
+    .describe("Schema to filter (default: all user schemas)"),
+  minSize: z
+    .unknown()
+    .optional()
+    .describe('Minimum index size to include (e.g., "1 MB")'),
+  limit: z
+    .unknown()
+    .optional()
+    .describe("Max indexes to return (default: 20, use 0 for all)"),
+  summary: z
+    .unknown()
+    .optional()
+    .describe("Return aggregated summary instead of full list"),
 });
 
 export const UnusedIndexesSchema = z.preprocess(
@@ -376,8 +393,14 @@ export const UnusedIndexesSchema = z.preprocess(
 );
 
 export const DuplicateIndexesSchemaBase = z.object({
-  schema: z.string().optional().describe("Schema to filter (default: all user schemas)"),
-  limit: z.number().optional().describe("Max rows to return (default: 50, use 0 for all)"),
+  schema: z
+    .string()
+    .optional()
+    .describe("Schema to filter (default: all user schemas)"),
+  limit: z
+    .number()
+    .optional()
+    .describe("Max rows to return (default: 50, use 0 for all)"),
 });
 
 export const DuplicateIndexesSchema = z.preprocess(
@@ -389,7 +412,10 @@ export const DuplicateIndexesSchema = z.preprocess(
 );
 
 export const ConnectionSpikeInputBase = z.object({
-  warningPercent: z.unknown().optional().describe("Percentage threshold for flagging concentration (default: 70)"),
+  warningPercent: z
+    .unknown()
+    .optional()
+    .describe("Percentage threshold for flagging concentration (default: 70)"),
 });
 
 export const ConnectionSpikeInput = z.preprocess(
@@ -408,10 +434,22 @@ export const QueryPlanCompareSchemaBase = z.object({
   sqlB: z.unknown().optional().describe("Alias for query2"),
   queryA: z.unknown().optional().describe("Alias for query1"),
   queryB: z.unknown().optional().describe("Alias for query2"),
-  params1: z.unknown().optional().describe("Parameters for first query ($1, $2, etc.)"),
-  params2: z.unknown().optional().describe("Parameters for second query ($1, $2, etc.)"),
-  analyze: z.unknown().optional().describe("Run EXPLAIN ANALYZE (executes queries)"),
-  compact: z.unknown().optional().describe("Omit full execution plans from output to save tokens"),
+  params1: z
+    .unknown()
+    .optional()
+    .describe("Parameters for first query ($1, $2, etc.)"),
+  params2: z
+    .unknown()
+    .optional()
+    .describe("Parameters for second query ($1, $2, etc.)"),
+  analyze: z
+    .unknown()
+    .optional()
+    .describe("Run EXPLAIN ANALYZE (executes queries)"),
+  compact: z
+    .unknown()
+    .optional()
+    .describe("Omit full execution plans from output to save tokens"),
 });
 
 export const QueryPlanCompareSchema = z.preprocess((input) => {
@@ -421,20 +459,33 @@ export const QueryPlanCompareSchema = z.preprocess((input) => {
   if (result["query1"] === undefined) {
     if (result["sql1"] !== undefined) result["query1"] = result["sql1"];
     else if (result["sqlA"] !== undefined) result["query1"] = result["sqlA"];
-    else if (result["queryA"] !== undefined) result["query1"] = result["queryA"];
+    else if (result["queryA"] !== undefined)
+      result["query1"] = result["queryA"];
   }
   if (result["query2"] === undefined) {
     if (result["sql2"] !== undefined) result["query2"] = result["sql2"];
     else if (result["sqlB"] !== undefined) result["query2"] = result["sqlB"];
-    else if (result["queryB"] !== undefined) result["query2"] = result["queryB"];
+    else if (result["queryB"] !== undefined)
+      result["query2"] = result["queryB"];
   }
   return result;
 }, QueryPlanCompareSchemaBase);
 
 export const QueryAnomaliesInputBase = z.object({
-  threshold: z.unknown().optional().describe("Standard deviation multiplier for anomaly detection (default: 2.0)"),
-  minCalls: z.unknown().optional().describe("Minimum call count to filter noise (default: 10)"),
-  limit: z.unknown().optional().describe("Max anomalies to return (default: 20, max: 50)"),
+  threshold: z
+    .unknown()
+    .optional()
+    .describe(
+      "Standard deviation multiplier for anomaly detection (default: 2.0)",
+    ),
+  minCalls: z
+    .unknown()
+    .optional()
+    .describe("Minimum call count to filter noise (default: 10)"),
+  limit: z
+    .unknown()
+    .optional()
+    .describe("Max anomalies to return (default: 20, max: 50)"),
 });
 
 export const QueryAnomaliesInput = z.preprocess(
@@ -447,8 +498,14 @@ export const QueryAnomaliesInput = z.preprocess(
 );
 
 export const BloatRiskInputBase = z.object({
-  schema: z.string().optional().describe("Filter to a specific schema (default: all user schemas)"),
-  minRows: z.unknown().optional().describe("Minimum live rows to include (default: 1000)"),
+  schema: z
+    .string()
+    .optional()
+    .describe("Filter to a specific schema (default: all user schemas)"),
+  minRows: z
+    .unknown()
+    .optional()
+    .describe("Minimum live rows to include (default: 1000)"),
 });
 
 export const BloatRiskInput = z.preprocess(

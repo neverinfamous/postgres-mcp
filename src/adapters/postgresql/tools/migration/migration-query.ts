@@ -57,7 +57,10 @@ export function createMigrationRollbackTool(
         const parsed = MigrationRollbackSchema.parse(params);
         const targetSchema = parsed.schema ?? "public";
         const sanitizedSchema = sanitizeIdentifier(targetSchema);
-        const qualifiedTable = targetSchema === "public" ? TRACKING_TABLE : `${sanitizedSchema}."${TRACKING_TABLE}"`;
+        const qualifiedTable =
+          targetSchema === "public"
+            ? TRACKING_TABLE
+            : `${sanitizedSchema}."${TRACKING_TABLE}"`;
 
         await ensureTrackingTable(adapter, targetSchema);
 
@@ -195,7 +198,10 @@ export function createMigrationHistoryTool(
         const parsed = MigrationHistorySchema.parse(params);
         const targetSchema = parsed.schema ?? "public";
         const sanitizedSchema = sanitizeIdentifier(targetSchema);
-        const qualifiedTable = targetSchema === "public" ? TRACKING_TABLE : `${sanitizedSchema}."${TRACKING_TABLE}"`;
+        const qualifiedTable =
+          targetSchema === "public"
+            ? TRACKING_TABLE
+            : `${sanitizedSchema}."${TRACKING_TABLE}"`;
 
         await ensureTrackingTable(adapter, targetSchema);
 
@@ -294,7 +300,10 @@ export function createMigrationStatusTool(
             `SELECT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = $1) AS "schema_exists"`,
             [targetSchema],
           );
-          if (schemaCheck.rows && schemaCheck.rows[0]?.["schema_exists"] === false) {
+          if (
+            schemaCheck.rows &&
+            schemaCheck.rows[0]?.["schema_exists"] === false
+          ) {
             throw new Error(`schema "${targetSchema}" does not exist`);
           }
         }

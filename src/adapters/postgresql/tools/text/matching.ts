@@ -33,7 +33,6 @@ import {
   TextRowsOutputSchema,
 } from "../../schemas/index.js";
 
-
 // =============================================================================
 // pg_trigram_similarity
 // =============================================================================
@@ -63,10 +62,9 @@ export function createTrigramSimilarityTool(
               : rawThresh;
 
         if (thresh < 0 || thresh > 1) {
-          throw new ValidationError(
-            "threshold must be between 0 and 1",
-            { code: "VALIDATION_ERROR" }
-          );
+          throw new ValidationError("threshold must be between 0 and 1", {
+            code: "VALIDATION_ERROR",
+          });
         }
         const safeLimit = parsed.limit;
         let limitVal = 100;

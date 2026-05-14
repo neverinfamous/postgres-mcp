@@ -60,9 +60,7 @@ async function roleExists(
 /**
  * List roles assigned to a user/role
  */
-export function createUserRolesTool(
-  adapter: PostgresAdapter,
-): ToolDefinition {
+export function createUserRolesTool(adapter: PostgresAdapter): ToolDefinition {
   return {
     name: "pg_user_roles",
     description:
@@ -82,7 +80,7 @@ export function createUserRolesTool(
           return {
             ...formatHandlerErrorResponse(
               new QueryError(`User/role '${parsed.user}' does not exist`),
-              { tool: "pg_user_roles" }
+              { tool: "pg_user_roles" },
             ),
             exists: false,
             user: parsed.user,
@@ -91,7 +89,11 @@ export function createUserRolesTool(
 
         // Query role membership with admin_option
         // set_option is PG 16+, so we use a try/catch to handle older versions
-        let roles: { role: string; adminOption: boolean; setOption?: boolean }[];
+        let roles: {
+          role: string;
+          adminOption: boolean;
+          setOption?: boolean;
+        }[];
 
         try {
           const result = await adapter.executeQuery(
@@ -107,13 +109,11 @@ export function createUserRolesTool(
             [parsed.user],
           );
 
-          roles = (result.rows ?? []).map(
-            (row: Record<string, unknown>) => ({
-              role: row["role"] as string,
-              adminOption: row["adminOption"] as boolean,
-              setOption: row["setOption"] as boolean,
-            }),
-          );
+          roles = (result.rows ?? []).map((row: Record<string, unknown>) => ({
+            role: row["role"] as string,
+            adminOption: row["adminOption"] as boolean,
+            setOption: row["setOption"] as boolean,
+          }));
         } catch {
           // Fallback for PG < 16 (no set_option column)
           const result = await adapter.executeQuery(
@@ -128,12 +128,10 @@ export function createUserRolesTool(
             [parsed.user],
           );
 
-          roles = (result.rows ?? []).map(
-            (row: Record<string, unknown>) => ({
-              role: row["role"] as string,
-              adminOption: row["adminOption"] as boolean,
-            }),
-          );
+          roles = (result.rows ?? []).map((row: Record<string, unknown>) => ({
+            role: row["role"] as string,
+            adminOption: row["adminOption"] as boolean,
+          }));
         }
 
         return {
@@ -160,9 +158,7 @@ export function createUserRolesTool(
 /**
  * Set the session's active role
  */
-export function createRoleSetTool(
-  adapter: PostgresAdapter,
-): ToolDefinition {
+export function createRoleSetTool(adapter: PostgresAdapter): ToolDefinition {
   return {
     name: "pg_role_set",
     description:
@@ -218,7 +214,7 @@ export function createRoleSetTool(
           return {
             ...formatHandlerErrorResponse(
               new QueryError(`Role '${parsed.role}' does not exist`),
-              { tool: "pg_role_set" }
+              { tool: "pg_role_set" },
             ),
             previousRole,
           };
@@ -301,9 +297,7 @@ export function createRoleRlsEnableTool(
         );
         if ((tableCheck.rows?.length ?? 0) === 0) {
           return formatHandlerErrorResponse(
-            new QueryError(
-              `Table '${schema}.${parsed.table}' does not exist`,
-            ),
+            new QueryError(`Table '${schema}.${parsed.table}' does not exist`),
             { tool: "pg_role_rls_enable" },
           );
         }

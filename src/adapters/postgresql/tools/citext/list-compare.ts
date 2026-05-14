@@ -90,7 +90,8 @@ Useful for auditing case-insensitive columns.`,
 
         // Validate table existence when specified
         if (table !== undefined) {
-          const schemaCondition = schema !== undefined ? "AND table_schema = $2" : "";
+          const schemaCondition =
+            schema !== undefined ? "AND table_schema = $2" : "";
           const queryParams: unknown[] = [table];
           if (schema !== undefined) queryParams.push(schema);
 

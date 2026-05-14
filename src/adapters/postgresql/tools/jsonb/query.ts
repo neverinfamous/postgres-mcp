@@ -112,7 +112,7 @@ export function createJsonbAggTool(adapter: PostgresAdapter): ToolDefinition {
             success: true,
             count,
             grouped: true,
-            result: rows
+            result: rows,
           };
           return response;
         } else {

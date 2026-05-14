@@ -183,8 +183,6 @@ function deepMergeObjects(
   return result;
 }
 
-
-
 /**
  * Preprocess merge params to parse JSON strings and validate objects
  */
@@ -596,7 +594,6 @@ export function createJsonbNormalizeTool(
  * Note: Uses jsonb_each() which requires object inputs, not arrays or primitives
  */
 
-
 // Internal schema for handler validation is no longer needed since we
 // handle validation and parsing of doc1 and doc2 manually below.
 
@@ -631,17 +628,31 @@ export function createJsonbDiffTool(adapter: PostgresAdapter): ToolDefinition {
         }
 
         if (typeof doc1 === "string") {
-          try { doc1 = JSON.parse(doc1); } catch { /* ignore */ }
+          try {
+            doc1 = JSON.parse(doc1);
+          } catch {
+            /* ignore */
+          }
         }
         if (typeof doc2 === "string") {
-          try { doc2 = JSON.parse(doc2); } catch { /* ignore */ }
+          try {
+            doc2 = JSON.parse(doc2);
+          } catch {
+            /* ignore */
+          }
         }
 
-        if (typeof doc1 !== "object" || doc1 === null || Array.isArray(doc1) || 
-            typeof doc2 !== "object" || doc2 === null || Array.isArray(doc2)) {
-            throw new ValidationError(
-              "pg_jsonb_diff requires two JSONB objects. Arrays and primitive values are not supported. Use {} format for both doc1 and doc2."
-            );
+        if (
+          typeof doc1 !== "object" ||
+          doc1 === null ||
+          Array.isArray(doc1) ||
+          typeof doc2 !== "object" ||
+          doc2 === null ||
+          Array.isArray(doc2)
+        ) {
+          throw new ValidationError(
+            "pg_jsonb_diff requires two JSONB objects. Arrays and primitive values are not supported. Use {} format for both doc1 and doc2.",
+          );
         }
 
         const sql = `

@@ -44,7 +44,9 @@ export const CreateCollectionSchemaBase = z.object({
   ifNotExists: z
     .unknown()
     .optional()
-    .describe("Skip without error if collection already exists (default: false)"),
+    .describe(
+      "Skip without error if collection already exists (default: false)",
+    ),
 });
 
 export const CreateCollectionSchema = z.preprocess(
@@ -61,8 +63,11 @@ export const CreateCollectionSchema = z.preprocess(
   z.object({
     name: z.string().describe("Collection name"),
     schema: z.string().optional(),
-    ifNotExists: z.preprocess((val) => val === "true" || val === true, z.boolean().default(false)),
-  })
+    ifNotExists: z.preprocess(
+      (val) => val === "true" || val === true,
+      z.boolean().default(false),
+    ),
+  }),
 );
 
 /**
@@ -75,7 +80,9 @@ export const DropCollectionSchemaBase = z.object({
   ifExists: z
     .unknown()
     .optional()
-    .describe("Skip without error if collection does not exist (default: false)"),
+    .describe(
+      "Skip without error if collection does not exist (default: false)",
+    ),
 });
 
 export const DropCollectionSchema = z.preprocess(
@@ -92,8 +99,11 @@ export const DropCollectionSchema = z.preprocess(
   z.object({
     name: z.string(),
     schema: z.string().optional(),
-    ifExists: z.preprocess((val) => val === "true" || val === true, z.boolean().default(false)),
-  })
+    ifExists: z.preprocess(
+      (val) => val === "true" || val === true,
+      z.boolean().default(false),
+    ),
+  }),
 );
 
 /**
@@ -119,7 +129,7 @@ export const FindSchemaBase = z.object({
     .unknown()
     .optional()
     .describe(
-      "Filter: _id value (32-char hex), field=value, JSON object filter ({\"field\":\"value\"}), or JSON path existence ($.field)",
+      'Filter: _id value (32-char hex), field=value, JSON object filter ({"field":"value"}), or JSON path existence ($.field)',
     ),
   fields: z
     .unknown()
@@ -138,13 +148,23 @@ export const FindSchemaBase = z.object({
 export const FindSchema = z.object({
   collection: z.string(),
   schema: z.string().optional(),
-  filter: z.preprocess((val) => (typeof val === "object" && val !== null ? JSON.stringify(val) : val), z.string().optional()),
+  filter: z.preprocess(
+    (val) =>
+      typeof val === "object" && val !== null ? JSON.stringify(val) : val,
+    z.string().optional(),
+  ),
   fields: z.preprocess((val) => {
     if (typeof val === "string") return val.split(",").map((s) => s.trim());
     return val;
   }, z.array(z.string()).optional()),
-  limit: z.preprocess((val) => (val !== undefined ? Number(val) : 50), z.number().default(50)),
-  offset: z.preprocess((val) => (val !== undefined ? Number(val) : 0), z.number().default(0)),
+  limit: z.preprocess(
+    (val) => (val !== undefined ? Number(val) : 50),
+    z.number().default(50),
+  ),
+  offset: z.preprocess(
+    (val) => (val !== undefined ? Number(val) : 0),
+    z.number().default(0),
+  ),
 });
 
 /**
@@ -153,10 +173,7 @@ export const FindSchema = z.object({
 export const AddDocSchemaBase = z.object({
   collection: z.string().optional().describe("Collection name"),
   schema: z.unknown().optional(),
-  documents: z
-    .unknown()
-    .optional()
-    .describe("Documents to add"),
+  documents: z.unknown().optional().describe("Documents to add"),
 });
 
 export const AddDocSchema = z.object({
@@ -175,12 +192,9 @@ export const ModifyDocSchemaBase = z.object({
     .unknown()
     .optional()
     .describe(
-      "Filter: _id value (32-char hex), field=value, JSON object filter ({\"field\":\"value\"}), or JSON path existence ($.field)",
+      'Filter: _id value (32-char hex), field=value, JSON object filter ({"field":"value"}), or JSON path existence ($.field)',
     ),
-  set: z
-    .unknown()
-    .optional()
-    .describe("Fields to set (key→value)"),
+  set: z.unknown().optional().describe("Fields to set (key→value)"),
   unset: z
     .unknown()
     .optional()
@@ -190,7 +204,11 @@ export const ModifyDocSchemaBase = z.object({
 export const ModifyDocSchema = z.object({
   collection: z.string(),
   schema: z.string().optional(),
-  filter: z.preprocess((val) => (typeof val === "object" && val !== null ? JSON.stringify(val) : val), z.string()),
+  filter: z.preprocess(
+    (val) =>
+      typeof val === "object" && val !== null ? JSON.stringify(val) : val,
+    z.string(),
+  ),
   set: z.record(z.string(), z.unknown()).optional(),
   unset: z.array(z.string()).optional(),
 });
@@ -205,14 +223,18 @@ export const RemoveDocSchemaBase = z.object({
     .unknown()
     .optional()
     .describe(
-      "Filter: _id value (32-char hex), field=value, JSON object filter ({\"field\":\"value\"}), or JSON path existence ($.field)",
+      'Filter: _id value (32-char hex), field=value, JSON object filter ({"field":"value"}), or JSON path existence ($.field)',
     ),
 });
 
 export const RemoveDocSchema = z.object({
   collection: z.string(),
   schema: z.string().optional(),
-  filter: z.preprocess((val) => (typeof val === "object" && val !== null ? JSON.stringify(val) : val), z.string()),
+  filter: z.preprocess(
+    (val) =>
+      typeof val === "object" && val !== null ? JSON.stringify(val) : val,
+    z.string(),
+  ),
 });
 
 /**
@@ -222,11 +244,11 @@ export const CreateDocIndexSchemaBase = z.object({
   collection: z.string().optional().describe("Collection name"),
   schema: z.string().optional(),
   name: z.unknown().optional().describe("Index name (generated if omitted)"),
-  fields: z
+  fields: z.unknown().optional().describe("Fields to index"),
+  field: z
     .unknown()
     .optional()
-    .describe("Fields to index"),
-  field: z.unknown().optional().describe("Alias for fields (single path string)"),
+    .describe("Alias for fields (single path string)"),
   unique: z
     .unknown()
     .optional()
@@ -239,7 +261,10 @@ export const CreateDocIndexSchema = z.preprocess(
       const obj = val as Record<string, unknown>;
       const processed: Record<string, unknown> = { ...obj };
       // Map 'field' to 'fields' array if 'fields' is missing
-      if (processed["fields"] === undefined && typeof processed["field"] === "string") {
+      if (
+        processed["fields"] === undefined &&
+        typeof processed["field"] === "string"
+      ) {
         processed["fields"] = [{ path: processed["field"], type: "TEXT" }];
       } else if (typeof processed["fields"] === "string") {
         // Handle comma-separated string for fields
@@ -261,8 +286,12 @@ export const CreateDocIndexSchema = z.preprocess(
         processed["fields"].length > 0
       ) {
         const firstField = processed["fields"][0] as Record<string, unknown>;
-        const pathStr = typeof firstField["path"] === "string" ? firstField["path"] : "unknown";
-        processed["name"] = `idx_${processed["collection"]}_${pathStr.replace(/[^a-zA-Z0-9]/g, "_")}`;
+        const pathStr =
+          typeof firstField["path"] === "string"
+            ? firstField["path"]
+            : "unknown";
+        processed["name"] =
+          `idx_${processed["collection"]}_${pathStr.replace(/[^a-zA-Z0-9]/g, "_")}`;
       }
       return processed;
     }
@@ -280,8 +309,11 @@ export const CreateDocIndexSchema = z.preprocess(
           .default("TEXT"),
       }),
     ),
-    unique: z.preprocess((val) => val === "true" || val === true, z.boolean().default(false)),
-  })
+    unique: z.preprocess(
+      (val) => val === "true" || val === true,
+      z.boolean().default(false),
+    ),
+  }),
 );
 
 // =============================================================================
@@ -347,7 +379,10 @@ export const CollectionInfoOutputSchema = z
     stats: z
       .object({
         rowCount: z.number().describe("Exact row count"),
-        totalSize: z.string().optional().describe("Total size (pretty-printed)"),
+        totalSize: z
+          .string()
+          .optional()
+          .describe("Total size (pretty-printed)"),
         tableSize: z.string().optional().describe("Table data size"),
         indexSize: z.string().optional().describe("Index size"),
       })

@@ -57,7 +57,9 @@ export function parsePostgresError(
   // Extension missing guards (checked first because they can throw various codes like 42883 or 42P01)
   if (
     context.tool?.startsWith("pg_cron_") &&
-    /(?:relation ["']?cron\.job(?:_run_details)?["']?|schema ["']?cron["']?)/i.test(msg)
+    /(?:relation ["']?cron\.job(?:_run_details)?["']?|schema ["']?cron["']?)/i.test(
+      msg,
+    )
   ) {
     throw new Error(
       `Extension "pg_cron" is not available. Ensure it is installed and enabled.`,
@@ -67,7 +69,9 @@ export function parsePostgresError(
 
   if (
     context.tool?.startsWith("pg_kcache_") &&
-    /(?:relation|function) ["']?pg_stat_kcache(?:_.*)?(?:\(\))?["']? does not exist/i.test(msg)
+    /(?:relation|function) ["']?pg_stat_kcache(?:_.*)?(?:\(\))?["']? does not exist/i.test(
+      msg,
+    )
   ) {
     throw new Error(
       `Extension "pg_stat_kcache" is not available. Ensure it is installed and enabled.`,
@@ -77,7 +81,9 @@ export function parsePostgresError(
 
   if (
     context.tool?.startsWith("pg_ltree_") &&
-    /(?:type|operator|function|relation|class) ["']?(?:ltree|lquery|ltxtquery|lca|nlevel|subpath|gist_ltree_ops)["']?(?:\([^)]*\))? does not exist/i.test(msg)
+    /(?:type|operator|function|relation|class) ["']?(?:ltree|lquery|ltxtquery|lca|nlevel|subpath|gist_ltree_ops)["']?(?:\([^)]*\))? does not exist/i.test(
+      msg,
+    )
   ) {
     throw new Error(
       `Extension "ltree" is not available. Ensure it is installed and enabled.`,
@@ -87,7 +93,9 @@ export function parsePostgresError(
 
   if (
     context.tool?.startsWith("pg_fuzzy_match") &&
-    /(?:function|type|operator) ["']?(?:levenshtein|soundex|metaphone|damerau-levenshtein|levenshtein_less_equal)["']?(?:\([^)]*\))? does not exist/i.test(msg)
+    /(?:function|type|operator) ["']?(?:levenshtein|soundex|metaphone|damerau-levenshtein|levenshtein_less_equal)["']?(?:\([^)]*\))? does not exist/i.test(
+      msg,
+    )
   ) {
     throw new Error(
       `Extension "fuzzystrmatch" is not available. Ensure it is installed and enabled.`,
@@ -275,7 +283,10 @@ export function parsePostgresError(
   }
 
   // 2200H — sequence generator limit exceeded
-  if (pgCode === "2200H" || /reached (maximum|minimum) value of sequence/i.test(msg)) {
+  if (
+    pgCode === "2200H" ||
+    /reached (maximum|minimum) value of sequence/i.test(msg)
+  ) {
     const match = /sequence "([^"]+)"/i.exec(msg);
     const seqName = match?.[1] ?? context.target ?? "unknown";
     throw new Error(

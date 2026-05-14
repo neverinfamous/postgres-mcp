@@ -164,7 +164,9 @@ export const GeometryDistanceSchema = z
       limit: data.limit,
       maxDistance:
         rawDistance !== undefined
-          ? (Number.isNaN(rawDistance) ? NaN : convertToMeters(rawDistance, data.unit))
+          ? Number.isNaN(rawDistance)
+            ? NaN
+            : convertToMeters(rawDistance, data.unit)
           : undefined,
       unit: data.unit,
       schema: data.schema,
@@ -173,9 +175,12 @@ export const GeometryDistanceSchema = z
   .refine((data) => data.table !== "", {
     message: "table (or tableName alias) is required",
   })
-  .refine((data) => !Number.isNaN(data.point.lat) && !Number.isNaN(data.point.lng), {
-    message: "point (or lat/lng) is required",
-  })
+  .refine(
+    (data) => !Number.isNaN(data.point.lat) && !Number.isNaN(data.point.lng),
+    {
+      message: "point (or lat/lng) is required",
+    },
+  )
   .refine((data) => data.maxDistance === undefined || data.maxDistance >= 0, {
     message: "distance must be a non-negative number",
   })
@@ -188,12 +193,22 @@ export const GeometryDistanceSchema = z
         "unit must be a valid distance unit (meters, m, kilometers, km, miles, mi)",
     },
   )
-  .refine((data) => Number.isNaN(data.point.lat) || (data.point.lat >= -90 && data.point.lat <= 90), {
-    message: "lat must be between -90 and 90 degrees",
-  })
-  .refine((data) => Number.isNaN(data.point.lng) || (data.point.lng >= -180 && data.point.lng <= 180), {
-    message: "lng must be between -180 and 180 degrees",
-  });
+  .refine(
+    (data) =>
+      Number.isNaN(data.point.lat) ||
+      (data.point.lat >= -90 && data.point.lat <= 90),
+    {
+      message: "lat must be between -90 and 90 degrees",
+    },
+  )
+  .refine(
+    (data) =>
+      Number.isNaN(data.point.lng) ||
+      (data.point.lng >= -180 && data.point.lng <= 180),
+    {
+      message: "lng must be between -180 and 180 degrees",
+    },
+  );
 
 // =============================================================================
 // pg_point_in_polygon
@@ -269,15 +284,28 @@ export const PointInPolygonSchema = z
   .refine((data) => data.column !== "", {
     message: "column (or geom/geometry/geometryColumn alias) is required",
   })
-  .refine((data) => !Number.isNaN(data.point.lat) && !Number.isNaN(data.point.lng), {
-    message: "point (or lat/lng) is required",
-  })
-  .refine((data) => Number.isNaN(data.point.lat) || (data.point.lat >= -90 && data.point.lat <= 90), {
-    message: "lat must be between -90 and 90 degrees",
-  })
-  .refine((data) => Number.isNaN(data.point.lng) || (data.point.lng >= -180 && data.point.lng <= 180), {
-    message: "lng must be between -180 and 180 degrees",
-  });
+  .refine(
+    (data) => !Number.isNaN(data.point.lat) && !Number.isNaN(data.point.lng),
+    {
+      message: "point (or lat/lng) is required",
+    },
+  )
+  .refine(
+    (data) =>
+      Number.isNaN(data.point.lat) ||
+      (data.point.lat >= -90 && data.point.lat <= 90),
+    {
+      message: "lat must be between -90 and 90 degrees",
+    },
+  )
+  .refine(
+    (data) =>
+      Number.isNaN(data.point.lng) ||
+      (data.point.lng >= -180 && data.point.lng <= 180),
+    {
+      message: "lng must be between -180 and 180 degrees",
+    },
+  );
 
 // =============================================================================
 // pg_spatial_index
@@ -381,8 +409,7 @@ export const BufferSchema = z
     message: "column (or geom/geometryColumn alias) is required",
   })
   .refine((data) => data.distance !== 0, {
-    message:
-      "distance (or radius/meters alias) is required and cannot be zero",
+    message: "distance (or radius/meters alias) is required and cannot be zero",
   })
   .refine((data) => data.simplify === undefined || data.simplify >= 0, {
     message:

@@ -20,7 +20,11 @@ import {
   sanitizeTableName,
 } from "../../../../utils/identifiers.js";
 import { checkTableAndColumn, truncateVector } from "./data.js";
-import { VectorClusterOutputSchema, VectorClusterSchemaBase, VectorClusterSchema } from "../../schemas/index.js";
+import {
+  VectorClusterOutputSchema,
+  VectorClusterSchemaBase,
+  VectorClusterSchema,
+} from "../../schemas/index.js";
 
 /**
  * Parse a PostgreSQL vector string to a number array.
@@ -38,7 +42,6 @@ function parseVector(vecStr: unknown): number[] | null {
 export function createVectorClusterTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-
   return {
     name: "pg_vector_cluster",
     description:

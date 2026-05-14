@@ -13,7 +13,11 @@ import type {
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
-import { QueryPlanCompareOutputSchema, QueryPlanCompareSchemaBase, QueryPlanCompareSchema } from "../../schemas/index.js";
+import {
+  QueryPlanCompareOutputSchema,
+  QueryPlanCompareSchemaBase,
+  QueryPlanCompareSchema,
+} from "../../schemas/index.js";
 
 /**
  * Recursively strip zero-value block stats, empty Triggers arrays,
@@ -73,11 +77,15 @@ export function createQueryPlanCompareTool(
         const parsed = QueryPlanCompareSchema.parse(params);
 
         // Validate required parameters
-        if (typeof parsed.query1 !== "string" || !parsed.query1 || typeof parsed.query2 !== "string" || !parsed.query2) {
+        if (
+          typeof parsed.query1 !== "string" ||
+          !parsed.query1 ||
+          typeof parsed.query2 !== "string" ||
+          !parsed.query2
+        ) {
           return {
             success: false as const,
-            error:
-              "Validation error: both query1 and query2 are required",
+            error: "Validation error: both query1 and query2 are required",
             code: "VALIDATION_ERROR",
             category: "validation",
             recoverable: false,

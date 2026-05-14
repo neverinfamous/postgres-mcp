@@ -38,10 +38,7 @@ export const VectorSearchSchemaBase = z.object({
   col: z.string().optional().describe("Alias for column"),
   vector: FiniteNumberArray.optional().describe("Query vector"),
   queryVector: FiniteNumberArray.optional().describe("Alias for vector"),
-  metric: z
-    .string()
-    .optional()
-    .describe("Distance metric"),
+  metric: z.string().optional().describe("Distance metric"),
   limit: z.unknown().optional().describe("Number of results"),
   select: z
     .array(z.string())
@@ -123,10 +120,7 @@ export const VectorCreateIndexSchemaBase = z.object({
   col: z.string().optional().describe("Alias for column"),
   type: z.string().optional().describe("Index type"),
   method: z.string().optional().describe("Alias for type"),
-  metric: z
-    .string()
-    .optional()
-    .describe("Distance metric (default: l2)"),
+  metric: z.string().optional().describe("Distance metric (default: l2)"),
   distanceMetric: z.string().optional().describe("Alias for metric"),
   ifNotExists: z
     .boolean()
@@ -237,7 +231,12 @@ export const HybridSearchSchemaBase = z.object({
 export const HybridSearchSchema = HybridSearchSchemaBase.transform((data) => ({
   table: data.table ?? data.tableName ?? "",
   vectorColumn:
-    data.vectorColumn ?? data.vector_column ?? data.vectorCol ?? data.column ?? data.col ?? "",
+    data.vectorColumn ??
+    data.vector_column ??
+    data.vectorCol ??
+    data.column ??
+    data.col ??
+    "",
   textColumn: data.textColumn ?? data.searchColumn ?? data.search_column,
   vector: data.vector ?? data.queryVector ?? data.query_vector,
   textQuery: data.textQuery ?? data.queryText ?? data.query,
@@ -251,7 +250,9 @@ export const PerformanceSchemaBase = z.object({
   tableName: z.string().optional().describe("Alias for table"),
   column: z.string().optional().describe("Vector column"),
   col: z.string().optional().describe("Alias for column"),
-  testVector: FiniteNumberArray.optional().describe("Test vector for benchmarking"),
+  testVector: FiniteNumberArray.optional().describe(
+    "Test vector for benchmarking",
+  ),
   schema: z.string().optional().describe("Database schema (default: public)"),
 });
 
@@ -308,49 +309,82 @@ export const IndexOptimizeSchemaBase = z.object({
   schema: z.string().optional().describe("Database schema (default: public)"),
 });
 
-export const IndexOptimizeSchema = IndexOptimizeSchemaBase.transform((data) => ({
-  table: data.table ?? data.tableName ?? "",
-  column: data.column ?? data.col ?? "",
-  schema: data.schema,
-}));
+export const IndexOptimizeSchema = IndexOptimizeSchemaBase.transform(
+  (data) => ({
+    table: data.table ?? data.tableName ?? "",
+    column: data.column ?? data.col ?? "",
+    schema: data.schema,
+  }),
+);
 
 export const VectorDimensionReduceSchemaBase = z.object({
-  vector: FiniteNumberArray.optional().describe("Vector to reduce (for direct mode)"),
+  vector: FiniteNumberArray.optional().describe(
+    "Vector to reduce (for direct mode)",
+  ),
   table: z.string().optional().describe("Table name (for table mode)"),
   tableName: z.string().optional().describe("Alias for table"),
   column: z.string().optional().describe("Vector column name (for table mode)"),
   col: z.string().optional().describe("Alias for column"),
-  idColumn: z.string().optional().describe("ID column to include in results (default: id)"),
-  limit: z.preprocess(coerceNumber, z.number().optional()).describe("Max rows to process (default: 5, max: 100)"),
-  targetDimensions: z.preprocess(coerceNumber, z.number().optional()).describe("Target number of dimensions"),
-  target_dimensions: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for targetDimensions"),
-  dimensions: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for targetDimensions"),
-  seed: z.preprocess(coerceNumber, z.number().optional()).describe("Random seed for reproducibility"),
-  summarize: z.boolean().optional().describe("Summarize reduced vectors to preview format in table mode (default: true)"),
+  idColumn: z
+    .string()
+    .optional()
+    .describe("ID column to include in results (default: id)"),
+  limit: z
+    .preprocess(coerceNumber, z.number().optional())
+    .describe("Max rows to process (default: 5, max: 100)"),
+  targetDimensions: z
+    .preprocess(coerceNumber, z.number().optional())
+    .describe("Target number of dimensions"),
+  target_dimensions: z
+    .preprocess(coerceNumber, z.number().optional())
+    .describe("Alias for targetDimensions"),
+  dimensions: z
+    .preprocess(coerceNumber, z.number().optional())
+    .describe("Alias for targetDimensions"),
+  seed: z
+    .preprocess(coerceNumber, z.number().optional())
+    .describe("Random seed for reproducibility"),
+  summarize: z
+    .boolean()
+    .optional()
+    .describe(
+      "Summarize reduced vectors to preview format in table mode (default: true)",
+    ),
 });
 
-export const VectorDimensionReduceSchema = VectorDimensionReduceSchemaBase.transform((data) => {
-  const rawTarget = (data.targetDimensions ?? data.target_dimensions ?? data.dimensions) as unknown;
-  const rawLimit = data.limit as unknown;
-  const rawSeed = data.seed as unknown;
-  return {
-    ...data,
-    table: data.table ?? data.tableName,
-    column: data.column ?? data.col,
-    targetDimensions: rawTarget != null ? Number(rawTarget) : undefined,
-    limit: rawLimit != null ? Number(rawLimit) : undefined,
-    seed: rawSeed != null ? Number(rawSeed) : undefined,
-  };
-}).refine((data) => data.targetDimensions !== undefined, {
-  message: "targetDimensions (or dimensions alias) is required",
-});
+export const VectorDimensionReduceSchema =
+  VectorDimensionReduceSchemaBase.transform((data) => {
+    const rawTarget = (data.targetDimensions ??
+      data.target_dimensions ??
+      data.dimensions) as unknown;
+    const rawLimit = data.limit as unknown;
+    const rawSeed = data.seed as unknown;
+    return {
+      ...data,
+      table: data.table ?? data.tableName,
+      column: data.column ?? data.col,
+      targetDimensions: rawTarget != null ? Number(rawTarget) : undefined,
+      limit: rawLimit != null ? Number(rawLimit) : undefined,
+      seed: rawSeed != null ? Number(rawSeed) : undefined,
+    };
+  }).refine((data) => data.targetDimensions !== undefined, {
+    message: "targetDimensions (or dimensions alias) is required",
+  });
 
 export const EmbedSchemaBase = z.object({
   text: z.string().optional().describe("Text to embed"),
   input: z.string().optional().describe("Alias for text"),
-  model: z.string().optional().describe("Model name (ignored, for compatibility)"),
-  dimensions: z.preprocess(coerceNumber, z.number().optional()).describe("Vector dimensions (default: 384)"),
-  summarize: z.boolean().optional().describe("Truncate embedding for display (default: true)"),
+  model: z
+    .string()
+    .optional()
+    .describe("Model name (ignored, for compatibility)"),
+  dimensions: z
+    .preprocess(coerceNumber, z.number().optional())
+    .describe("Vector dimensions (default: 384)"),
+  summarize: z
+    .boolean()
+    .optional()
+    .describe("Truncate embedding for display (default: true)"),
 });
 
 export const EmbedSchema = EmbedSchemaBase.transform((data) => ({

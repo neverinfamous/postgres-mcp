@@ -123,7 +123,10 @@ export function createRoleListTool(adapter: PostgresAdapter): ToolDefinition {
             replication: row["replication"] as boolean,
             bypassrls: row["bypassrls"] as boolean,
             connectionLimit: Number(row["connectionLimit"] ?? -1),
-            validUntil: row["validUntil"] != null ? new Date(row["validUntil"] as string | Date).toISOString() : null,
+            validUntil:
+              row["validUntil"] != null
+                ? new Date(row["validUntil"] as string | Date).toISOString()
+                : null,
           }),
         );
 
@@ -221,14 +224,14 @@ export function createRoleCreateTool(adapter: PostgresAdapter): ToolDefinition {
         if (parsed.bypassrls === false) attributes.push("NOBYPASSRLS");
 
         if (parsed.connectionLimit !== undefined) {
-          attributes.push(
-            `CONNECTION LIMIT ${String(parsed.connectionLimit)}`,
-          );
+          attributes.push(`CONNECTION LIMIT ${String(parsed.connectionLimit)}`);
         }
 
         if (parsed.validUntil) {
           // Use parameterized query for the timestamp value
-          attributes.push(`VALID UNTIL '${parsed.validUntil.replace(/'/g, "''")}'`);
+          attributes.push(
+            `VALID UNTIL '${parsed.validUntil.replace(/'/g, "''")}'`,
+          );
         }
 
         if (parsed.password) {
@@ -254,9 +257,7 @@ export function createRoleCreateTool(adapter: PostgresAdapter): ToolDefinition {
 
         const attrClause =
           attributes.length > 0 ? " " + attributes.join(" ") : "";
-        await adapter.executeQuery(
-          `CREATE ROLE "${parsed.name}"${attrClause}`,
-        );
+        await adapter.executeQuery(`CREATE ROLE "${parsed.name}"${attrClause}`);
 
         return {
           success: true,
@@ -300,9 +301,7 @@ export function createRoleDropTool(adapter: PostgresAdapter): ToolDefinition {
 
         if (!validateIdentifier(parsed.name)) {
           return formatHandlerErrorResponse(
-            new ValidationError(
-              `Invalid role name: '${parsed.name}'`,
-            ),
+            new ValidationError(`Invalid role name: '${parsed.name}'`),
             { tool: "pg_role_drop" },
           );
         }
@@ -410,7 +409,10 @@ export function createRoleAttributesTool(
             bypassrls: row["bypassrls"] as boolean,
             inherit: row["inherit"] as boolean,
             connectionLimit: Number(row["connectionLimit"] ?? -1),
-            validUntil: row["validUntil"] != null ? new Date(row["validUntil"] as string | Date).toISOString() : null,
+            validUntil:
+              row["validUntil"] != null
+                ? new Date(row["validUntil"] as string | Date).toISOString()
+                : null,
             oid: Number(row["oid"]),
           },
         };

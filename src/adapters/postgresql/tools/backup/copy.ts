@@ -248,9 +248,7 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
   };
 }
 
-export function createCopyImportTool(
-  adapter: PostgresAdapter,
-): ToolDefinition {
+export function createCopyImportTool(adapter: PostgresAdapter): ToolDefinition {
   return {
     name: "pg_copy_import",
     description: "Generate COPY FROM command for importing data.",
@@ -311,10 +309,13 @@ export function createCopyImportTool(
             const checkSchema = schemaNamePart ?? "public";
             const tableExists = await adapter.executeQuery(
               "SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relname = $1 AND n.nspname = $2",
-              [tableNamePart, checkSchema]
+              [tableNamePart, checkSchema],
             );
-            if (tableExists.rows === undefined || tableExists.rows.length === 0) {
-               throw new Error(`relation "${tableNamePart}" does not exist`);
+            if (
+              tableExists.rows === undefined ||
+              tableExists.rows.length === 0
+            ) {
+              throw new Error(`relation "${tableNamePart}" does not exist`);
             }
 
             const tableName = sanitizeTableName(tableNamePart, schemaNamePart);

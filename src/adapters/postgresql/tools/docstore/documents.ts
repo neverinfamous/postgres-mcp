@@ -61,10 +61,9 @@ export function createFindTool(adapter: PostgresAdapter): ToolDefinition {
           );
         }
         if (schema && !IDENTIFIER_RE.test(schema)) {
-          return formatHandlerErrorResponse(
-            new Error("Invalid schema name"),
-            { tool: "pg_doc_find" },
-          );
+          return formatHandlerErrorResponse(new Error("Invalid schema name"), {
+            tool: "pg_doc_find",
+          });
         }
 
         // P154: Check collection existence
@@ -122,28 +121,26 @@ export function createFindTool(adapter: PostgresAdapter): ToolDefinition {
         queryParams.push(limit, offset);
 
         const result = await adapter.executeQuery(query, queryParams);
-        const docs = (result.rows ?? []).map(
-          (r: Record<string, unknown>) => {
-            const docValue = r["doc"];
-            const idValue = r["_id"];
-            const parsed =
-              typeof docValue === "string"
-                ? (JSON.parse(docValue) as Record<string, unknown>)
-                : (docValue as Record<string, unknown>);
+        const docs = (result.rows ?? []).map((r: Record<string, unknown>) => {
+          const docValue = r["doc"];
+          const idValue = r["_id"];
+          const parsed =
+            typeof docValue === "string"
+              ? (JSON.parse(docValue) as Record<string, unknown>)
+              : (docValue as Record<string, unknown>);
 
-            if (
-              idValue !== undefined &&
-              parsed !== null &&
-              typeof parsed === "object" &&
-              !Array.isArray(parsed)
-            ) {
-              if (!("_id" in parsed)) {
-                parsed["_id"] = idValue;
-              }
+          if (
+            idValue !== undefined &&
+            parsed !== null &&
+            typeof parsed === "object" &&
+            !Array.isArray(parsed)
+          ) {
+            if (!("_id" in parsed)) {
+              parsed["_id"] = idValue;
             }
-            return parsed;
-          },
-        );
+          }
+          return parsed;
+        });
 
         return { success: true, documents: docs, count: docs.length };
       } catch (err) {
@@ -185,10 +182,9 @@ export function createAddTool(adapter: PostgresAdapter): ToolDefinition {
           );
         }
         if (schema && !IDENTIFIER_RE.test(schema)) {
-          return formatHandlerErrorResponse(
-            new Error("Invalid schema name"),
-            { tool: "pg_doc_add" },
-          );
+          return formatHandlerErrorResponse(new Error("Invalid schema name"), {
+            tool: "pg_doc_add",
+          });
         }
 
         const addCheck = await checkCollectionExists(
@@ -255,10 +251,9 @@ export function createModifyTool(adapter: PostgresAdapter): ToolDefinition {
           );
         }
         if (schema && !IDENTIFIER_RE.test(schema)) {
-          return formatHandlerErrorResponse(
-            new Error("Invalid schema name"),
-            { tool: "pg_doc_modify" },
-          );
+          return formatHandlerErrorResponse(new Error("Invalid schema name"), {
+            tool: "pg_doc_modify",
+          });
         }
 
         const modCheck = await checkCollectionExists(
@@ -295,7 +290,7 @@ export function createModifyTool(adapter: PostgresAdapter): ToolDefinition {
               );
             }
             // jsonb_set(doc, '{path}', $N::jsonb, true)
-            const pgPath = path.split('.').join(',');
+            const pgPath = path.split(".").join(",");
             docExpr = `jsonb_set(${docExpr}, '{${pgPath}}', $${String(paramIdx)}::jsonb, true)`;
             updateParams.push(JSON.stringify(value));
             paramIdx++;
@@ -313,7 +308,7 @@ export function createModifyTool(adapter: PostgresAdapter): ToolDefinition {
               );
             }
             // doc #- '{path}'
-            const pgPath = path.split('.').join(',');
+            const pgPath = path.split(".").join(",");
             docExpr = `${docExpr} #- '{${pgPath}}'`;
           }
         }
@@ -368,10 +363,9 @@ export function createRemoveTool(adapter: PostgresAdapter): ToolDefinition {
           );
         }
         if (schema && !IDENTIFIER_RE.test(schema)) {
-          return formatHandlerErrorResponse(
-            new Error("Invalid schema name"),
-            { tool: "pg_doc_remove" },
-          );
+          return formatHandlerErrorResponse(new Error("Invalid schema name"), {
+            tool: "pg_doc_remove",
+          });
         }
 
         const rmCheck = await checkCollectionExists(

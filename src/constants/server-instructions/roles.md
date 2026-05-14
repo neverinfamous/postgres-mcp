@@ -4,20 +4,20 @@ PostgreSQL role CRUD, privilege management, membership, session control, and row
 
 ## Tools (12)
 
-| Tool | Description |
-|------|-------------|
-| `pg_role_list` | List all roles with optional pattern filter and attributes |
-| `pg_role_create` | Create a new role with optional attributes (LOGIN, PASSWORD, SUPERUSER, etc.) |
-| `pg_role_drop` | Drop a role (with IF EXISTS safety by default) |
-| `pg_role_attributes` | Get detailed role attributes and settings (OID, inherit, connection limit, expiration) |
-| `pg_role_grants` | Show privileges and memberships for a role |
-| `pg_role_grant` | Grant privileges (SELECT, INSERT, ALL, etc.) on tables/schemas/sequences to a role |
-| `pg_role_assign` | Grant role membership to a user/role (with optional ADMIN OPTION) |
-| `pg_role_revoke` | Revoke role membership or object privileges from a user/role |
-| `pg_user_roles` | List roles assigned to a user (including admin and SET options) |
-| `pg_role_set` | Set session's active role (SET ROLE / RESET ROLE) |
-| `pg_role_rls_enable` | Enable/disable row-level security on a table (with optional FORCE) |
-| `pg_role_rls_policies` | List RLS policies for a table (name, command, USING/WITH CHECK expressions) |
+| Tool                   | Description                                                                            |
+| ---------------------- | -------------------------------------------------------------------------------------- |
+| `pg_role_list`         | List all roles with optional pattern filter and attributes                             |
+| `pg_role_create`       | Create a new role with optional attributes (LOGIN, PASSWORD, SUPERUSER, etc.)          |
+| `pg_role_drop`         | Drop a role (with IF EXISTS safety by default)                                         |
+| `pg_role_attributes`   | Get detailed role attributes and settings (OID, inherit, connection limit, expiration) |
+| `pg_role_grants`       | Show privileges and memberships for a role                                             |
+| `pg_role_grant`        | Grant privileges (SELECT, INSERT, ALL, etc.) on tables/schemas/sequences to a role     |
+| `pg_role_assign`       | Grant role membership to a user/role (with optional ADMIN OPTION)                      |
+| `pg_role_revoke`       | Revoke role membership or object privileges from a user/role                           |
+| `pg_user_roles`        | List roles assigned to a user (including admin and SET options)                        |
+| `pg_role_set`          | Set session's active role (SET ROLE / RESET ROLE)                                      |
+| `pg_role_rls_enable`   | Enable/disable row-level security on a table (with optional FORCE)                     |
+| `pg_role_rls_policies` | List RLS policies for a table (name, command, USING/WITH CHECK expressions)            |
 
 ## Key Concepts
 

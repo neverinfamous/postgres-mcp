@@ -67,7 +67,7 @@ export function createListViewsTool(adapter: PostgresAdapter): ToolDefinition {
 
         const conditions: string[] = [
           `c.relkind ${parsed.includeMaterialized !== false ? "IN ('v', 'm')" : "= 'v'"}`,
-          "n.nspname NOT IN ('pg_catalog', 'information_schema')"
+          "n.nspname NOT IN ('pg_catalog', 'information_schema')",
         ];
 
         if (parsed.schema) {

@@ -116,9 +116,7 @@ export const RoleGrantsSchemaBase = z.object({
   includeTableGrants: z
     .boolean()
     .optional()
-    .describe(
-      "Include object-level (table/schema) grants (default: true)",
-    ),
+    .describe("Include object-level (table/schema) grants (default: true)"),
 });
 
 export const RoleGrantsSchema = RoleGrantsSchemaBase;
@@ -127,9 +125,7 @@ export const RoleGrantsSchema = RoleGrantsSchemaBase;
  * pg_role_grant — grant privileges on objects to a role
  */
 export const RoleGrantSchemaBase = z.object({
-  role: z
-    .string()
-    .describe("Role to grant privileges to"),
+  role: z.string().describe("Role to grant privileges to"),
   privileges: z
     .array(z.string())
     .describe(
@@ -145,10 +141,7 @@ export const RoleGrantSchemaBase = z.object({
     .describe(
       "Table name or '*' for all tables in schema. Omit for schema-level grants.",
     ),
-  tableName: z
-    .string()
-    .optional()
-    .describe("Alias for table"),
+  tableName: z.string().optional().describe("Alias for table"),
   objectType: z
     .string()
     .optional()
@@ -166,7 +159,7 @@ export const RoleGrantSchema = z.preprocess((val: unknown) => {
   const obj = val as Record<string, unknown>;
   return {
     ...obj,
-    table: obj['table'] ?? obj['tableName'],
+    table: obj["table"] ?? obj["tableName"],
   };
 }, RoleGrantSchemaBase);
 
@@ -196,7 +189,7 @@ export const RoleAssignSchema = z.preprocess((val: unknown) => {
   const obj = val as Record<string, unknown>;
   return {
     ...obj,
-    user: obj['user'] ?? obj['member'],
+    user: obj["user"] ?? obj["member"],
   };
 }, RoleAssignSchemaBase);
 
@@ -215,10 +208,7 @@ export const RoleRevokeSchemaBase = z.object({
     .describe(
       "User/role to revoke from (for membership revocation). Required when revoking role membership.",
     ),
-  member: z
-    .string()
-    .optional()
-    .describe("Alias for user"),
+  member: z.string().optional().describe("Alias for user"),
   privileges: z
     .array(z.string())
     .optional()
@@ -233,10 +223,7 @@ export const RoleRevokeSchemaBase = z.object({
     .string()
     .optional()
     .describe("Table name for object-level privilege revocation"),
-  tableName: z
-    .string()
-    .optional()
-    .describe("Alias for table"),
+  tableName: z.string().optional().describe("Alias for table"),
   objectType: z
     .string()
     .optional()
@@ -250,8 +237,8 @@ export const RoleRevokeSchema = z.preprocess((val: unknown) => {
   const obj = val as Record<string, unknown>;
   return {
     ...obj,
-    user: obj['user'] ?? obj['member'],
-    table: obj['table'] ?? obj['tableName'],
+    user: obj["user"] ?? obj["member"],
+    table: obj["table"] ?? obj["tableName"],
   };
 }, RoleRevokeSchemaBase);
 
@@ -268,7 +255,7 @@ export const UserRolesSchema = z.preprocess((val: unknown) => {
   const obj = val as Record<string, unknown>;
   return {
     ...obj,
-    user: obj['user'] ?? obj['role'],
+    user: obj["user"] ?? obj["role"],
   };
 }, UserRolesSchemaBase);
 
@@ -293,10 +280,7 @@ export const RoleSetSchema = z.preprocess(defaultToEmpty, RoleSetSchemaBase);
  */
 export const RoleRlsEnableSchemaBase = z.object({
   table: z.string().describe("Table name to enable/disable RLS on"),
-  schema: z
-    .string()
-    .optional()
-    .describe("Schema name (default: 'public')"),
+  schema: z.string().optional().describe("Schema name (default: 'public')"),
   enable: z
     .boolean()
     .optional()
@@ -319,10 +303,7 @@ export const RoleRlsPoliciesSchemaBase = z.object({
     .string()
     .optional()
     .describe("Table name to list policies for. Omit for all tables."),
-  schema: z
-    .string()
-    .optional()
-    .describe("Schema name (default: 'public')"),
+  schema: z.string().optional().describe("Schema name (default: 'public')"),
 });
 
 export const RoleRlsPoliciesSchema = z.preprocess(
@@ -349,7 +330,9 @@ export const RoleListOutputSchema = z
           createrole: z.boolean().describe("Can create roles"),
           replication: z.boolean().describe("Can replicate"),
           bypassrls: z.boolean().describe("Can bypass RLS"),
-          connectionLimit: z.number().describe("Max connections (-1=unlimited)"),
+          connectionLimit: z
+            .number()
+            .describe("Max connections (-1=unlimited)"),
           validUntil: z
             .string()
             .nullable()
@@ -466,10 +449,7 @@ export const RoleGrantOutputSchema = z
   .object({
     success: z.boolean().optional().describe("Whether grant succeeded"),
     role: z.string().optional().describe("Role that received privileges"),
-    privileges: z
-      .array(z.string())
-      .optional()
-      .describe("Privileges granted"),
+    privileges: z.array(z.string()).optional().describe("Privileges granted"),
     target: z.string().optional().describe("Target object"),
     exists: z
       .boolean()
@@ -491,10 +471,7 @@ export const RoleAssignOutputSchema = z
       .boolean()
       .optional()
       .describe("Whether admin option was granted"),
-    exists: z
-      .boolean()
-      .optional()
-      .describe("Whether target user/role exists"),
+    exists: z.boolean().optional().describe("Whether target user/role exists"),
     error: z.string().optional().describe("Error message if failed"),
   })
   .extend(ErrorResponseFields.shape);
@@ -518,10 +495,7 @@ export const RoleRevokeOutputSchema = z
       .string()
       .optional()
       .describe("Target object (for object-level revocation)"),
-    exists: z
-      .boolean()
-      .optional()
-      .describe("Whether target role/user exists"),
+    exists: z.boolean().optional().describe("Whether target role/user exists"),
     error: z.string().optional().describe("Error message if failed"),
   })
   .extend(ErrorResponseFields.shape);
@@ -538,10 +512,7 @@ export const UserRolesOutputSchema = z
         z.object({
           role: z.string().describe("Granted role name"),
           adminOption: z.boolean().describe("Has admin option"),
-          setOption: z
-            .boolean()
-            .optional()
-            .describe("Has SET option (PG 16+)"),
+          setOption: z.boolean().optional().describe("Has SET option (PG 16+)"),
         }),
       )
       .optional()
@@ -562,10 +533,7 @@ export const RoleSetOutputSchema = z
       .string()
       .optional()
       .describe("Active role after the operation"),
-    previousRole: z
-      .string()
-      .optional()
-      .describe("Role before the operation"),
+    previousRole: z.string().optional().describe("Role before the operation"),
     reset: z.boolean().optional().describe("Whether RESET ROLE was performed"),
     error: z.string().optional().describe("Error message if failed"),
   })
@@ -608,12 +576,8 @@ export const RoleRlsPoliciesOutputSchema = z
           command: z
             .string()
             .describe("Command (SELECT, INSERT, UPDATE, DELETE, ALL)"),
-          permissive: z
-            .string()
-            .describe("PERMISSIVE or RESTRICTIVE"),
-          roles: z
-            .array(z.string())
-            .describe("Roles this policy applies to"),
+          permissive: z.string().describe("PERMISSIVE or RESTRICTIVE"),
+          roles: z.array(z.string()).describe("Roles this policy applies to"),
           usingExpr: z
             .string()
             .nullable()

@@ -176,5 +176,3 @@ export const MigrationRisksOutputSchema = z
     error: z.string().optional(),
   })
   .extend(ErrorResponseFields.shape);
-
-

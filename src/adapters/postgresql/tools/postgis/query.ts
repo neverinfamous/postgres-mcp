@@ -53,9 +53,8 @@ export function createPointInPolygonTool(
     icons: getToolIcons("postgis", readOnly("Point in Polygon")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { table, column, point, limit, schema } = PointInPolygonSchema.parse(
-          params ?? {},
-        );
+        const { table, column, point, limit, schema } =
+          PointInPolygonSchema.parse(params ?? {});
         const schemaName = schema ?? "public";
         const tableName = sanitizeTableName(
           table,
@@ -94,7 +93,8 @@ export function createPointInPolygonTool(
             : `ST_AsText(${columnName}) as geometry_text`;
 
         const effectiveLimit = limit ?? 10;
-        const limitClause = effectiveLimit > 0 ? ` LIMIT ${String(effectiveLimit)}` : "";
+        const limitClause =
+          effectiveLimit > 0 ? ` LIMIT ${String(effectiveLimit)}` : "";
 
         const sql = `SELECT ${selectCols}
                           FROM ${tableName}
@@ -111,7 +111,10 @@ export function createPointInPolygonTool(
 
         if (effectiveLimit > 0) {
           const countSql = `SELECT COUNT(*) as cnt FROM ${tableName} WHERE ST_Contains(${columnName}, ST_SetSRID(ST_MakePoint($1, $2), 4326))`;
-          const countResult = await adapter.executeQuery(countSql, [point.lng, point.lat]);
+          const countResult = await adapter.executeQuery(countSql, [
+            point.lng,
+            point.lat,
+          ]);
           const totalCount = Number(countResult.rows?.[0]?.["cnt"] ?? 0);
           if (totalCount > effectiveLimit) {
             response["truncated"] = true;
@@ -446,9 +449,7 @@ export function createIntersectionTool(
 
         const effectiveLimit = parsed.limit ?? 10;
         const limitClause =
-          effectiveLimit > 0
-            ? ` LIMIT ${String(effectiveLimit)}`
-            : "";
+          effectiveLimit > 0 ? ` LIMIT ${String(effectiveLimit)}` : "";
 
         const sql = `SELECT ${selectCols}
                           FROM ${qualifiedTable}
@@ -465,7 +466,9 @@ export function createIntersectionTool(
 
         if (effectiveLimit > 0) {
           const countSql = `SELECT COUNT(*) as cnt FROM ${qualifiedTable} WHERE ST_Intersects(${columnName}, ${geomExpr})`;
-          const countResult = await adapter.executeQuery(countSql, [parsed.geometry]);
+          const countResult = await adapter.executeQuery(countSql, [
+            parsed.geometry,
+          ]);
           const totalCount = Number(countResult.rows?.[0]?.["cnt"] ?? 0);
           if (totalCount > effectiveLimit) {
             response["truncated"] = true;
@@ -558,9 +561,7 @@ export function createBoundingBoxTool(
 
         const effectiveLimit = parsed.limit ?? 10;
         const limitClause =
-          effectiveLimit > 0
-            ? ` LIMIT ${String(effectiveLimit)}`
-            : "";
+          effectiveLimit > 0 ? ` LIMIT ${String(effectiveLimit)}` : "";
 
         const sql = `SELECT ${selectCols}, ST_AsText(${columnName}) as geometry_text
                           FROM ${qualifiedTable}

@@ -355,7 +355,10 @@ export const JsonbKeysOutputSchema = z
 // Uses combined schema with optional fields instead of union with z.literal() to avoid Zod validation issues
 export const JsonbStripNullsOutputSchema = z
   .object({
-    result: z.unknown().optional().describe("Stripped JSON (if raw json provided)"),
+    result: z
+      .unknown()
+      .optional()
+      .describe("Stripped JSON (if raw json provided)"),
     // Update mode fields
     rowsAffected: z.number().optional().describe("Number of rows updated"),
     // Preview mode fields

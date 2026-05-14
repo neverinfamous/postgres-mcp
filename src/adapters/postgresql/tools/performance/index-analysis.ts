@@ -18,17 +18,13 @@ import {
   UnusedIndexesSchemaBase,
   UnusedIndexesSchema,
   DuplicateIndexesSchemaBase,
-  DuplicateIndexesSchema
+  DuplicateIndexesSchema,
 } from "../../schemas/index.js";
-import {
-  toNum,
-  validatePerformanceTableExists,
-} from "./helpers.js";
+import { toNum, validatePerformanceTableExists } from "./helpers.js";
 
 export function createUnusedIndexesTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-
   return {
     name: "pg_unused_indexes",
     description:
@@ -150,7 +146,6 @@ export function createUnusedIndexesTool(
 export function createDuplicateIndexesTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-
   return {
     name: "pg_duplicate_indexes",
     description:

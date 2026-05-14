@@ -16,13 +16,16 @@ import type {
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
-import { DetectConnectionSpikeOutputSchema, ConnectionSpikeInputBase, ConnectionSpikeInput } from "../../schemas/performance.js";
+import {
+  DetectConnectionSpikeOutputSchema,
+  ConnectionSpikeInputBase,
+  ConnectionSpikeInput,
+} from "../../schemas/performance.js";
 import { toNum, toStr, riskFromScore } from "./anomaly-detection.js";
 
 // =============================================================================
 // pg_detect_connection_spike
 // =============================================================================
-
 
 interface ConnectionConcentration {
   dimension: string;
@@ -61,7 +64,8 @@ export function createDetectConnectionSpikeTool(
         if (warningPercent < 10 || warningPercent > 100) {
           return {
             success: false,
-            error: "Validation error: warningPercent must be between 10 and 100",
+            error:
+              "Validation error: warningPercent must be between 10 and 100",
             code: "VALIDATION_ERROR",
           };
         }

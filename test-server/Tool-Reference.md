@@ -456,17 +456,17 @@ pgcrypto extension — cryptographic hashing, encryption, UUIDs, and salt genera
 
 Security auditing, SSL/TLS monitoring, HBA firewall management, data masking, privilege analysis, and sensitive data detection.
 
-| Tool                              | Description                                                                                                                                           |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pg_security_audit`               | Comprehensive security audit analyzing authentication, SSL, password policies, superuser exposure, and pg_hba.conf rules. Returns risk-scored findings. |
-| `pg_security_firewall_status`     | Summarize pg_hba.conf rules by type and authentication method. Requires superuser for `pg_hba_file_rules` access.                                     |
-| `pg_security_firewall_rules`      | List detailed pg_hba.conf rules with optional filtering by type, database, or auth method. Requires superuser.                                         |
-| `pg_security_ssl_status`          | Check SSL/TLS connection status for active sessions including cipher, protocol version, and certificate details.                                       |
-| `pg_security_encryption_status`   | Analyze encryption-related PostgreSQL settings (ssl, password_encryption) and installed security extensions.                                           |
-| `pg_security_password_validate`   | Validate password strength using configurable rules (length, complexity, common patterns). Pure JS — no database query.                                |
-| `pg_security_mask_data`           | Mask sensitive data values (email, credit card, phone, SSN, custom patterns). Pure JS — no database query.                                             |
-| `pg_security_user_privileges`     | Analyze role privileges including superuser status, login capability, role memberships, and table-level grants.                                         |
-| `pg_security_sensitive_tables`    | Detect tables with potentially sensitive columns by matching column names against PII/credential patterns.                                              |
+| Tool                            | Description                                                                                                                                             |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pg_security_audit`             | Comprehensive security audit analyzing authentication, SSL, password policies, superuser exposure, and pg_hba.conf rules. Returns risk-scored findings. |
+| `pg_security_firewall_status`   | Summarize pg_hba.conf rules by type and authentication method. Requires superuser for `pg_hba_file_rules` access.                                       |
+| `pg_security_firewall_rules`    | List detailed pg_hba.conf rules with optional filtering by type, database, or auth method. Requires superuser.                                          |
+| `pg_security_ssl_status`        | Check SSL/TLS connection status for active sessions including cipher, protocol version, and certificate details.                                        |
+| `pg_security_encryption_status` | Analyze encryption-related PostgreSQL settings (ssl, password_encryption) and installed security extensions.                                            |
+| `pg_security_password_validate` | Validate password strength using configurable rules (length, complexity, common patterns). Pure JS — no database query.                                 |
+| `pg_security_mask_data`         | Mask sensitive data values (email, credit card, phone, SSN, custom patterns). Pure JS — no database query.                                              |
+| `pg_security_user_privileges`   | Analyze role privileges including superuser status, login capability, role memberships, and table-level grants.                                         |
+| `pg_security_sensitive_tables`  | Detect tables with potentially sensitive columns by matching column names against PII/credential patterns.                                              |
 
 ---
 
@@ -474,20 +474,20 @@ Security auditing, SSL/TLS monitoring, HBA firewall management, data masking, pr
 
 Role management, privilege control, membership assignment, session role switching, and row-level security.
 
-| Tool                     | Description                                                                                                                                  |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pg_role_list`           | List all roles with optional pattern filter and attributes (login, superuser, inherit, connection limit, expiration).                         |
-| `pg_role_create`         | Create a new role with optional attributes (LOGIN, PASSWORD, SUPERUSER, CREATEDB, CREATEROLE, REPLICATION, BYPASSRLS, CONNECTION LIMIT).      |
-| `pg_role_drop`           | Drop a role with IF EXISTS safety by default. Returns confirmation and notes about ownership reassignment.                                    |
-| `pg_role_attributes`     | Get detailed role attributes including OID, inherit status, connection limit, password expiration, and membership summary.                     |
-| `pg_role_grants`         | Show all privileges and memberships for a role — object grants, schema grants, and role memberships.                                          |
-| `pg_role_grant`          | Grant privileges (SELECT, INSERT, UPDATE, DELETE, ALL, etc.) on tables, schemas, or sequences to a role.                                      |
-| `pg_role_assign`         | Grant role membership to a user/role. Supports WITH ADMIN OPTION for delegation and SET option control.                                       |
-| `pg_role_revoke`         | Revoke role membership or object privileges from a user/role. Supports CASCADE for dependent privilege removal.                                |
-| `pg_user_roles`          | List all roles assigned to a user including admin option and SET option status.                                                                |
-| `pg_role_set`            | Set the session's active role (SET ROLE) or reset to the original authenticated role. Useful for privilege testing.                            |
-| `pg_role_rls_enable`     | Enable or disable row-level security on a table. Supports FORCE option to apply RLS even to the table owner.                                  |
-| `pg_role_rls_policies`   | List RLS policies for a table including policy name, command type (SELECT/INSERT/UPDATE/DELETE/ALL), USING and WITH CHECK expressions.         |
+| Tool                   | Description                                                                                                                              |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `pg_role_list`         | List all roles with optional pattern filter and attributes (login, superuser, inherit, connection limit, expiration).                    |
+| `pg_role_create`       | Create a new role with optional attributes (LOGIN, PASSWORD, SUPERUSER, CREATEDB, CREATEROLE, REPLICATION, BYPASSRLS, CONNECTION LIMIT). |
+| `pg_role_drop`         | Drop a role with IF EXISTS safety by default. Returns confirmation and notes about ownership reassignment.                               |
+| `pg_role_attributes`   | Get detailed role attributes including OID, inherit status, connection limit, password expiration, and membership summary.               |
+| `pg_role_grants`       | Show all privileges and memberships for a role — object grants, schema grants, and role memberships.                                     |
+| `pg_role_grant`        | Grant privileges (SELECT, INSERT, UPDATE, DELETE, ALL, etc.) on tables, schemas, or sequences to a role.                                 |
+| `pg_role_assign`       | Grant role membership to a user/role. Supports WITH ADMIN OPTION for delegation and SET option control.                                  |
+| `pg_role_revoke`       | Revoke role membership or object privileges from a user/role. Supports CASCADE for dependent privilege removal.                          |
+| `pg_user_roles`        | List all roles assigned to a user including admin option and SET option status.                                                          |
+| `pg_role_set`          | Set the session's active role (SET ROLE) or reset to the original authenticated role. Useful for privilege testing.                      |
+| `pg_role_rls_enable`   | Enable or disable row-level security on a table. Supports FORCE option to apply RLS even to the table owner.                             |
+| `pg_role_rls_policies` | List RLS policies for a table including policy name, command type (SELECT/INSERT/UPDATE/DELETE/ALL), USING and WITH CHECK expressions.   |
 
 ---
 
@@ -495,14 +495,14 @@ Role management, privilege control, membership assignment, session role switchin
 
 NoSQL-style JSONB document collection management — create collections, CRUD documents, and build expression indexes.
 
-| Tool                       | Description                                                                                                                                 |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pg_doc_list_collections`  | List JSONB document collections in a schema. Collections are tables with a `doc` JSONB column and `_id` text column.                        |
-| `pg_doc_create_collection` | Create a new JSONB document collection (table with doc JSONB + generated `_id` primary key).                                                |
-| `pg_doc_drop_collection`   | Drop a document collection (table).                                                                                                         |
-| `pg_doc_collection_info`   | Get document collection statistics: row count, size, and indexes.                                                                           |
-| `pg_doc_find`              | Query documents in a JSONB collection with optional filter, field projection, and pagination.                                                |
-| `pg_doc_add`               | Add one or more JSON documents to a collection.                                                                                             |
-| `pg_doc_modify`            | Update documents matching a filter. Set fields with `set` and remove fields with `unset`.                                                    |
-| `pg_doc_remove`            | Remove documents matching a filter from a collection.                                                                                        |
-| `pg_doc_create_index`      | Create an expression index on document fields for faster queries. Uses PostgreSQL expression indexes on JSONB paths.                         |
+| Tool                       | Description                                                                                                          |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `pg_doc_list_collections`  | List JSONB document collections in a schema. Collections are tables with a `doc` JSONB column and `_id` text column. |
+| `pg_doc_create_collection` | Create a new JSONB document collection (table with doc JSONB + generated `_id` primary key).                         |
+| `pg_doc_drop_collection`   | Drop a document collection (table).                                                                                  |
+| `pg_doc_collection_info`   | Get document collection statistics: row count, size, and indexes.                                                    |
+| `pg_doc_find`              | Query documents in a JSONB collection with optional filter, field projection, and pagination.                        |
+| `pg_doc_add`               | Add one or more JSON documents to a collection.                                                                      |
+| `pg_doc_modify`            | Update documents matching a filter. Set fields with `set` and remove fields with `unset`.                            |
+| `pg_doc_remove`            | Remove documents matching a filter from a collection.                                                                |
+| `pg_doc_create_index`      | Create an expression index on document fields for faster queries. Uses PostgreSQL expression indexes on JSONB paths. |

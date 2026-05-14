@@ -155,7 +155,7 @@ describe("pg_detect_query_anomalies", () => {
       { threshold: 0.001, minCalls: -5 },
       mockContext,
     )) as { success: boolean };
-    
+
     expect(result.success).toBe(true);
 
     const countQuery = mockAdapter.executeQuery.mock.calls[1]?.[0] as string;
@@ -362,7 +362,9 @@ describe("pg_detect_bloat_risk", () => {
 
   it("should filter by schema when specified", async () => {
     // Schema existence check
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "?column?": 1 }],
+    });
     // Main query
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
@@ -379,7 +381,10 @@ describe("pg_detect_bloat_risk", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = findTool(tools, "pg_detect_bloat_risk");
-    const result = (await tool.handler({ schema: "nonexistent" }, mockContext)) as {
+    const result = (await tool.handler(
+      { schema: "nonexistent" },
+      mockContext,
+    )) as {
       success: boolean;
       error: string;
     };

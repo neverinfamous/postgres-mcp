@@ -257,6 +257,7 @@ roles Tool Group (12 tools +1 for code mode)
 > **Superuser note:** Most roles tools (`pg_role_create`, `pg_role_drop`, `pg_role_grant`, `pg_role_assign`, `pg_role_revoke`, `pg_role_set`, `pg_role_rls_enable`) require superuser access or appropriate role management privileges. The test server runs as `postgres` (superuser). If running against a non-superuser connection, these tools should return a structured error — not a raw MCP error.
 
 **Setup (run before checklist):**
+
 - Create `temp_rls_demo` table via `pg_write_query({sql: "CREATE TABLE temp_rls_demo (id SERIAL PRIMARY KEY, user_id TEXT, data TEXT)"})`
 
 **Checklist:**
@@ -293,4 +294,4 @@ roles Tool Group (12 tools +1 for code mode)
 **Cleanup:**
 
 28. Drop remaining temp roles: `pg_role_drop({name: "temp_test_role_analyst"})` (revoke grants first if needed)
-29. Drop temp table: `pg_write_query({sql: "DROP TABLE IF EXISTS temp_rls_demo"})` 
+29. Drop temp table: `pg_write_query({sql: "DROP TABLE IF EXISTS temp_rls_demo"})`

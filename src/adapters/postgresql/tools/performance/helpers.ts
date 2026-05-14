@@ -62,7 +62,7 @@ export async function validatePerformanceTableExists(
     );
     if (!tableResult.rows || tableResult.rows.length === 0) {
       throw new ValidationError(
-        `Table "${targetSchema}.${table}" does not exist`
+        `Table "${targetSchema}.${table}" does not exist`,
       );
     }
   }

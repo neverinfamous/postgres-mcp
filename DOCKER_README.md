@@ -269,8 +269,8 @@ The `--tool-filter` argument accepts **groups** or **tool names** — mix and ma
 | `ltree`         | 9     | ltree (hierarchical data)                                             |
 | `pgcrypto`      | 10    | pgcrypto (encryption, UUIDs)                                          |
 | `security`      | 10    | Security auditing, SSL, firewall, data masking, privilege analysis    |
-| `roles`         | 13    | Role management, privileges, membership, RLS                         |
-| `docstore`      | 10    | JSONB document collections (NoSQL-style CRUD, indexing)              |
+| `roles`         | 13    | Role management, privileges, membership, RLS                          |
+| `docstore`      | 10    | JSONB document collections (NoSQL-style CRUD, indexing)               |
 
 ### Syntax Reference
 

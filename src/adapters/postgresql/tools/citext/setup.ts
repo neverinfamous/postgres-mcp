@@ -48,13 +48,12 @@ citext is ideal for emails, usernames, and other identifiers where case shouldn'
           // Check if schema exists first
           const schemaCheck = await adapter.executeQuery(
             `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
-            [schema]
+            [schema],
           );
           if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
-            throw new ValidationError(
-              `Schema "${schema}" does not exist.`,
-              { code: "SCHEMA_NOT_FOUND" }
-            );
+            throw new ValidationError(`Schema "${schema}" does not exist.`, {
+              code: "SCHEMA_NOT_FOUND",
+            });
           }
           query += ` SCHEMA "${schema}"`;
         }

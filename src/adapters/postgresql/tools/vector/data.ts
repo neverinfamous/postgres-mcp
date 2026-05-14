@@ -130,11 +130,11 @@ export function createVectorExtensionTool(
     handler: async (_params: unknown, _context: RequestContext) => {
       try {
         const parsed = VectorCreateExtensionSchemaBase.parse(_params ?? {});
-        
+
         if (parsed.schema) {
           const schemaCheck = await adapter.executeQuery(
             `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
-            [parsed.schema]
+            [parsed.schema],
           );
           if ((schemaCheck.rows?.length ?? 0) === 0) {
             return {
@@ -142,11 +142,12 @@ export function createVectorExtensionTool(
               error: `Schema "${parsed.schema}" does not exist.`,
               code: "SCHEMA_NOT_FOUND",
               category: "resource",
-              suggestion: "Create the schema before enabling the extension in it."
+              suggestion:
+                "Create the schema before enabling the extension in it.",
             };
           }
         }
-        
+
         const schemaClause = parsed.schema
           ? ` SCHEMA ${sanitizeIdentifier(parsed.schema)}`
           : "";

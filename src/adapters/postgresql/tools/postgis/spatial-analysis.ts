@@ -141,7 +141,7 @@ export function createGeoIndexOptimizeTool(
           // Check if table exists
           const tableCheck = await adapter.executeQuery(
             `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
-            [schemaName, parsed.table]
+            [schemaName, parsed.table],
           );
           if ((tableCheck.rows?.length ?? 0) === 0) {
             return {
@@ -227,9 +227,7 @@ export function createGeoClusterTool(adapter: PostgresAdapter): ToolDefinition {
             : "";
         const effectiveLimit = parsed.limit ?? 50;
         const limitClause =
-          effectiveLimit > 0
-            ? `LIMIT ${String(effectiveLimit)}`
-            : "";
+          effectiveLimit > 0 ? `LIMIT ${String(effectiveLimit)}` : "";
 
         // Track warning if K > N
         let warning: string | undefined;
@@ -347,7 +345,10 @@ export function createGeoClusterTool(adapter: PostgresAdapter): ToolDefinition {
           clusters: normalizedClusters,
         };
 
-        if (effectiveLimit > 0 && normalizedSummary.num_clusters > effectiveLimit) {
+        if (
+          effectiveLimit > 0 &&
+          normalizedSummary.num_clusters > effectiveLimit
+        ) {
           response["truncated"] = true;
           response["limit"] = effectiveLimit;
           response["totalClusters"] = normalizedSummary.num_clusters;

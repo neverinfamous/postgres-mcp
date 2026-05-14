@@ -7,7 +7,10 @@
 
 import { z } from "zod";
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import { ErrorCategory, type ErrorResponse } from "../../../../types/error-types.js";
+import {
+  ErrorCategory,
+  type ErrorResponse,
+} from "../../../../types/error-types.js";
 
 // =============================================================================
 // Table Existence Validation (P154 Pattern)
@@ -40,9 +43,10 @@ export async function validateTableExists(
       error: `Schema '${schema}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
       code: "SCHEMA_NOT_FOUND",
       category: ErrorCategory.RESOURCE,
-      suggestion: "Schema not found. Use pg_list_schemas to see available schemas.",
+      suggestion:
+        "Schema not found. Use pg_list_schemas to see available schemas.",
       recoverable: false,
-      details: undefined
+      details: undefined,
     };
   }
 
@@ -57,9 +61,10 @@ export async function validateTableExists(
       error: `Table '${schema}.${table}' not found. Use pg_list_tables to see available tables.`,
       code: "TABLE_NOT_FOUND",
       category: ErrorCategory.RESOURCE,
-      suggestion: "Table or view does not exist. Run pg_list_tables to see available tables.",
+      suggestion:
+        "Table or view does not exist. Run pg_list_tables to see available tables.",
       recoverable: false,
-      details: undefined
+      details: undefined,
     };
   }
   return null;

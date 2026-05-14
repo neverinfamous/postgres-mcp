@@ -105,7 +105,10 @@ function preprocessPartmanParams(input: unknown): unknown {
   }
 
   // Auto-prefix public. for parentTable when no schema specified
-  if (typeof result.parentTable === "string" && !result.parentTable.includes(".")) {
+  if (
+    typeof result.parentTable === "string" &&
+    !result.parentTable.includes(".")
+  ) {
     result.parentTable = `public.${result.parentTable}`;
   }
 
@@ -238,10 +241,7 @@ export const PartmanShowPartitionsSchemaBase = z.object({
     .unknown()
     .optional()
     .describe("Include default partition in results"),
-  order: z
-    .unknown()
-    .optional()
-    .describe("Order of partitions by boundary"),
+  order: z.unknown().optional().describe("Order of partitions by boundary"),
   limit: z
     .unknown()
     .optional()
@@ -407,10 +407,7 @@ export const PartmanUndoPartitionSchemaBase = z.object({
       "Target table for consolidated data. Must exist before calling. Required.",
     ),
   target: z.string().optional().describe("Alias for targetTable"),
-  batchSize: z
-    .unknown()
-    .optional()
-    .describe("Rows to move per batch"),
+  batchSize: z.unknown().optional().describe("Rows to move per batch"),
   keepTable: z
     .unknown()
     .optional()
@@ -428,8 +425,6 @@ export const PartmanUndoPartitionSchema = z
     }),
   )
   .default({});
-
-
 
 /**
  * Schema for analyzing partition health.

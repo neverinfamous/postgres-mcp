@@ -42,7 +42,8 @@ export function createListObjectsTool(
     outputSchema: ObjectListOutputSchema,
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { schema, types, limit, exclude } = ListObjectsSchema.parse(params);
+        const { schema, types, limit, exclude } =
+          ListObjectsSchema.parse(params);
         if (types) {
           const invalidTypes = types.filter(
             (t) => !(VALID_OBJECT_TYPES as readonly string[]).includes(t),
@@ -188,10 +189,12 @@ export function createListObjectsTool(
 
         // Apply default limit of 20 to reduce payload size if not specified
         const effectiveLimit = limit === 0 ? undefined : (limit ?? 20);
-        const truncated = effectiveLimit !== undefined && objects.length > effectiveLimit;
-        const limitedObjects = truncated && effectiveLimit !== undefined
-          ? objects.slice(0, effectiveLimit)
-          : objects;
+        const truncated =
+          effectiveLimit !== undefined && objects.length > effectiveLimit;
+        const limitedObjects =
+          truncated && effectiveLimit !== undefined
+            ? objects.slice(0, effectiveLimit)
+            : objects;
 
         return {
           objects: limitedObjects,
@@ -329,9 +332,7 @@ export function createObjectDetailsTool(
               schemaName,
             ]);
             if (viewDefResult.rows && viewDefResult.rows.length > 0) {
-              details["definition"] = viewDefResult.rows[0]?.[
-                "definition"
-              ];
+              details["definition"] = viewDefResult.rows[0]?.["definition"];
               details["hasDefinition"] = true;
             }
           }

@@ -6,7 +6,6 @@
 
 import { z } from "zod";
 
-
 // =============================================================================
 // Input Schemas
 // =============================================================================
@@ -22,24 +21,15 @@ export const KcacheQueryStatsSchema = z.object({
     .describe(
       "Maximum number of queries to return (default: 5, min: 1, max: 100).",
     ),
-  dbname: z
-    .unknown()
-    .optional()
-    .describe("Filter by database name"),
-  username: z
-    .unknown()
-    .optional()
-    .describe("Filter by username"),
+  dbname: z.unknown().optional().describe("Filter by database name"),
+  username: z.unknown().optional().describe("Filter by username"),
   orderBy: z
     .unknown()
     .optional()
     .describe(
       "Order results by metric (default: total_time). Valid: total_time, cpu_time, reads, writes",
     ),
-  minCalls: z
-    .unknown()
-    .optional()
-    .describe("Minimum call count to include"),
+  minCalls: z.unknown().optional().describe("Minimum call count to include"),
   queryPreviewLength: z
     .unknown()
     .optional()
@@ -51,7 +41,6 @@ export const KcacheQueryStatsSchema = z.object({
     .optional()
     .describe("If true, omits 0/empty fields to save output tokens"),
 });
-
 
 /**
  * Base schema for MCP visibility - pg_kcache_top_cpu parameters.
@@ -74,7 +63,6 @@ export const KcacheTopCpuSchema = z.object({
     .optional()
     .describe("If true, omits 0/empty fields to save output tokens"),
 });
-
 
 /**
  * Base schema for MCP visibility - pg_kcache_top_io parameters.
@@ -100,7 +88,6 @@ export const KcacheTopIoSchema = z.object({
     .describe("If true, omits 0/empty fields to save output tokens"),
 });
 
-
 /**
  * Schema for database-level aggregation.
  */
@@ -114,7 +101,6 @@ export const KcacheDatabaseStatsSchema = z.object({
     .optional()
     .describe("If true, omits 0/empty fields to save output tokens"),
 });
-
 
 /**
  * Schema for identifying resource-bound queries.
@@ -134,10 +120,7 @@ export const KcacheResourceAnalysisSchema = z.object({
     .describe(
       "Maximum number of queries to return (default: 5, min: 1, max: 100).",
     ),
-  minCalls: z
-    .unknown()
-    .optional()
-    .describe("Minimum call count to include"),
+  minCalls: z.unknown().optional().describe("Minimum call count to include"),
   queryPreviewLength: z
     .unknown()
     .optional()

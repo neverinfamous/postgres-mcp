@@ -91,9 +91,7 @@ function validatePrivileges(
 /**
  * Show privileges granted to a role
  */
-export function createRoleGrantsTool(
-  adapter: PostgresAdapter,
-): ToolDefinition {
+export function createRoleGrantsTool(adapter: PostgresAdapter): ToolDefinition {
   return {
     name: "pg_role_grants",
     description:
@@ -118,7 +116,7 @@ export function createRoleGrantsTool(
           return {
             ...formatHandlerErrorResponse(
               new QueryError(`Role '${parsed.role}' does not exist`),
-              { tool: "pg_role_grants" }
+              { tool: "pg_role_grants" },
             ),
             exists: false,
             role: parsed.role,
@@ -186,9 +184,7 @@ export function createRoleGrantsTool(
 /**
  * Grant privileges on objects to a role
  */
-export function createRoleGrantTool(
-  adapter: PostgresAdapter,
-): ToolDefinition {
+export function createRoleGrantTool(adapter: PostgresAdapter): ToolDefinition {
   return {
     name: "pg_role_grant",
     description:
@@ -225,7 +221,7 @@ export function createRoleGrantTool(
           return {
             ...formatHandlerErrorResponse(
               new QueryError(`Role '${parsed.role}' does not exist`),
-              { tool: "pg_role_grant" }
+              { tool: "pg_role_grant" },
             ),
             exists: false,
             role: parsed.role,
@@ -302,12 +298,14 @@ export function createRoleGrantTool(
           // P154: Check table exists
           const tableCheck = await adapter.executeQuery(
             `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
-            [schema, parsed.table]
+            [schema, parsed.table],
           );
           if ((tableCheck.rows?.length ?? 0) === 0) {
             return formatHandlerErrorResponse(
-              new QueryError(`Table '${schema}.${parsed.table}' does not exist`),
-              { tool: "pg_role_grant" }
+              new QueryError(
+                `Table '${schema}.${parsed.table}' does not exist`,
+              ),
+              { tool: "pg_role_grant" },
             );
           }
 
@@ -351,9 +349,7 @@ export function createRoleGrantTool(
 /**
  * Grant role membership to a user/role
  */
-export function createRoleAssignTool(
-  adapter: PostgresAdapter,
-): ToolDefinition {
+export function createRoleAssignTool(adapter: PostgresAdapter): ToolDefinition {
   return {
     name: "pg_role_assign",
     description:
@@ -393,7 +389,7 @@ export function createRoleAssignTool(
           return {
             ...formatHandlerErrorResponse(
               new QueryError(`Role '${parsed.role}' does not exist`),
-              { tool: "pg_role_assign" }
+              { tool: "pg_role_assign" },
             ),
             exists: false,
             role: parsed.role,
@@ -405,7 +401,7 @@ export function createRoleAssignTool(
           return {
             ...formatHandlerErrorResponse(
               new QueryError(`User/role '${parsed.user}' does not exist`),
-              { tool: "pg_role_assign" }
+              { tool: "pg_role_assign" },
             ),
             exists: false,
             user: parsed.user,
@@ -442,9 +438,7 @@ export function createRoleAssignTool(
 /**
  * Revoke role membership or privileges from a user/role
  */
-export function createRoleRevokeTool(
-  adapter: PostgresAdapter,
-): ToolDefinition {
+export function createRoleRevokeTool(adapter: PostgresAdapter): ToolDefinition {
   return {
     name: "pg_role_revoke",
     description:
@@ -477,7 +471,7 @@ export function createRoleRevokeTool(
           return {
             ...formatHandlerErrorResponse(
               new QueryError(`Role '${parsed.role}' does not exist`),
-              { tool: "pg_role_revoke" }
+              { tool: "pg_role_revoke" },
             ),
             exists: false,
             role: parsed.role,
@@ -546,12 +540,14 @@ export function createRoleRevokeTool(
             // P154: Check table exists
             const tableCheck = await adapter.executeQuery(
               `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
-              [schema, parsed.table]
+              [schema, parsed.table],
             );
             if ((tableCheck.rows?.length ?? 0) === 0) {
               return formatHandlerErrorResponse(
-                new QueryError(`Table '${schema}.${parsed.table}' does not exist`),
-                { tool: "pg_role_revoke" }
+                new QueryError(
+                  `Table '${schema}.${parsed.table}' does not exist`,
+                ),
+                { tool: "pg_role_revoke" },
               );
             }
 
@@ -590,7 +586,7 @@ export function createRoleRevokeTool(
             return {
               ...formatHandlerErrorResponse(
                 new QueryError(`User/role '${parsed.user}' does not exist`),
-                { tool: "pg_role_revoke" }
+                { tool: "pg_role_revoke" },
               ),
               exists: false,
               user: parsed.user,
@@ -610,8 +606,10 @@ export function createRoleRevokeTool(
           if ((memberCheck.rows?.length ?? 0) === 0) {
             return {
               ...formatHandlerErrorResponse(
-                new QueryError(`Role '${parsed.role}' is not currently assigned to '${parsed.user}'`),
-                { tool: "pg_role_revoke" }
+                new QueryError(
+                  `Role '${parsed.role}' is not currently assigned to '${parsed.user}'`,
+                ),
+                { tool: "pg_role_revoke" },
               ),
               role: parsed.role,
               user: parsed.user,

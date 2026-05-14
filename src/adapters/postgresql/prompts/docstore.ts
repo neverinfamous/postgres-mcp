@@ -8,7 +8,8 @@ import type { PromptDefinition, RequestContext } from "../../../types/index.js";
 export function createSetupDocstorePrompt(): PromptDefinition {
   return {
     name: "pg_setup_docstore",
-    description: "Complete PostgreSQL Document Store setup guide using JSONB collections",
+    description:
+      "Complete PostgreSQL Document Store setup guide using JSONB collections",
     arguments: [],
     handler: (_args: Record<string, string>, _context: RequestContext) => {
       return Promise.resolve(`# PostgreSQL Document Store Setup Guide

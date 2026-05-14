@@ -39,7 +39,7 @@ The test database (`postgres`) contains these tables:
 | `test_projects`     | 2    | id, name, lead_id (FK SET NULL), department_id (FK RESTRICT)                       | —                        | Introspection         |
 | `test_assignments`  | 3    | id, employee_id (FK CASCADE), project_id (FK CASCADE), role — UNIQUE(emp,proj)     | —                        | Introspection         |
 | `test_audit_log`    | 3    | entry_id (no PK!), employee_id (FK, no index!), action, created_at                 | —                        | Introspection         |
-| `test_documents`    | 5    | _id (TEXT PK), doc (JSONB)                                                         | doc                      | Docstore (9 tools)    |
+| `test_documents`    | 5    | \_id (TEXT PK), doc (JSONB)                                                        | doc                      | Docstore (9 tools)    |
 
 Schema objects: `test_schema`, `test_schema.order_seq` (starts at 1000), `test_order_summary` (view), `test_get_order_count()` (function).
 
@@ -249,23 +249,23 @@ docstore Tool Group (9 tools +1 for code mode)
 
 **Certification Coverage Matrix:**
 
-| Tool | Direct Call (Happy Path) | Domain Error (P154) | Zod Empty Param `{}` | Alias Acceptance |
-| :--- | :--- | :--- | :--- | :--- |
-| `pg_doc_list_collections` | ✅ | ✅ (Nonexistent schema) | ✅ | N/A |
-| `pg_doc_create_collection` | ✅ | ✅ (Duplicate collection) | ✅ | ✅ (`name`) |
-| `pg_doc_drop_collection` | ✅ | ✅ (Nonexistent collection) | ✅ | ✅ (`name`) |
-| `pg_doc_collection_info` | ✅ | ✅ (Nonexistent collection) | ✅ | N/A |
-| `pg_doc_find` | ✅ | ✅ (Nonexistent collection) | ✅ | ✅ (`fields` array/string) |
-| `pg_doc_add` | ✅ | ✅ (Nonexistent collection) | ✅ | N/A |
-| `pg_doc_modify` | ✅ | ✅ (Nonexistent collection) | ✅ | N/A |
-| `pg_doc_remove` | ✅ | ✅ (Nonexistent collection) | ✅ | N/A |
-| `pg_doc_create_index` | ✅ | ✅ (Nonexistent collection) | ✅ | ✅ (`field` / `fields` array/string) |
-| `pg_execute_code` | ✅ (Docstore query) | ✅ (Code evaluation error) | ✅ | ✅ (includes metrics) |
+| Tool                       | Direct Call (Happy Path) | Domain Error (P154)         | Zod Empty Param `{}` | Alias Acceptance                     |
+| :------------------------- | :----------------------- | :-------------------------- | :------------------- | :----------------------------------- |
+| `pg_doc_list_collections`  | ✅                       | ✅ (Nonexistent schema)     | ✅                   | N/A                                  |
+| `pg_doc_create_collection` | ✅                       | ✅ (Duplicate collection)   | ✅                   | ✅ (`name`)                          |
+| `pg_doc_drop_collection`   | ✅                       | ✅ (Nonexistent collection) | ✅                   | ✅ (`name`)                          |
+| `pg_doc_collection_info`   | ✅                       | ✅ (Nonexistent collection) | ✅                   | N/A                                  |
+| `pg_doc_find`              | ✅                       | ✅ (Nonexistent collection) | ✅                   | ✅ (`fields` array/string)           |
+| `pg_doc_add`               | ✅                       | ✅ (Nonexistent collection) | ✅                   | N/A                                  |
+| `pg_doc_modify`            | ✅                       | ✅ (Nonexistent collection) | ✅                   | N/A                                  |
+| `pg_doc_remove`            | ✅                       | ✅ (Nonexistent collection) | ✅                   | N/A                                  |
+| `pg_doc_create_index`      | ✅                       | ✅ (Nonexistent collection) | ✅                   | ✅ (`field` / `fields` array/string) |
+| `pg_execute_code`          | ✅ (Docstore query)      | ✅ (Code evaluation error)  | ✅                   | ✅ (includes metrics)                |
 
 **Key Findings & Remediation:**
+
 - ⚠️ **Issue**: The `fields` alias in `pg_doc_create_index` and `pg_doc_find` did not robustly map comma-separated strings or string arrays, leading to Zod validation exceptions when users provided shorthand projections.
 - 🔧 **Fix**: Updated `z.preprocess()` in `CreateDocIndexSchema` and `FindSchema` to natively split and map strings into the expected internal structures.
 - 📦 **Payload**: Token consumption is highly efficient. The largest call, `pg_doc_find`, used only ~130 tokens for a full 5-document dump.
 - ❌ **E2E Flake**: Fixed a test fragility in `codemode-worker.spec.ts` that intermittently failed because it strictly checked for `"timed out"` without accounting for the exact text `"Worker exited with code 1"`.
 - 📊 **Total Token Usage**: 2,866 tokens across 50 operations.
-

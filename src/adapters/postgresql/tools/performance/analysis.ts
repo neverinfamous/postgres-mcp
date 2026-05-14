@@ -187,7 +187,8 @@ export function createIndexRecommendationsTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = IndexRecommendationsInputSchema.parse(params);
-        const schemaName = typeof parsed.schema === "string" ? parsed.schema : "public";
+        const schemaName =
+          typeof parsed.schema === "string" ? parsed.schema : "public";
         const queryParams = Array.isArray(parsed.params) ? parsed.params : [];
 
         // If SQL query provided, perform query-specific analysis

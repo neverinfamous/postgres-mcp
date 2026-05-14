@@ -53,7 +53,6 @@ export function riskFromScore(score: number): RiskLevel {
 // 1. pg_detect_query_anomalies
 // =============================================================================
 
-
 export function createDetectQueryAnomaliesTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
@@ -183,7 +182,6 @@ export function createDetectQueryAnomaliesTool(
 // 2. pg_detect_bloat_risk
 // =============================================================================
 
-
 export function createDetectBloatRiskTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
@@ -227,7 +225,7 @@ export function createDetectBloatRiskTool(
 
           const schemaCheck = await adapter.executeQuery(
             `SELECT 1 FROM pg_namespace WHERE nspname = $1`,
-            [schema]
+            [schema],
           );
           if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
             return {
@@ -238,7 +236,7 @@ export function createDetectBloatRiskTool(
               recoverable: false,
             };
           }
-          
+
           schemaFilter = `AND schemaname = '${schema}'`;
         } else {
           schemaFilter = `AND schemaname NOT IN ('pg_catalog', 'information_schema', 'cron', 'topology', 'tiger', 'tiger_data')`;

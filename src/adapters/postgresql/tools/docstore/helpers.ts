@@ -10,23 +10,25 @@ import type { PostgresAdapter } from "../../postgres-adapter.js";
 export const IDENTIFIER_RE = /^[a-zA-Z_][a-zA-Z0-9_.]*$/;
 
 function buildJsonPathCastFloat(field: string): string {
-  const parts = field.split('.');
-  if (parts.length === 1) return `(doc->>'${parts[0] ?? ''}')::float`;
-  const last = parts.pop() ?? '';
-  return `(doc` + parts.map(p => `->'${p}'`).join('') + `->>'${last}')::float`;
+  const parts = field.split(".");
+  if (parts.length === 1) return `(doc->>'${parts[0] ?? ""}')::float`;
+  const last = parts.pop() ?? "";
+  return (
+    `(doc` + parts.map((p) => `->'${p}'`).join("") + `->>'${last}')::float`
+  );
 }
 
 function buildJsonPath(field: string): string {
-  const parts = field.split('.');
-  if (parts.length === 1) return `doc->>'${parts[0] ?? ''}'`;
-  const last = parts.pop() ?? '';
-  return `doc` + parts.map(p => `->'${p}'`).join('') + `->>'${last}'`;
+  const parts = field.split(".");
+  if (parts.length === 1) return `doc->>'${parts[0] ?? ""}'`;
+  const last = parts.pop() ?? "";
+  return `doc` + parts.map((p) => `->'${p}'`).join("") + `->>'${last}'`;
 }
 
 function hasNestedOperators(obj: Record<string, unknown>): boolean {
   for (const [key, val] of Object.entries(obj)) {
-    if (key.startsWith('$')) return true;
-    if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+    if (key.startsWith("$")) return true;
+    if (typeof val === "object" && val !== null && !Array.isArray(val)) {
       if (hasNestedOperators(val as Record<string, unknown>)) return true;
     }
   }
@@ -71,11 +73,19 @@ export function parseDocFilter(
         const field = keys[0];
         if (typeof field === "string" && IDENTIFIER_RE.test(field)) {
           const value = record[field];
-          
-          if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+
+          if (
+            typeof value === "object" &&
+            value !== null &&
+            !Array.isArray(value)
+          ) {
             const opObj = value as Record<string, unknown>;
             const opKeys = Object.keys(opObj);
-            if (opKeys.length === 1 && typeof opKeys[0] === "string" && opKeys[0].startsWith("$")) {
+            if (
+              opKeys.length === 1 &&
+              typeof opKeys[0] === "string" &&
+              opKeys[0].startsWith("$")
+            ) {
               const op = opKeys[0];
               const opVal = opObj[op];
               let sqlOp = "=";
@@ -85,9 +95,14 @@ export function parseDocFilter(
               else if (op === "$lt") sqlOp = "<";
               else if (op === "$lte") sqlOp = "<=";
               else if (op === "$ne") sqlOp = "!=";
-              else if (op === "$in") { sqlOp = "IN"; isArrayOp = true; }
-              else if (op === "$nin") { sqlOp = "NOT IN"; isArrayOp = true; }
-              
+              else if (op === "$in") {
+                sqlOp = "IN";
+                isArrayOp = true;
+              } else if (op === "$nin") {
+                sqlOp = "NOT IN";
+                isArrayOp = true;
+              }
+
               if (sqlOp !== "=" && !isArrayOp) {
                 if (typeof opVal === "number") {
                   return {
@@ -100,34 +115,44 @@ export function parseDocFilter(
                     params: [String(opVal)],
                   };
                 }
-              } else if (isArrayOp && Array.isArray(opVal) && opVal.length > 0) {
-                if (opVal.every(v => typeof v === "number")) {
-                  const placeholders = opVal.map((_, i) => `$${String(paramOffset + 1 + i)}::float`).join(", ");
+              } else if (
+                isArrayOp &&
+                Array.isArray(opVal) &&
+                opVal.length > 0
+              ) {
+                if (opVal.every((v) => typeof v === "number")) {
+                  const placeholders = opVal
+                    .map((_, i) => `$${String(paramOffset + 1 + i)}::float`)
+                    .join(", ");
                   return {
                     where: `${buildJsonPathCastFloat(field)} ${sqlOp} (${placeholders})`,
-                    params: opVal.map(String)
+                    params: opVal.map(String),
                   };
                 } else {
-                  const placeholders = opVal.map((_, i) => `$${String(paramOffset + 1 + i)}`).join(", ");
+                  const placeholders = opVal
+                    .map((_, i) => `$${String(paramOffset + 1 + i)}`)
+                    .join(", ");
                   return {
                     where: `${buildJsonPath(field)} ${sqlOp} (${placeholders})`,
-                    params: opVal.map(String)
+                    params: opVal.map(String),
                   };
                 }
               }
             }
-            
+
             if (hasNestedOperators(value as Record<string, unknown>)) {
-              throw new Error("Unsupported filter structure: Nested operators are not supported. Use dot-notation (e.g., {'address.city': {'$gt': 'A'}}).");
+              throw new Error(
+                "Unsupported filter structure: Nested operators are not supported. Use dot-notation (e.g., {'address.city': {'$gt': 'A'}}).",
+              );
             }
-            
+
             // Nested object without a matching operator -> containment check
             return {
               where: `doc @> $${String(paramOffset + 1)}::jsonb`,
               params: [JSON.stringify(record)],
             };
           }
-          
+
           // Support multiple keys if present using containment check,
           // otherwise use simple equality for the single field
           if (keys.length > 1) {
@@ -136,7 +161,7 @@ export function parseDocFilter(
               params: [JSON.stringify(record)],
             };
           }
-          
+
           return {
             where: `${buildJsonPath(field)} = $${String(paramOffset + 1)}`,
             params: [String(value)],
@@ -144,7 +169,10 @@ export function parseDocFilter(
         }
       }
     } catch (e) {
-      if (e instanceof Error && e.message.startsWith("Unsupported filter structure")) {
+      if (
+        e instanceof Error &&
+        e.message.startsWith("Unsupported filter structure")
+      ) {
         throw e;
       }
       // Ignore parse error and fall through
@@ -187,7 +215,11 @@ export function parseDocFilter(
     .substring(2) // strip "$."
     .split(".");
 
-  if (pathParts.length === 1 && pathParts[0] !== undefined && pathParts[0] !== "") {
+  if (
+    pathParts.length === 1 &&
+    pathParts[0] !== undefined &&
+    pathParts[0] !== ""
+  ) {
     // Simple top-level key: doc ? 'key'
     return {
       where: `doc ? $${String(paramOffset + 1)}`,

@@ -187,25 +187,29 @@ export function createJsonbStripNullsTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = JsonbStripNullsSchema.parse(params) as {
-           json?: unknown;
-           table?: string;
-           column?: string;
-           where?: string;
-           preview?: boolean;
-           schema?: string;
+          json?: unknown;
+          table?: string;
+          column?: string;
+          where?: string;
+          preview?: boolean;
+          schema?: string;
         };
 
         if (parsed.json !== undefined) {
-           const sql = `SELECT jsonb_strip_nulls($1::jsonb) as result`;
-           const result = await adapter.executeQuery(sql, [toJsonString(parsed.json)]);
-           return { success: true, result: result.rows?.[0]?.['result'] };
+          const sql = `SELECT jsonb_strip_nulls($1::jsonb) as result`;
+          const result = await adapter.executeQuery(sql, [
+            toJsonString(parsed.json),
+          ]);
+          return { success: true, result: result.rows?.[0]?.["result"] };
         }
 
         const table = parsed.table;
         const column = parsed.column;
         const whereClause = parsed.where;
         if (!table || !column) {
-          throw new ValidationError("table and column are required when not using raw json");
+          throw new ValidationError(
+            "table and column are required when not using raw json",
+          );
         }
 
         // Validate schema and build qualified table name

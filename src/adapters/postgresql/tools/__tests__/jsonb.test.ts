@@ -1310,7 +1310,12 @@ describe("jsonb/read.ts — uncovered branches", () => {
     const result = (await tool.handler(
       { table: "users", column: "data", path: "$.name", limit: "abc" },
       mockContext,
-    )) as { success: boolean; error?: string; rows?: unknown[]; count?: number };
+    )) as {
+      success: boolean;
+      error?: string;
+      rows?: unknown[];
+      count?: number;
+    };
 
     // limit defaults silently
     expect(result.success).toBe(true);

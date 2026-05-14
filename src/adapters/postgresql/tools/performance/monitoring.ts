@@ -122,7 +122,8 @@ export function createBloatCheckTool(adapter: PostgresAdapter): ToolDefinition {
         await validatePerformanceTableExists(adapter, tableName, schemaName);
 
         const rawLimit = parsed.limit;
-        const limit = rawLimit === undefined ? 20 : rawLimit === 0 ? null : rawLimit;
+        const limit =
+          rawLimit === undefined ? 20 : rawLimit === 0 ? null : rawLimit;
 
         const sql = `SELECT schemaname, relname as table_name,
                         n_live_tup as live_tuples, n_dead_tup as dead_tuples,

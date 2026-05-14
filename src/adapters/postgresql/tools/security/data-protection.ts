@@ -64,7 +64,7 @@ export function createSecurityMaskDataTool(
             error: `Invalid type: '${type}' — expected one of: ${validTypes.join(", ")}`,
             code: "VALIDATION_ERROR",
             category: "validation",
-            recoverable: false
+            recoverable: false,
           });
         }
 
@@ -209,7 +209,7 @@ export function createSecurityUserPrivilegesTool(
               error: `Role '${user}' does not exist.`,
               code: "OBJECT_NOT_FOUND",
               category: "resource",
-              recoverable: false
+              recoverable: false,
             };
           }
         }
@@ -265,8 +265,7 @@ export function createSecurityUserPrivilegesTool(
               );
 
               memberOf = (memberResult.rows ?? []).map(
-                (row: Record<string, unknown>) =>
-                  row["granted_role"] as string,
+                (row: Record<string, unknown>) => row["granted_role"] as string,
               );
             } catch {
               // Membership info not accessible
@@ -347,7 +346,9 @@ export function createSecurityUserPrivilegesTool(
         // Find out total available vs limited
         let limited = false;
         if (!user) {
-          const totalCountResult = await adapter.executeQuery(`SELECT count(*) as cnt FROM pg_roles WHERE rolname NOT LIKE 'pg_%'`);
+          const totalCountResult = await adapter.executeQuery(
+            `SELECT count(*) as cnt FROM pg_roles WHERE rolname NOT LIKE 'pg_%'`,
+          );
           const totalCount = Number(totalCountResult.rows?.[0]?.["cnt"] ?? 0);
           limited = totalCount > resultLimit;
         }
@@ -408,7 +409,7 @@ export function createSecuritySensitiveTablesTool(
               error: `Schema '${schema}' does not exist. Use pg_list_schemas to see available schemas.`,
               code: "OBJECT_NOT_FOUND",
               category: "resource",
-              recoverable: false
+              recoverable: false,
             };
           }
         }

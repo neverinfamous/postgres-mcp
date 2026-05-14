@@ -10,9 +10,7 @@ import type {
   RequestContext,
 } from "../../../types/index.js";
 import { MEDIUM_PRIORITY } from "../../../utils/resource-annotations.js";
-import {
-  generateVacuumSuggestions,
-} from "../../../utils/resource-suggestions.js";
+import { generateVacuumSuggestions } from "../../../utils/resource-suggestions.js";
 
 interface VacuumWarning {
   severity: "CRITICAL" | "HIGH" | "MEDIUM" | "INFO";
@@ -159,10 +157,7 @@ export function createVacuumResource(
       }
 
       // §7: Generate actionable suggestions based on vacuum data
-      const suggestions = generateVacuumSuggestions(
-        vacuumStats,
-        wraparoundRow,
-      );
+      const suggestions = generateVacuumSuggestions(vacuumStats, wraparoundRow);
 
       return {
         vacuumStatistics: vacuumStats,

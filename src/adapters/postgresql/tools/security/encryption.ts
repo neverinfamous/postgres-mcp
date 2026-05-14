@@ -54,8 +54,7 @@ export function createSecuritySSLStatusTool(
         const sslSettingResult = await adapter.executeQuery(
           `SELECT current_setting('ssl', true) as ssl_enabled`,
         );
-        const sslEnabled =
-          sslSettingResult.rows?.[0]?.["ssl_enabled"] === "on";
+        const sslEnabled = sslSettingResult.rows?.[0]?.["ssl_enabled"] === "on";
 
         // Try to get SSL connection details from pg_stat_ssl
         try {
@@ -285,7 +284,7 @@ export function createSecurityPasswordValidateTool(
             error: "Validation error: Password cannot be empty",
             code: "VALIDATION_ERROR",
             category: "validation",
-            recoverable: false
+            recoverable: false,
           });
         }
 

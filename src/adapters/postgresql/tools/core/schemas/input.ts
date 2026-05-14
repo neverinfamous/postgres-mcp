@@ -66,10 +66,7 @@ export const ListObjectsSchemaBase = z.object({
     .unknown()
     .optional()
     .describe("Maximum number of objects to return (default: 20)"),
-  exclude: z
-    .unknown()
-    .optional()
-    .describe("Schemas to exclude"),
+  exclude: z.unknown().optional().describe("Schemas to exclude"),
 });
 
 const ListObjectsParseSchema = z.object({
