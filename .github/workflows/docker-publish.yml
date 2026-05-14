@@ -298,7 +298,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: ${{ env.IMAGE_NAME }}
           readme-filepath: ./DOCKER_README.md
-          short-description: "PostgreSQL MCP: 248 Tools in 1 Code Mode, Audit+Token Log, Tool Filtering, Pooling, HTTP/SSE, OAuth"
+          short-description: "PostgreSQL MCP: 278 Tools in 1 Code Mode, Audit+Token Log, Tool Filtering, Pooling, HTTP/SSE, OAuth"
 
       - name: Deployment Summary
         if: startsWith(github.ref, 'refs/tags/v')
