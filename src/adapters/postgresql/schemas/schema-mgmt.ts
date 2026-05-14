@@ -359,6 +359,12 @@ export const ListSequencesSchema = z.preprocess(
 
 export const ListViewsSchemaBase = z.object({
   schema: z.string().optional().describe("Schema name"),
+  exclude: z
+    .array(z.string())
+    .optional()
+    .describe(
+      'Array of extension names/schemas to exclude, e.g., ["postgis", "ltree", "pgcrypto", "vector"]',
+    ),
   includeMaterialized: z
     .boolean()
     .optional()
@@ -386,6 +392,7 @@ export const ListViewsSchema = z.preprocess(
   },
   z.object({
     schema: z.string().optional(),
+    exclude: z.array(z.string()).optional(),
     includeMaterialized: z.boolean().optional(),
     truncateDefinition: z.preprocess(coerceStrictNumber, z.number().optional()),
     limit: z.preprocess(coerceStrictNumber, z.number().optional()),
