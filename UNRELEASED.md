@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Stats Tools**: Increased the maximum `limit` allowed in window function tools from 100 to 1000 to better support data analysis pipelines on larger datasets.
 - **Schema Tools**: Reduced the default `truncateDefinition` from 500 to 100 in `pg_list_views` to significantly optimize payload sizes for views with large SQL definitions.
 - **Schema Tools**: Added `exclude` array parameter to `pg_list_views` (mirroring `pg_list_functions`) to safely filter out large system/extension views (e.g., `pgvector`, `pg_partman`) from the payload, implementing safe `Array.isArray` runtime narrowing to bypass TS inference limitations.
+- **PostGIS Tools**: Certified 100% compliance with P154 object-existence checks, complex spatial array bounds, and Split Schema error formatting standards through advanced Code Mode stress testing. No underlying structural alterations were required.
 
 ### Fixed
 
