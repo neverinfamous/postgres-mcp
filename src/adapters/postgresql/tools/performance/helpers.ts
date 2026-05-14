@@ -49,9 +49,7 @@ export async function validatePerformanceTableExists(
       [schema],
     );
     if (!schemaResult.rows || schemaResult.rows.length === 0) {
-      throw new ValidationError(
-        `Schema '${schema}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
-      );
+      throw new ValidationError(`Schema "${schema}" does not exist`);
     }
   }
 
@@ -64,7 +62,7 @@ export async function validatePerformanceTableExists(
     );
     if (!tableResult.rows || tableResult.rows.length === 0) {
       throw new ValidationError(
-        `Table '${targetSchema}.${table}' not found. Use pg_list_tables to see available tables.`,
+        `Table "${targetSchema}.${table}" does not exist`
       );
     }
   }
