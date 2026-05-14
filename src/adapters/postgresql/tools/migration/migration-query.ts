@@ -288,6 +288,17 @@ export function createMigrationStatusTool(
         // Sanitize schema to prevent SQL injection via identifier interpolation
         const sanitizedSchema = sanitizeIdentifier(targetSchema);
 
+        // Check if schema exists first (except for public)
+        if (targetSchema !== "public") {
+          const schemaCheck = await adapter.executeQuery(
+            `SELECT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = $1) AS "schema_exists"`,
+            [targetSchema],
+          );
+          if (schemaCheck.rows && schemaCheck.rows[0]?.["schema_exists"] === false) {
+            throw new Error(`schema "${targetSchema}" does not exist`);
+          }
+        }
+
         // Check if tracking table exists
         const check = await adapter.executeQuery(
           `SELECT EXISTS (
