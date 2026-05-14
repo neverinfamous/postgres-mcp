@@ -242,14 +242,14 @@ citext Tool Group (6 tools +1 for code mode)
 
 **Checklist:**
 
-1. ✅ `pg_citext_compare({value1: "JohnDoe", value2: "johndoe"})` → `{citextEqual: true, textEqual: false}`
-2. ✅ `pg_citext_list_columns()` → verify `test_users.username` and `test_users.email` appear
-3. ✅ `pg_citext_analyze_candidates({schema: "public", limit: 5})` → verify candidates returned
-4. ✅ `pg_citext_schema_advisor({table: "test_users"})` → verify recommendations for already-citext columns
-5. ✅ 🔴 `pg_citext_compare({})` → `{success: false, error: "..."}` (Zod validation — missing `value1`/`value2`)
-6. ✅ 🔴 `pg_citext_schema_advisor({table: "nonexistent_xyz"})` → `{success: false, error: "..."}` handler error
+1. `pg_citext_compare({value1: "JohnDoe", value2: "johndoe"})` → `{citextEqual: true, textEqual: false}`
+2. `pg_citext_list_columns()` → verify `test_users.username` and `test_users.email` appear
+3. `pg_citext_analyze_candidates({schema: "public", limit: 5})` → verify candidates returned
+4. `pg_citext_schema_advisor({table: "test_users"})` → verify recommendations for already-citext columns
+5. 🔴 `pg_citext_compare({})` → `{success: false, error: "..."}` (Zod validation — missing `value1`/`value2`)
+6. 🔴 `pg_citext_schema_advisor({table: "nonexistent_xyz"})` → `{success: false, error: "..."}` handler error
 
-7. ✅ `pg_citext_create_extension()` → verify happy path expected behavior
-8. ✅ 🔴 `pg_citext_create_extension({})` → verify structured P154 error response or valid defaults
-9. ✅ `pg_citext_convert_column()` → verify happy path expected behavior
-10. ✅ 🔴 `pg_citext_convert_column({})` → verify structured P154 error response or valid defaults
+7. `pg_citext_create_extension()` → verify happy path expected behavior
+8. 🔴 `pg_citext_create_extension({})` → verify structured P154 error response or valid defaults
+9. `pg_citext_convert_column()` → verify happy path expected behavior
+10. 🔴 `pg_citext_convert_column({})` → verify structured P154 error response or valid defaults
