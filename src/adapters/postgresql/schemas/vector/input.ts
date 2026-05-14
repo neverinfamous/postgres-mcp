@@ -263,6 +263,43 @@ export const PerformanceSchema = PerformanceSchemaBase.transform((data) => ({
 }));
 
 // Management schemas
+export const VectorClusterSchemaBase = z.object({
+  table: z.string().optional().describe("Table name"),
+  tableName: z.string().optional().describe("Alias for table"),
+  column: z.string().optional().describe("Vector column"),
+  col: z.string().optional().describe("Alias for column"),
+  k: z
+    .preprocess(coerceNumber, z.number().optional())
+    .describe("Number of clusters"),
+  clusters: z
+    .preprocess(coerceNumber, z.number().optional())
+    .describe("Alias for k (number of clusters)"),
+  iterations: z
+    .preprocess(coerceNumber, z.number().optional())
+    .describe("Max iterations (default: 10)"),
+  sampleSize: z
+    .preprocess(coerceNumber, z.number().optional())
+    .describe("Sample size for large tables"),
+  schema: z.string().optional().describe("Database schema (default: public)"),
+});
+
+export const VectorClusterSchema = VectorClusterSchemaBase.transform((data) => {
+  const rawK = (data.k ?? data.clusters) as unknown;
+  const rawIterations = data.iterations as unknown;
+  const rawSampleSize = data.sampleSize as unknown;
+  return {
+    table: data.table ?? data.tableName ?? "",
+    column: data.column ?? data.col ?? "",
+    k: rawK != null ? Number(rawK) : undefined,
+    iterations: rawIterations != null ? Number(rawIterations) : undefined,
+    sampleSize: rawSampleSize != null ? Number(rawSampleSize) : undefined,
+    schema: data.schema,
+  };
+}).refine((data) => data.k !== undefined, {
+  message: "k (or clusters alias) is required",
+});
+
+// Management schemas
 export const IndexOptimizeSchemaBase = z.object({
   table: z.string().optional().describe("Table name"),
   tableName: z.string().optional().describe("Alias for table"),

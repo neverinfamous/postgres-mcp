@@ -120,6 +120,7 @@ export {
   IndexOptimizeSchemaBase,
   VectorDimensionReduceSchemaBase,
   EmbedSchemaBase,
+  VectorClusterSchemaBase,
   // Transformed schemas for handler validation
   VectorSearchSchema,
   VectorCreateIndexSchema,
@@ -128,6 +129,7 @@ export {
   IndexOptimizeSchema,
   VectorDimensionReduceSchema,
   EmbedSchema,
+  VectorClusterSchema,
   // Utilities
   FiniteNumberArray,
   // Output schemas

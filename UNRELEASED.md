@@ -107,6 +107,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Testing**: Fixed a fragile E2E test in `codemode-worker.spec.ts` that intermittently failed because it strictly checked for `"timed out"` without accounting for the exact `"Worker exited with code 1"` behavior from the Node worker thread limits.
 - **Testing**: Fixed a PowerShell encoding issue in the `reset-database.ps1` script that caused parsing errors in non-UTF8 environments by replacing Unicode checkmarks with ASCII text.
 - **JSONB Tools**: Added missing refine check to enforce the presence of either `value` or `contains` parameter in `pg_jsonb_contains`, preventing silent `NULL` containment matching when parameters are omitted.
+- **Vector Tools**: Fixed Split Schema violations by migrating the inline schema definition of `ClusterSchemaBase` out of the handler file and into the central schemas directory, ensuring correct MCP visibility and exports.
 ### Security
 
 - **Dependencies**: Bumped `hono` to `4.12.18` (HTML Injection), `ip-address` to `10.2.0` (XSS), and `fast-uri` to `3.1.2` (Path Traversal) via package overrides.
