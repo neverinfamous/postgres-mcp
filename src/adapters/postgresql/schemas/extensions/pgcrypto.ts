@@ -37,7 +37,7 @@ export const PgcryptoCreateExtensionSchema = z.object({
  */
 export const PgcryptoHashSchemaBase = z.object({
   data: z.string().optional().describe("Data to hash"),
-  algorithm: z.string().optional().describe("Hash algorithm"),
+  algorithm: z.string().optional().describe("Hash algorithm (md5, sha1, sha224, sha256, sha384, sha512)"),
   encoding: z.string().optional().describe("Output encoding (default: hex)"),
 });
 
@@ -61,7 +61,7 @@ export const PgcryptoHashSchema = z.object({
 export const PgcryptoHmacSchemaBase = z.object({
   data: z.string().optional().describe("Data to authenticate"),
   key: z.string().optional().describe("Secret key for HMAC"),
-  algorithm: z.string().optional().describe("Hash algorithm"),
+  algorithm: z.string().optional().describe("Hash algorithm (md5, sha1, sha224, sha256, sha384, sha512)"),
   encoding: z.string().optional().describe("Output encoding (default: hex)"),
 });
 
