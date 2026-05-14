@@ -224,6 +224,20 @@ export function createDetectBloatRiskTool(
         let schemaFilter: string;
         if (schema) {
           validateIdentifier(schema);
+
+          const schemaCheck = await adapter.executeQuery(
+            `SELECT 1 FROM pg_namespace WHERE nspname = $1`,
+            [schema]
+          );
+          if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
+            return {
+              success: false,
+              error: `Schema "${schema}" does not exist`,
+              code: "SCHEMA_NOT_FOUND",
+              category: "schema",
+              recoverable: false,
+            };
+          }
           
           schemaFilter = `AND schemaname = '${schema}'`;
         } else {
