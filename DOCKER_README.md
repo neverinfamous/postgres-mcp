@@ -63,7 +63,7 @@ Features **Code Mode** — a revolutionary approach that provides access to all 
 
 > Extension tool counts include `create_extension` helpers but exclude Code Mode; the Tool Groups table below adds +1 per group for Code Mode.
 
-### MCP Resources (23)
+### MCP Resources (24)
 
 Real-time database meta-awareness - AI accesses these automatically:
 
@@ -80,7 +80,7 @@ Real-time database meta-awareness - AI accesses these automatically:
 
 **[Full resources list →](https://github.com/neverinfamous/postgres-mcp#resources)**
 
-### MCP Prompts (20)
+### MCP Prompts (21)
 
 Guided workflows for complex operations:
 
@@ -264,13 +264,13 @@ The `--tool-filter` argument accepts **groups** or **tool names** — mix and ma
 | `postgis`       | 16    | PostGIS (geospatial)                                                  |
 | `cron`          | 9     | pg_cron (job scheduling)                                              |
 | `partman`       | 11    | pg_partman (auto-partitioning)                                        |
-| `kcache`        | 7     | pg_stat_kcache (OS-level stats)                                       |
+| `kcache`        | 8     | pg_stat_kcache (OS-level stats)                                       |
 | `citext`        | 7     | citext (case-insensitive text)                                        |
 | `ltree`         | 9     | ltree (hierarchical data)                                             |
 | `pgcrypto`      | 10    | pgcrypto (encryption, UUIDs)                                          |
-| `security`      | 9     | Security auditing, SSL, firewall, data masking, privilege analysis    |
-| `roles`         | 12    | Role management, privileges, membership, RLS                         |
-| `docstore`      | 9     | JSONB document collections (NoSQL-style CRUD, indexing)              |
+| `security`      | 10    | Security auditing, SSL, firewall, data masking, privilege analysis    |
+| `roles`         | 13    | Role management, privileges, membership, RLS                         |
+| `docstore`      | 10    | JSONB document collections (NoSQL-style CRUD, indexing)              |
 
 ### Syntax Reference
 
