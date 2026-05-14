@@ -183,14 +183,21 @@ DO `$`$
 DECLARE r RECORD;
 BEGIN
     -- Delete partman configs for test_* tables (prevents orphaned configs)
-    IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'part_config' AND schemaname IN ('public', 'partman')) THEN
-        -- Clean sub-partition configs first (FK to part_config)
-        IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'part_config_sub' AND schemaname IN ('public', 'partman')) THEN
-            DELETE FROM public.part_config_sub WHERE sub_parent LIKE 'public.test_%';
-            DELETE FROM public.part_config_sub WHERE sub_parent LIKE 'public.temp_%';
-        END IF;
-        DELETE FROM public.part_config WHERE parent_table LIKE 'public.test_%';
-        DELETE FROM public.part_config WHERE parent_table LIKE 'public.temp_%';
+    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_partman') THEN
+        DECLARE
+            v_schema TEXT;
+        BEGIN
+            SELECT extnamespace::regnamespace::text INTO v_schema FROM pg_extension WHERE extname = 'pg_partman';
+            -- Clean sub-partition configs first (FK to part_config)
+            IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'part_config_sub' AND schemaname = v_schema) THEN
+                EXECUTE format('DELETE FROM %I.part_config_sub WHERE sub_parent LIKE ''public.test_%%''', v_schema);
+                EXECUTE format('DELETE FROM %I.part_config_sub WHERE sub_parent LIKE ''public.temp_%%''', v_schema);
+            END IF;
+            IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'part_config' AND schemaname = v_schema) THEN
+                EXECUTE format('DELETE FROM %I.part_config WHERE parent_table LIKE ''public.test_%%''', v_schema);
+                EXECUTE format('DELETE FROM %I.part_config WHERE parent_table LIKE ''public.temp_%%''', v_schema);
+            END IF;
+        END;
     END IF;
 
     -- Drop template tables created by partman for test tables

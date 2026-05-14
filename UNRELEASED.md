@@ -108,6 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Testing**: Fixed a PowerShell encoding issue in the `reset-database.ps1` script that caused parsing errors in non-UTF8 environments by replacing Unicode checkmarks with ASCII text.
 - **JSONB Tools**: Added missing refine check to enforce the presence of either `value` or `contains` parameter in `pg_jsonb_contains`, preventing silent `NULL` containment matching when parameters are omitted.
 - **Vector Tools**: Fixed Split Schema violations by migrating the inline schema definition of `ClusterSchemaBase` out of the handler file and into the central schemas directory, ensuring correct MCP visibility and exports.
+- **Testing**: Fixed a state bleed issue in `reset-database.ps1` where test extensions (like `pg_partman` and `citext`) were incorrectly falling back to the `topology` schema after previous tests dropped the `public` schema, causing `test_users` to fail object verification and `test_logs` to silently skip partition configuration. Repaired by explicitly forcing `SCHEMA public` in `test-database.sql` and dynamically resolving `pg_partman`'s schema namespace during setup and teardown.
 ### Security
 
 - **Dependencies**: Bumped `hono` to `4.12.18` (HTML Injection), `ip-address` to `10.2.0` (XSS), and `fast-uri` to `3.1.2` (Path Traversal) via package overrides.
