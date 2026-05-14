@@ -85,6 +85,16 @@ export function parsePostgresError(
     );
   }
 
+  if (
+    context.tool?.startsWith("pg_fuzzy_match") &&
+    /(?:function|type|operator) ["']?(?:levenshtein|soundex|metaphone|damerau-levenshtein|levenshtein_less_equal)["']?(?:(?:\(\))?) does not exist/i.test(msg)
+  ) {
+    throw new Error(
+      `Extension "fuzzystrmatch" is not available. Ensure it is installed and enabled.`,
+      { cause: error },
+    );
+  }
+
   // 42P01 — relation does not exist (table, view, sequence)
   // Regex anchored: must NOT be preceded by "of " (which indicates 42703 column errors)
   if (
