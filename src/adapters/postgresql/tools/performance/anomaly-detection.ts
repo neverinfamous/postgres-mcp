@@ -18,15 +18,18 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
+import {
+  DetectQueryAnomaliesOutputSchema,
+  DetectBloatRiskOutputSchema,
+  QueryAnomaliesInputBase,
+  QueryAnomaliesInput,
+  BloatRiskInputBase,
+  BloatRiskInput,
+} from "../../schemas/performance.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { validateIdentifier } from "../../../../utils/identifiers.js";
-import {
-  DetectQueryAnomaliesOutputSchema,
-  DetectBloatRiskOutputSchema,
-} from "../../schemas/performance.js";
 // =============================================================================
 // Shared Helpers (exported for connection-analysis.ts)
 // =============================================================================
@@ -50,41 +53,6 @@ export function riskFromScore(score: number): RiskLevel {
 // 1. pg_detect_query_anomalies
 // =============================================================================
 
-const coerceNumber = (val: unknown): unknown =>
-  typeof val === "string"
-    ? isNaN(Number(val))
-      ? undefined
-      : Number(val)
-    : val;
-
-const QueryAnomaliesInputBase = z.object({
-  threshold: z
-    .unknown()
-    .optional()
-    .describe(
-      "Standard deviation multiplier for anomaly detection (default: 2.0)",
-    ),
-  minCalls: z
-    .unknown()
-    .optional()
-    .describe("Minimum call count to filter noise (default: 10)"),
-  limit: z
-    .unknown()
-    .optional()
-    .describe("Max anomalies to return (default: 20, max: 50)"),
-});
-
-const QueryAnomaliesInput = z.preprocess(
-  (data: unknown) => {
-    if (typeof data !== "object" || data === null) return {};
-    return data;
-  },
-  z.object({
-    threshold: z.preprocess(coerceNumber, z.number().optional()),
-    minCalls: z.preprocess(coerceNumber, z.number().optional()),
-    limit: z.preprocess(coerceNumber, z.number().optional()),
-  }),
-);
 
 export function createDetectQueryAnomaliesTool(
   adapter: PostgresAdapter,
@@ -215,27 +183,6 @@ export function createDetectQueryAnomaliesTool(
 // 2. pg_detect_bloat_risk
 // =============================================================================
 
-const BloatRiskInputBase = z.object({
-  schema: z
-    .string()
-    .optional()
-    .describe("Filter to a specific schema (default: all user schemas)"),
-  minRows: z
-    .unknown()
-    .optional()
-    .describe("Minimum live rows to include (default: 1000)"),
-});
-
-const BloatRiskInput = z.preprocess(
-  (data: unknown) => {
-    if (typeof data !== "object" || data === null) return {};
-    return data;
-  },
-  z.object({
-    schema: z.string().optional(),
-    minRows: z.preprocess(coerceNumber, z.number().optional()),
-  }),
-);
 
 export function createDetectBloatRiskTool(
   adapter: PostgresAdapter,

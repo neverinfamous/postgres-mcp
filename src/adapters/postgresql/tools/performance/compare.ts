@@ -10,11 +10,10 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
-import { QueryPlanCompareOutputSchema } from "../../schemas/index.js";
+import { QueryPlanCompareOutputSchema, QueryPlanCompareSchemaBase, QueryPlanCompareSchema } from "../../schemas/index.js";
 
 /**
  * Recursively strip zero-value block stats, empty Triggers arrays,
@@ -59,51 +58,6 @@ export function createQueryPlanCompareTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
   // Base schema for MCP visibility (no preprocess)
-  const QueryPlanCompareSchemaBase = z.object({
-    query1: z.unknown().optional().describe("First SQL query"),
-    query2: z.unknown().optional().describe("Second SQL query"),
-    sql1: z.unknown().optional().describe("Alias for query1"),
-    sql2: z.unknown().optional().describe("Alias for query2"),
-    sqlA: z.unknown().optional().describe("Alias for query1"),
-    sqlB: z.unknown().optional().describe("Alias for query2"),
-    queryA: z.unknown().optional().describe("Alias for query1"),
-    queryB: z.unknown().optional().describe("Alias for query2"),
-    params1: z
-      .unknown()
-      .optional()
-      .describe("Parameters for first query ($1, $2, etc.)"),
-    params2: z
-      .unknown()
-      .optional()
-      .describe("Parameters for second query ($1, $2, etc.)"),
-    analyze: z
-      .unknown()
-      .optional()
-      .describe("Run EXPLAIN ANALYZE (executes queries)"),
-    compact: z
-      .unknown()
-      .optional()
-      .describe("Omit full execution plans from output to save tokens"),
-  });
-
-  // Preprocess for sql1/sql2 → query1/query2 aliases
-  const QueryPlanCompareSchema = z.preprocess((input) => {
-    if (typeof input !== "object" || input === null) return input;
-    const obj = input as Record<string, unknown>;
-    const result = { ...obj };
-    // Alias: sql1/sqlA/queryA → query1, sql2/sqlB/queryB → query2
-    if (result["query1"] === undefined) {
-      if (result["sql1"] !== undefined) result["query1"] = result["sql1"];
-      else if (result["sqlA"] !== undefined) result["query1"] = result["sqlA"];
-      else if (result["queryA"] !== undefined) result["query1"] = result["queryA"];
-    }
-    if (result["query2"] === undefined) {
-      if (result["sql2"] !== undefined) result["query2"] = result["sql2"];
-      else if (result["sqlB"] !== undefined) result["query2"] = result["sqlB"];
-      else if (result["queryB"] !== undefined) result["query2"] = result["queryB"];
-    }
-    return result;
-  }, QueryPlanCompareSchemaBase);
 
   return {
     name: "pg_query_plan_compare",

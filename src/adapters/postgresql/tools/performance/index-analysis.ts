@@ -9,52 +9,25 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   UnusedIndexesOutputSchema,
   DuplicateIndexesOutputSchema,
+  UnusedIndexesSchemaBase,
+  UnusedIndexesSchema,
+  DuplicateIndexesSchemaBase,
+  DuplicateIndexesSchema
 } from "../../schemas/index.js";
 import {
-  defaultToEmpty,
   toNum,
-  coerceNumber,
   validatePerformanceTableExists,
 } from "./helpers.js";
 
 export function createUnusedIndexesTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  const UnusedIndexesSchemaBase = z.object({
-    schema: z
-      .unknown()
-      .optional()
-      .describe("Schema to filter (default: all user schemas)"),
-    minSize: z
-      .unknown()
-      .optional()
-      .describe('Minimum index size to include (e.g., "1 MB")'),
-    limit: z
-      .unknown()
-      .optional()
-      .describe("Max indexes to return (default: 20, use 0 for all)"),
-    summary: z
-      .unknown()
-      .optional()
-      .describe("Return aggregated summary instead of full list"),
-  });
-
-  const UnusedIndexesSchema = z.preprocess(
-    defaultToEmpty,
-    z.object({
-      schema: z.string().optional(),
-      minSize: z.string().optional(),
-      limit: z.preprocess(coerceNumber, z.number().optional()),
-      summary: z.boolean().optional(),
-    }),
-  );
 
   return {
     name: "pg_unused_indexes",
@@ -177,24 +150,6 @@ export function createUnusedIndexesTool(
 export function createDuplicateIndexesTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  const DuplicateIndexesSchemaBase = z.object({
-    schema: z
-      .string()
-      .optional()
-      .describe("Schema to filter (default: all user schemas)"),
-    limit: z
-      .number()
-      .optional()
-      .describe("Max rows to return (default: 50, use 0 for all)"),
-  });
-
-  const DuplicateIndexesSchema = z.preprocess(
-    defaultToEmpty,
-    z.object({
-      schema: z.string().optional(),
-      limit: z.preprocess(coerceNumber, z.number().optional()),
-    }),
-  );
 
   return {
     name: "pg_duplicate_indexes",
