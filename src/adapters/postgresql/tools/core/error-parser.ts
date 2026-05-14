@@ -77,7 +77,7 @@ export function parsePostgresError(
 
   if (
     context.tool?.startsWith("pg_ltree_") &&
-    /(?:type|operator|function|relation|class) ["']?(?:ltree|lquery|ltxtquery|lca|nlevel|subpath|gist_ltree_ops)["']?(?:(?:\(\))?) does not exist/i.test(msg)
+    /(?:type|operator|function|relation|class) ["']?(?:ltree|lquery|ltxtquery|lca|nlevel|subpath|gist_ltree_ops)["']?(?:\([^)]*\))? does not exist/i.test(msg)
   ) {
     throw new Error(
       `Extension "ltree" is not available. Ensure it is installed and enabled.`,
@@ -87,7 +87,7 @@ export function parsePostgresError(
 
   if (
     context.tool?.startsWith("pg_fuzzy_match") &&
-    /(?:function|type|operator) ["']?(?:levenshtein|soundex|metaphone|damerau-levenshtein|levenshtein_less_equal)["']?(?:(?:\(\))?) does not exist/i.test(msg)
+    /(?:function|type|operator) ["']?(?:levenshtein|soundex|metaphone|damerau-levenshtein|levenshtein_less_equal)["']?(?:\([^)]*\))? does not exist/i.test(msg)
   ) {
     throw new Error(
       `Extension "fuzzystrmatch" is not available. Ensure it is installed and enabled.`,
