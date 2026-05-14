@@ -1,6 +1,6 @@
 {
   "name": "@neverinfamous/postgres-mcp",
-  "version": "3.0.7",
+  "version": "3.1.0",
   "mcpName": "io.github.neverinfamous/postgres-mcp",
   "description": "PostgreSQL MCP server with connection pooling, tool filtering, and full extension support",
   "type": "module",
@@ -21,8 +21,8 @@
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test",
+    "test:coverage": "vitest run --coverage && node scripts/update-badges.ts",
+    "test:e2e": "playwright test && node scripts/update-badges.ts",
     "bench": "vitest bench --run",
     "bench:verbose": "vitest bench --run --reporter=verbose",
     "check": "npm run lint && npm run typecheck",
@@ -54,30 +54,32 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.28.0",
     "commander": "^14.0.3",
-    "jose": "^6.0.0",
+    "jose": "^6.2.3",
     "pg": "^8.20.0",
-    "zod": "^4.3.6"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.58.2",
-    "@types/node": "^25.5.2",
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^25.8.0",
     "@types/pg": "^8.20.0",
-    "@vitest/coverage-v8": "^4.1.2",
-    "eslint": "^10.2.0",
-    "globals": "^17.4.0",
-    "typescript": "^6.0.2",
-    "typescript-eslint": "^8.57.2",
+    "@vitest/coverage-v8": "^4.1.6",
+    "eslint": "^10.3.0",
+    "globals": "^17.6.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.3",
     "unplugin-swc": "^1.5.9",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.6"
   },
   "overrides": {
     "@isaacs/brace-expansion": "5.0.1",
-    "diff": "8.0.4",
+    "diff": "9.0.0",
+    "fast-uri": "3.1.2",
     "flatted": "3.4.2",
-    "hono": "4.12.12",
+    "hono": "4.12.18",
+    "ip-address": "10.2.0",
     "minimatch": "10.2.5",
     "picomatch": "4.0.4",
-    "tar": "7.5.13"
+    "tar": "7.5.15"
   }
 }

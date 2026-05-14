@@ -37,7 +37,10 @@ export const PgcryptoCreateExtensionSchema = z.object({
  */
 export const PgcryptoHashSchemaBase = z.object({
   data: z.string().optional().describe("Data to hash"),
-  algorithm: z.string().optional().describe("Hash algorithm"),
+  algorithm: z
+    .string()
+    .optional()
+    .describe("Hash algorithm (md5, sha1, sha224, sha256, sha384, sha512)"),
   encoding: z.string().optional().describe("Output encoding (default: hex)"),
 });
 
@@ -61,7 +64,10 @@ export const PgcryptoHashSchema = z.object({
 export const PgcryptoHmacSchemaBase = z.object({
   data: z.string().optional().describe("Data to authenticate"),
   key: z.string().optional().describe("Secret key for HMAC"),
-  algorithm: z.string().optional().describe("Hash algorithm"),
+  algorithm: z
+    .string()
+    .optional()
+    .describe("Hash algorithm (md5, sha1, sha224, sha256, sha384, sha512)"),
   encoding: z.string().optional().describe("Output encoding (default: hex)"),
 });
 
@@ -149,7 +155,7 @@ export const PgcryptoDecryptSchema = PgcryptoDecryptSchemaBase.transform(
  */
 export const PgcryptoGenRandomUuidSchemaBase = z.object({
   count: z
-    .preprocess(coerceNumber, z.number().optional())
+    .number()
     .optional()
     .describe("Number of UUIDs to generate (default: 1, max: 100)"),
 });
@@ -178,7 +184,7 @@ export const PgcryptoGenRandomUuidSchema = z
  */
 export const PgcryptoRandomBytesSchemaBase = z.object({
   length: z
-    .preprocess(coerceNumber, z.number().optional())
+    .number()
     .optional()
     .describe("Number of random bytes to generate (1-1024)"),
   encoding: z.string().optional().describe("Output encoding (default: hex)"),
@@ -193,7 +199,7 @@ export const PgcryptoRandomBytesSchema = z
       .preprocess(coerceNumber, z.number().optional())
       .describe("Number of random bytes to generate (1-1024)"),
     encoding: z
-      .enum(["hex", "base64"])
+      .enum(["hex", "base64", "raw"])
       .optional()
       .describe("Output encoding (default: hex)"),
   })
@@ -219,7 +225,7 @@ export const PgcryptoGenSaltSchemaBase = z.object({
     .optional()
     .describe("Salt type: bf (bcrypt, recommended), md5, xdes, or des"),
   iterations: z
-    .preprocess(coerceNumber, z.number().optional())
+    .number()
     .optional()
     .describe("Iteration count (for bf: 4-31, for xdes: odd 1-16777215)"),
 });
@@ -241,6 +247,7 @@ export const PgcryptoGenSaltSchema = z.object({
  */
 export const PgcryptoCryptSchemaBase = z.object({
   password: z.string().optional().describe("Password to hash or verify"),
+  data: z.string().optional().describe("Alias for password"),
   salt: z
     .string()
     .optional()
@@ -250,12 +257,20 @@ export const PgcryptoCryptSchemaBase = z.object({
 /**
  * Schema for password hashing with crypt().
  */
-export const PgcryptoCryptSchema = z.object({
-  password: z.string().describe("Password to hash or verify"),
-  salt: z
-    .string()
-    .describe("Salt from gen_salt() or stored hash for verification"),
-});
+export const PgcryptoCryptSchema = PgcryptoCryptSchemaBase.transform(
+  (payload) => {
+    return {
+      password: payload.password ?? payload.data,
+      salt: payload.salt,
+    };
+  },
+)
+  .refine((data) => data.password !== undefined, {
+    message: "password (or data alias) is required",
+  })
+  .refine((data) => data.salt !== undefined, {
+    message: "salt is required",
+  });
 
 // =============================================================================
 // Output Schemas

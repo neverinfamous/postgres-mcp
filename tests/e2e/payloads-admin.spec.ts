@@ -150,9 +150,9 @@ test.describe("Payload Contracts: Admin + Monitoring", () => {
 
   test("pg_set_config returns { success }", async () => {
     const payload = await callToolAndParse(client, "pg_set_config", {
-      setting: "work_mem",
+      name: "work_mem",
       value: "4MB",
-      local: true,
+      isLocal: true,
     });
     expectSuccess(payload);
     expect(payload.success).toBe(true);
@@ -174,12 +174,8 @@ test.describe("Payload Contracts: Admin + Monitoring", () => {
     expect(typeof payload).toBe("object");
   });
 
-  test("pg_resource_usage_analyze returns shape", async () => {
-    const payload = await callToolAndParse(
-      client,
-      "pg_resource_usage_analyze",
-      {},
-    );
+  test("pg_system_health returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_system_health", {});
     expectSuccess(payload);
     expect(typeof payload).toBe("object");
   });

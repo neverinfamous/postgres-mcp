@@ -268,6 +268,7 @@ stale maintenance, and retention configuration.`,
         const truncated = applyLimit && totalCount > limit;
 
         return {
+          success: true,
           partitionSets: healthChecks,
           truncated,
           totalCount,

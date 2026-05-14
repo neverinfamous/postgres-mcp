@@ -7,7 +7,7 @@
 | File                                         | Size        | Purpose                                                                                                                                                                                                     | When to Read                                                                                       |
 | -------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | `test-tools.md`                              | 17 KB       | **Entry-point protocol** — schema reference, P154 error patterns, Split Schema verification, structured error docs, cleanup rules. Open the corresponding group checklist from `test-tool-groups/`.         | Always read first (Step 1 says read `src/constants/server-instructions.md`, Step 2 is the testing) |
-| `test-tool-groups/*.md`                      | ~24 KB ea   | Per-group **deterministic checklists** for all 22 tool groups. Each section has numbered items with exact inputs/outputs, 🔴 error path items, alias tests, and create→use→drop lifecycles.                 | When running a specific tool group                                                                 |
+| `test-tool-groups/*.md`                      | ~24 KB ea   | Per-group **deterministic checklists** for all 25 tool groups. Each section has numbered items with exact inputs/outputs, 🔴 error path items, alias tests, and create→use→drop lifecycles.                 | When running a specific tool group                                                                 |
 | `test-advanced/test-tools-advanced-[1-4].md` | 14-31 KB ea | **Second-pass stress tests (4 Parts)** — 8 categories: boundary values, state pollution, alias matrix, error quality, concurrency/transactions, extension edge cases, payload truncation, code mode parity. | After basic checklist passes                                                                       |
 | `test-preflight.md`                          | ~2KB        | **Pre-flight check** — validates slim instructions, help resources, data resources, and tool-filter alignment in 5 steps                                                                                    | Before any test pass                                                                               |
 | `test-tool-annotations.mjs`                  | ~3 KB       | **Tool annotations script** — validates `openWorldHint` presence and values across all tools                                                                                                                | Structural validation                                                                              |
@@ -16,8 +16,7 @@
 | `test-resources.sql`                         | 10 KB       | Seed SQL for resource-specific test data (`resource_test_job` cron, vacuum stats, etc.)                                                                                                                     | Run before resource testing                                                                        |
 | `test-prompts.md`                            | 8 KB        | Prompt testing plan (19 prompts). Tested manually since agents typically don't invoke prompts yet.                                                                                                          | When testing prompts                                                                               |
 | `test-prompts.sql`                           | 19 KB       | Seed SQL for prompt-specific `prompt_*` tables                                                                                                                                                              | Run before prompt testing                                                                          |
-| `tool-groups-list.md`                        | 8 KB        | **Canonical tool inventory** — all 22 groups, 231 tools (222 published + 9 utility). Source of truth for tool counts.                                                                                       | Reference / auditing                                                                               |
-| `tool-reference.md`                          | 31 KB       | **Complete Tool Reference** — Detailed list of all 231 tools mapped to their specific tool groups.                                                                                                          | Reference                                                                                          |
+| `tool-reference.md`                          | 31 KB       | **Complete Tool Reference** — Detailed list of all 278 tools mapped to their specific tool groups.                                                                                                          | Reference                                                                                          |
 | [`code-map.md`](code-map.md)                 | ~16KB       | **Source Code Map** — Directory tree, handler→tool mapping, type/schema locations, error hierarchy, constants, architecture patterns.                                                                       | When debugging source code or making changes                                                       |
 | `test-database.sql`                          | 9 KB        | Core seed SQL for all `test_*` tables                                                                                                                                                                       | Reference only — reset script uses this                                                            |
 | `reset-database.ps1`                         | 15 KB       | PowerShell script to reset Docker container DB from seed data. Handles `_mcp_migrations`, partman cleanup, cron jobs.                                                                                       | After migration/partman testing or data pollution                                                  |
@@ -54,12 +53,13 @@
 | `test_projects`     | 2    | lead_id FK SET NULL, department_id FK RESTRICT                  | —                                                    | Introspection             |
 | `test_assignments`  | 3    | employee_id FK CASCADE, project_id FK CASCADE, UNIQUE(emp,proj) | —                                                    | Introspection             |
 | `test_audit_log`    | 3    | employee_id FK (**no PK, no index on FK** — intentional)        | —                                                    | Introspection             |
+| `test_documents`    | 5    | \_id (TEXT PK), doc (JSONB)                                     | **doc** (JSONB)                                      | Docstore (9 tools)        |
 
 **Schema objects:** `test_schema`, `test_schema.order_seq` (starts 1000), `test_order_summary` (view), `test_get_order_count()` (function).
 
 **Indexes:** `idx_orders_status`, `idx_orders_date`, `idx_articles_fts` (GIN), `idx_locations_geo` (GIST), `idx_categories_path` (GIST), HNSW on `test_embeddings.embedding`.
 
-## Tool Groups (22 groups, 231 tools)
+## Tool Groups (25 groups, 278 tools)
 
 | Group         | Tools | Key Test Data                                                                                   |
 | ------------- | ----- | ----------------------------------------------------------------------------------------------- |
@@ -82,8 +82,11 @@
 | citext        | 6+1   | `test_users` (case-insensitive username/email)                                                  |
 | ltree         | 8+1   | `test_categories` (electronics→phones→smartphones hierarchy)                                    |
 | pgcrypto      | 9+1   | `test_secure_data`, encrypt/decrypt/hash cycles                                                 |
+| security      | 9+1   | system catalogs (`pg_hba_file_rules`, `pg_stat_ssl`, `pg_roles`, `pg_settings`)                 |
 | introspection | 6+1   | `test_departments→employees→projects→assignments` FK chain, cascade simulation, schema analysis |
 | migration     | 6+1   | Migration tracking, SHA-256 dedup, rollback, history/status                                     |
+| roles         | 12+1  | `pg_roles` catalog, role CRUD, privileges, RLS policies                                         |
+| docstore      | 9+1   | `test_documents` (JSONB document CRUD, collection management, indexes)                          |
 
 ## Conventions & Protocols
 

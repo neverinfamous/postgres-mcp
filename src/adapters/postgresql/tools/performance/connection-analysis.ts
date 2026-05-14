@@ -13,40 +13,19 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
-import { DetectConnectionSpikeOutputSchema } from "../../schemas/performance.js";
+import {
+  DetectConnectionSpikeOutputSchema,
+  ConnectionSpikeInputBase,
+  ConnectionSpikeInput,
+} from "../../schemas/performance.js";
 import { toNum, toStr, riskFromScore } from "./anomaly-detection.js";
 
 // =============================================================================
 // pg_detect_connection_spike
 // =============================================================================
-
-const coerceNumber = (val: unknown): unknown =>
-  typeof val === "string"
-    ? isNaN(Number(val))
-      ? undefined
-      : Number(val)
-    : val;
-
-const ConnectionSpikeInputBase = z.object({
-  warningPercent: z
-    .unknown()
-    .optional()
-    .describe("Percentage threshold for flagging concentration (default: 70)"),
-});
-
-const ConnectionSpikeInput = z.preprocess(
-  (data: unknown) => {
-    if (typeof data !== "object" || data === null) return {};
-    return data;
-  },
-  z.object({
-    warningPercent: z.preprocess(coerceNumber, z.number().optional()),
-  }),
-);
 
 interface ConnectionConcentration {
   dimension: string;
@@ -80,8 +59,16 @@ export function createDetectConnectionSpikeTool(
           };
         }
 
-        const rawPercent = parsed.data.warningPercent ?? 70;
-        const warningPercent = Math.max(10, Math.min(100, rawPercent));
+        const warningPercent = parsed.data.warningPercent ?? 70;
+
+        if (warningPercent < 10 || warningPercent > 100) {
+          return {
+            success: false,
+            error:
+              "Validation error: warningPercent must be between 10 and 100",
+            code: "VALIDATION_ERROR",
+          };
+        }
 
         // Gather connection data in parallel
         const [stateResult, userResult, appResult, maxResult, idleTxResult] =

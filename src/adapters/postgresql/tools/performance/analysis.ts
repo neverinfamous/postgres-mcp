@@ -187,16 +187,18 @@ export function createIndexRecommendationsTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = IndexRecommendationsInputSchema.parse(params);
-        const schemaName = parsed.schema ?? "public";
-        const queryParams = parsed.params ?? [];
+        const schemaName =
+          typeof parsed.schema === "string" ? parsed.schema : "public";
+        const queryParams = Array.isArray(parsed.params) ? parsed.params : [];
 
         // If SQL query provided, perform query-specific analysis
-        if (parsed.sql !== undefined && parsed.sql.trim() !== "") {
+        if (typeof parsed.sql === "string" && parsed.sql.trim() !== "") {
+          const sqlStr = parsed.sql;
           const hypopgAvailable = await checkHypoPG();
 
           // Get baseline EXPLAIN plan (with parameter binding support)
           const baselineResult = await adapter.executeQuery(
-            `EXPLAIN (FORMAT JSON) ${parsed.sql}`,
+            `EXPLAIN (FORMAT JSON) ${sqlStr}`,
             queryParams,
           );
           const baselinePlanRow = baselineResult.rows?.[0] as
@@ -247,7 +249,7 @@ export function createIndexRecommendationsTool(
 
                   // Re-run EXPLAIN with hypothetical index (with parameter binding)
                   const improvedResult = await adapter.executeQuery(
-                    `EXPLAIN (FORMAT JSON) ${parsed.sql}`,
+                    `EXPLAIN (FORMAT JSON) ${sqlStr}`,
                     queryParams,
                   );
                   const improvedPlanRow = improvedResult.rows?.[0] as
@@ -332,7 +334,7 @@ export function createIndexRecommendationsTool(
         const statsParams: string[] = [schemaName];
         const schemaClause = `AND schemaname = $${String(statsParams.length)}`;
         let tableClause = "";
-        if (parsed.table !== undefined) {
+        if (typeof parsed.table === "string") {
           statsParams.push(parsed.table);
           tableClause = `AND relname = $${String(statsParams.length)}`;
         }
@@ -340,8 +342,8 @@ export function createIndexRecommendationsTool(
         // P154: Validate table/schema existence in table-stats path (throws ValidationError on failure)
         await validatePerformanceTableExists(
           adapter,
-          parsed.table,
-          parsed.schema ?? "public",
+          typeof parsed.table === "string" ? parsed.table : undefined,
+          schemaName,
         );
 
         const sql = `SELECT schemaname, relname as table_name,

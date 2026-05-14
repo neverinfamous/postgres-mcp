@@ -147,17 +147,26 @@ export const GeometryDistanceSchemaBase = z.object({
 export const GeometryDistanceSchema = z
   .preprocess(preprocessPostgisParams, GeometryDistanceSchemaBase)
   .transform((data) => {
-    const point = preprocessPoint(data.point);
+    let point = preprocessPoint(data.point);
+    if (!point) {
+      const lat = data.lat ?? data.latitude ?? data.y;
+      const lng = data.lng ?? data.lon ?? data.longitude ?? data.x;
+      if (lat !== undefined && lng !== undefined) {
+        point = { lat, lng };
+      }
+    }
     const rawDistance = data.maxDistance ?? data.radius ?? data.distance;
     return {
       table: data.table ?? data.tableName ?? "",
       column:
         data.column ?? data.geom ?? data.geometry ?? data.geometryColumn ?? "",
-      point: point ?? { lat: 0, lng: 0 },
+      point: point ?? { lat: NaN, lng: NaN },
       limit: data.limit,
       maxDistance:
         rawDistance !== undefined
-          ? convertToMeters(rawDistance, data.unit)
+          ? Number.isNaN(rawDistance)
+            ? NaN
+            : convertToMeters(rawDistance, data.unit)
           : undefined,
       unit: data.unit,
       schema: data.schema,
@@ -166,7 +175,12 @@ export const GeometryDistanceSchema = z
   .refine((data) => data.table !== "", {
     message: "table (or tableName alias) is required",
   })
-
+  .refine(
+    (data) => !Number.isNaN(data.point.lat) && !Number.isNaN(data.point.lng),
+    {
+      message: "point (or lat/lng) is required",
+    },
+  )
   .refine((data) => data.maxDistance === undefined || data.maxDistance >= 0, {
     message: "distance must be a non-negative number",
   })
@@ -179,12 +193,22 @@ export const GeometryDistanceSchema = z
         "unit must be a valid distance unit (meters, m, kilometers, km, miles, mi)",
     },
   )
-  .refine((data) => data.point.lat >= -90 && data.point.lat <= 90, {
-    message: "lat must be between -90 and 90 degrees",
-  })
-  .refine((data) => data.point.lng >= -180 && data.point.lng <= 180, {
-    message: "lng must be between -180 and 180 degrees",
-  });
+  .refine(
+    (data) =>
+      Number.isNaN(data.point.lat) ||
+      (data.point.lat >= -90 && data.point.lat <= 90),
+    {
+      message: "lat must be between -90 and 90 degrees",
+    },
+  )
+  .refine(
+    (data) =>
+      Number.isNaN(data.point.lng) ||
+      (data.point.lng >= -180 && data.point.lng <= 180),
+    {
+      message: "lng must be between -180 and 180 degrees",
+    },
+  );
 
 // =============================================================================
 // pg_point_in_polygon
@@ -227,18 +251,30 @@ export const PointInPolygonSchemaBase = z.object({
     .preprocess(coerceNumber, z.number().optional())
     .optional()
     .describe("Y coordinate"),
+  limit: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Maximum rows to return (default: 10 to prevent large payloads)"),
   schema: z.string().optional().describe("Schema name (default: public)"),
 });
 
 export const PointInPolygonSchema = z
   .preprocess(preprocessPostgisParams, PointInPolygonSchemaBase)
   .transform((data) => {
-    const point = preprocessPoint(data.point);
+    let point = preprocessPoint(data.point);
+    if (!point) {
+      const lat = data.lat ?? data.latitude ?? data.y;
+      const lng = data.lng ?? data.lon ?? data.longitude ?? data.x;
+      if (lat !== undefined && lng !== undefined) {
+        point = { lat, lng };
+      }
+    }
     return {
       table: data.table ?? data.tableName ?? "",
       column:
         data.column ?? data.geom ?? data.geometry ?? data.geometryColumn ?? "",
-      point: point ?? { lat: 0, lng: 0 },
+      point: point ?? { lat: NaN, lng: NaN },
+      limit: data.limit,
       schema: data.schema,
     };
   })
@@ -248,12 +284,28 @@ export const PointInPolygonSchema = z
   .refine((data) => data.column !== "", {
     message: "column (or geom/geometry/geometryColumn alias) is required",
   })
-  .refine((data) => data.point.lat >= -90 && data.point.lat <= 90, {
-    message: "lat must be between -90 and 90 degrees",
-  })
-  .refine((data) => data.point.lng >= -180 && data.point.lng <= 180, {
-    message: "lng must be between -180 and 180 degrees",
-  });
+  .refine(
+    (data) => !Number.isNaN(data.point.lat) && !Number.isNaN(data.point.lng),
+    {
+      message: "point (or lat/lng) is required",
+    },
+  )
+  .refine(
+    (data) =>
+      Number.isNaN(data.point.lat) ||
+      (data.point.lat >= -90 && data.point.lat <= 90),
+    {
+      message: "lat must be between -90 and 90 degrees",
+    },
+  )
+  .refine(
+    (data) =>
+      Number.isNaN(data.point.lng) ||
+      (data.point.lng >= -180 && data.point.lng <= 180),
+    {
+      message: "lng must be between -180 and 180 degrees",
+    },
+  );
 
 // =============================================================================
 // pg_spatial_index
@@ -356,9 +408,8 @@ export const BufferSchema = z
   .refine((data) => data.column !== "", {
     message: "column (or geom/geometryColumn alias) is required",
   })
-  .refine((data) => data.distance > 0, {
-    message:
-      "distance (or radius/meters alias) is required and must be positive",
+  .refine((data) => data.distance !== 0, {
+    message: "distance (or radius/meters alias) is required and cannot be zero",
   })
   .refine((data) => data.simplify === undefined || data.simplify >= 0, {
     message:
@@ -427,7 +478,7 @@ export const IntersectionSchemaBase = z.object({
   limit: z
     .preprocess(coerceNumber, z.number().optional())
     .optional()
-    .describe("Max results"),
+    .describe("Maximum rows to return (default: 10 to prevent large payloads)"),
   select: z.array(z.string()).optional().describe("Columns to select"),
 });
 
@@ -489,7 +540,7 @@ export const BoundingBoxSchemaBase = z.object({
   limit: z
     .preprocess(coerceNumber, z.number().optional())
     .optional()
-    .describe("Max results"),
+    .describe("Maximum rows to return (default: 10 to prevent large payloads)"),
   select: z.array(z.string()).optional().describe("Columns to select"),
 });
 

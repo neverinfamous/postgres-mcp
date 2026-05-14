@@ -18,15 +18,18 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
+import {
+  DetectQueryAnomaliesOutputSchema,
+  DetectBloatRiskOutputSchema,
+  QueryAnomaliesInputBase,
+  QueryAnomaliesInput,
+  BloatRiskInputBase,
+  BloatRiskInput,
+} from "../../schemas/performance.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { validateIdentifier } from "../../../../utils/identifiers.js";
-import {
-  DetectQueryAnomaliesOutputSchema,
-  DetectBloatRiskOutputSchema,
-} from "../../schemas/performance.js";
 // =============================================================================
 // Shared Helpers (exported for connection-analysis.ts)
 // =============================================================================
@@ -49,37 +52,6 @@ export function riskFromScore(score: number): RiskLevel {
 // =============================================================================
 // 1. pg_detect_query_anomalies
 // =============================================================================
-
-const coerceNumber = (val: unknown): unknown =>
-  typeof val === "string"
-    ? isNaN(Number(val))
-      ? undefined
-      : Number(val)
-    : val;
-
-const QueryAnomaliesInputBase = z.object({
-  threshold: z
-    .unknown()
-    .optional()
-    .describe(
-      "Standard deviation multiplier for anomaly detection (default: 2.0)",
-    ),
-  minCalls: z
-    .unknown()
-    .optional()
-    .describe("Minimum call count to filter noise (default: 10)"),
-});
-
-const QueryAnomaliesInput = z.preprocess(
-  (data: unknown) => {
-    if (typeof data !== "object" || data === null) return {};
-    return data;
-  },
-  z.object({
-    threshold: z.preprocess(coerceNumber, z.number().optional()),
-    minCalls: z.preprocess(coerceNumber, z.number().optional()),
-  }),
-);
 
 export function createDetectQueryAnomaliesTool(
   adapter: PostgresAdapter,
@@ -105,24 +77,13 @@ export function createDetectQueryAnomaliesTool(
           };
         }
 
-        const threshold = parsed.data.threshold ?? 2.0;
-        const minCalls = parsed.data.minCalls ?? 10;
+        let threshold = parsed.data.threshold ?? 2.0;
+        let minCalls = parsed.data.minCalls ?? 10;
+        let limit = parsed.data.limit ?? 20;
 
-        if (threshold < 0.5 || threshold > 10) {
-          return {
-            success: false,
-            error: "Validation error: threshold must be between 0.5 and 10",
-            code: "VALIDATION_ERROR",
-          };
-        }
-
-        if (minCalls < 1 || minCalls > 10000) {
-          return {
-            success: false,
-            error: "Validation error: minCalls must be between 1 and 10000",
-            code: "VALIDATION_ERROR",
-          };
-        }
+        threshold = Math.max(0.01, Math.min(100, threshold));
+        minCalls = Math.max(1, Math.min(1000000, minCalls));
+        limit = Math.max(1, Math.min(100, limit));
 
         // Check if pg_stat_statements is available
         const extCheck = await adapter.executeQuery(
@@ -135,8 +96,11 @@ export function createDetectQueryAnomaliesTool(
               "pg_stat_statements extension is not installed. " +
               "Install with: CREATE EXTENSION pg_stat_statements; " +
               "(requires shared_preload_libraries configuration)",
+            code: "EXTENSION_NOT_FOUND",
+            category: "resource",
             suggestion:
               "Use pg_diagnose_database_performance for baseline-free health checks",
+            recoverable: false,
           };
         }
 
@@ -161,7 +125,7 @@ export function createDetectQueryAnomaliesTool(
             AND stddev_exec_time > 0
             AND mean_exec_time > (stddev_exec_time * ${String(threshold)})
           ORDER BY (mean_exec_time / NULLIF(stddev_exec_time, 0)) DESC
-          LIMIT 20
+          LIMIT ${String(limit)}
         `);
 
         const anomalies = (result.rows ?? []).map(
@@ -218,28 +182,6 @@ export function createDetectQueryAnomaliesTool(
 // 2. pg_detect_bloat_risk
 // =============================================================================
 
-const BloatRiskInputBase = z.object({
-  schema: z
-    .string()
-    .optional()
-    .describe("Filter to a specific schema (default: all user schemas)"),
-  minRows: z
-    .unknown()
-    .optional()
-    .describe("Minimum live rows to include (default: 1000)"),
-});
-
-const BloatRiskInput = z.preprocess(
-  (data: unknown) => {
-    if (typeof data !== "object" || data === null) return {};
-    return data;
-  },
-  z.object({
-    schema: z.string().optional(),
-    minRows: z.preprocess(coerceNumber, z.number().optional()),
-  }),
-);
-
 export function createDetectBloatRiskTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
@@ -272,12 +214,29 @@ export function createDetectBloatRiskTool(
             success: false,
             error: "Validation error: minRows must be between 0 and 1000000",
             code: "VALIDATION_ERROR",
+            category: "validation",
+            recoverable: false,
           };
         }
 
         let schemaFilter: string;
         if (schema) {
           validateIdentifier(schema);
+
+          const schemaCheck = await adapter.executeQuery(
+            `SELECT 1 FROM pg_namespace WHERE nspname = $1`,
+            [schema],
+          );
+          if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
+            return {
+              success: false,
+              error: `Schema "${schema}" does not exist`,
+              code: "SCHEMA_NOT_FOUND",
+              category: "schema",
+              recoverable: false,
+            };
+          }
+
           schemaFilter = `AND schemaname = '${schema}'`;
         } else {
           schemaFilter = `AND schemaname NOT IN ('pg_catalog', 'information_schema', 'cron', 'topology', 'tiger', 'tiger_data')`;

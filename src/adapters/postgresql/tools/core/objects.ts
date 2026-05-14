@@ -42,9 +42,8 @@ export function createListObjectsTool(
     outputSchema: ObjectListOutputSchema,
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { schema, types, limit } = ListObjectsSchema.parse(params);
-
-        // Validate types against allowed values (handler-side since Base schema uses z.string())
+        const { schema, types, limit, exclude } =
+          ListObjectsSchema.parse(params);
         if (types) {
           const invalidTypes = types.filter(
             (t) => !(VALID_OBJECT_TYPES as readonly string[]).includes(t),
@@ -62,9 +61,14 @@ export function createListObjectsTool(
           }
         }
 
-        const schemaFilter = schema
+        let schemaFilter = schema
           ? `AND n.nspname = '${schema}'`
           : `AND n.nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast')`;
+
+        if (exclude && exclude.length > 0) {
+          const excludeList = exclude.map((s) => `'${s}'`).join(", ");
+          schemaFilter += ` AND n.nspname NOT IN (${excludeList})`;
+        }
 
         const typeFilters: string[] = [];
         const selectedTypes = types ?? [
@@ -139,11 +143,7 @@ export function createListObjectsTool(
                       FROM pg_proc p
                       JOIN pg_namespace n ON n.oid = p.pronamespace
                       WHERE p.prokind IN (${kindFilter.join(", ")})
-                      ${
-                        schema
-                          ? `AND n.nspname = '${schema}'`
-                          : `AND n.nspname NOT IN ('pg_catalog', 'information_schema')`
-                      }
+                      ${schemaFilter}
                       ORDER BY n.nspname, p.proname
                   `;
           const result = await adapter.executeQuery(sql);
@@ -187,12 +187,14 @@ export function createListObjectsTool(
           objects.push(...(result.rows as typeof objects));
         }
 
-        // Apply default limit of 100 if not specified
-        const effectiveLimit = limit ?? 100;
-        const truncated = objects.length > effectiveLimit;
-        const limitedObjects = truncated
-          ? objects.slice(0, effectiveLimit)
-          : objects;
+        // Apply default limit of 20 to reduce payload size if not specified
+        const effectiveLimit = limit === 0 ? undefined : (limit ?? 20);
+        const truncated =
+          effectiveLimit !== undefined && objects.length > effectiveLimit;
+        const limitedObjects =
+          truncated && effectiveLimit !== undefined
+            ? objects.slice(0, effectiveLimit)
+            : objects;
 
         return {
           objects: limitedObjects,
@@ -330,9 +332,7 @@ export function createObjectDetailsTool(
               schemaName,
             ]);
             if (viewDefResult.rows && viewDefResult.rows.length > 0) {
-              details["definition"] = viewDefResult.rows[0]?.[
-                "definition"
-              ] as string;
+              details["definition"] = viewDefResult.rows[0]?.["definition"];
               details["hasDefinition"] = true;
             }
           }
@@ -358,7 +358,7 @@ export function createObjectDetailsTool(
               ...details,
               ...funcRow,
               // Add camelCase aliases
-              returnType: funcRow["return_type"] as string,
+              returnType: funcRow["return_type"],
             };
           }
         } else if (objectType === "sequence") {

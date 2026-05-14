@@ -76,7 +76,7 @@ export function createStatsTopNTool(adapter: PostgresAdapter): ToolDefinition {
         const parsed = StatsTopNSchema.parse(params) as {
           table: string;
           column: string;
-          n?: number;
+          n?: number | string;
           direction?: "asc" | "desc";
           selectColumns?: string[];
           schema?: string;
@@ -84,14 +84,12 @@ export function createStatsTopNTool(adapter: PostgresAdapter): ToolDefinition {
         };
 
         const { table, column, schema, where, selectColumns } = parsed;
-        const n =
-          parsed.n === undefined || Number.isNaN(parsed.n) ? 10 : parsed.n;
+        const nRaw = parsed.n !== undefined ? Number(parsed.n) : 10;
+        const n = Number.isNaN(nRaw) ? 10 : nRaw;
         if (n <= 0) {
           throw new ValidationError("Parameter 'n' must be greater than 0.");
         }
-        if (n > 100) {
-          throw new ValidationError("Parameter 'n' cannot exceed 100.");
-        }
+        const finalN = Math.min(n, 100);
         const direction = parsed.direction ?? "desc";
         const schemaName = schema ?? "public";
         const schemaPrefix = schema ? `"${schema}".` : "";
@@ -146,7 +144,7 @@ export function createStatsTopNTool(adapter: PostgresAdapter): ToolDefinition {
           FROM ${schemaPrefix}"${table}"
           ${whereClause}
           ORDER BY "${column}" ${direction.toUpperCase()}
-          LIMIT ${String(n)}
+          LIMIT ${String(finalN)}
         `;
 
         const result = await adapter.executeQuery(sql);
@@ -198,22 +196,19 @@ export function createStatsDistinctTool(
           column: string;
           schema?: string;
           where?: string;
-          limit?: number;
+          limit?: number | string;
         };
 
         const { table, column, schema, where } = parsed;
-        const limit =
-          parsed.limit === undefined || Number.isNaN(parsed.limit)
-            ? 100
-            : parsed.limit;
+        const limitRaw =
+          parsed.limit !== undefined ? Number(parsed.limit) : 100;
+        const limit = Number.isNaN(limitRaw) ? 100 : limitRaw;
         if (limit <= 0) {
           throw new ValidationError(
             "Parameter 'limit' must be greater than 0.",
           );
         }
-        if (limit > 1000) {
-          throw new ValidationError("Parameter 'limit' cannot exceed 1000.");
-        }
+        const finalLimit = Math.min(limit, 1000);
         const schemaPrefix = schema ? `"${schema}".` : "";
         const whereClause = where ? `WHERE ${sanitizeWhereClause(where)}` : "";
 
@@ -222,7 +217,7 @@ export function createStatsDistinctTool(
           FROM ${schemaPrefix}"${table}"
           ${whereClause}
           ORDER BY "${column}"
-          LIMIT ${String(limit)}
+          LIMIT ${String(finalLimit)}
         `;
 
         const result = await adapter.executeQuery(sql);
@@ -279,41 +274,37 @@ export function createStatsFrequencyTool(
           column: string;
           schema?: string;
           where?: string;
-          limit?: number;
+          limit?: number | string;
         };
 
         const { table, column, schema, where } = parsed;
-        const limit =
-          parsed.limit === undefined || Number.isNaN(parsed.limit)
-            ? 20
-            : parsed.limit;
+        const limitRaw = parsed.limit !== undefined ? Number(parsed.limit) : 20;
+        const limit = Number.isNaN(limitRaw) ? 20 : limitRaw;
         if (limit <= 0) {
           throw new ValidationError(
             "Parameter 'limit' must be greater than 0.",
           );
         }
-        if (limit > 1000) {
-          throw new ValidationError("Parameter 'limit' cannot exceed 1000.");
-        }
+        const finalLimit = Math.min(limit, 1000);
         const schemaPrefix = schema ? `"${schema}".` : "";
         const whereClause = where ? `WHERE ${sanitizeWhereClause(where)}` : "";
 
         const sql = `
           SELECT
             "${column}" AS value,
-            COUNT(*) AS frequency,
+            COUNT(*) AS count,
             ROUND(COUNT(*)::numeric * 100.0 / SUM(COUNT(*)) OVER(), 2) AS percentage
           FROM ${schemaPrefix}"${table}"
           ${whereClause}
           GROUP BY "${column}"
           ORDER BY COUNT(*) DESC
-          LIMIT ${String(limit)}
+          LIMIT ${String(finalLimit)}
         `;
 
         const result = await adapter.executeQuery(sql);
         const distribution = (result.rows ?? []).map((row) => ({
           value: row["value"],
-          frequency: Number(row["frequency"]),
+          count: Number(row["count"]),
           percentage: Number(row["percentage"]),
         }));
 
@@ -372,6 +363,17 @@ export function createStatsSummaryTool(
         const schemaName = schema ?? "public";
         const schemaPrefix = schema ? `"${schema}".` : "";
         const whereClause = where ? `WHERE ${sanitizeWhereClause(where)}` : "";
+
+        // Verify table exists first to comply with P154
+        const tableCheck = await adapter.executeQuery(
+          `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
+          [schemaName, table],
+        );
+        if (!tableCheck.rows || tableCheck.rows.length === 0) {
+          throw new ValidationError(
+            `Table "${schemaName}.${table}" does not exist`,
+          );
+        }
 
         // Determine columns to summarize
         let targetColumns: string[];
@@ -434,19 +436,6 @@ export function createStatsSummaryTool(
         }
 
         if (targetColumns.length === 0) {
-          // Check if table actually exists or if it just has no numeric columns
-          if (!parsed.columns || parsed.columns.length === 0) {
-            const tableCheck = await adapter.executeQuery(
-              `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
-              [schemaName, table],
-            );
-            if (!tableCheck.rows || tableCheck.rows.length === 0) {
-              throw new ValidationError(
-                `Table "${schemaName}.${table}" does not exist`,
-              );
-            }
-          }
-
           return {
             success: true,
             table: `${schemaName}.${table}`,

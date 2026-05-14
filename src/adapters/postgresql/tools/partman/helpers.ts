@@ -43,7 +43,6 @@ export async function getPartmanSchema(
   const result = await adapter.executeQuery(`
         SELECT table_schema FROM information_schema.tables
         WHERE table_name = 'part_config'
-        AND table_schema IN ('partman', 'public')
         LIMIT 1
     `);
 
@@ -72,6 +71,7 @@ export async function getPartmanSchema(
  */
 export async function ensurePartmanSchemaAlias(
   adapter: PostgresAdapter,
+  partmanSchema: string,
 ): Promise<void> {
   try {
     await adapter.executeQuery("CREATE SCHEMA IF NOT EXISTS partman");
@@ -80,7 +80,7 @@ export async function ensurePartmanSchemaAlias(
         p_parent_schema text, p_parent_tablename text, p_control text
       ) RETURNS TABLE(general_type text, exact_type text)
       LANGUAGE sql STABLE AS $$
-        SELECT * FROM public.check_control_type(p_parent_schema, p_parent_tablename, p_control)
+        SELECT * FROM ${partmanSchema}.check_control_type(p_parent_schema, p_parent_tablename, p_control)
       $$
     `);
   } catch {
@@ -97,10 +97,10 @@ export async function callPartmanProcedure(
   partmanSchema: string,
   sql: string,
 ): Promise<void> {
-  // When pg_partman is installed in 'public', ensure the 'partman' schema alias
+  // When pg_partman is installed in a schema other than 'partman', ensure the 'partman' schema alias
   // exists for hardcoded partman.* references inside pg_partman's functions
-  if (partmanSchema === "public") {
-    await ensurePartmanSchemaAlias(adapter);
+  if (partmanSchema !== "partman") {
+    await ensurePartmanSchemaAlias(adapter, partmanSchema);
   }
   await adapter.executeQuery(sql);
 }

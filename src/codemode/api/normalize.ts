@@ -118,9 +118,7 @@ export function normalizeParams(methodName: string, args: unknown[]): unknown {
     typeof lastArg === "object" &&
     lastArg !== null &&
     !Array.isArray(lastArg) &&
-    Object.keys(lastArg as Record<string, unknown>).some((k) =>
-      paramMapping.includes(k),
-    );
+    Object.keys(lastArg).some((k) => paramMapping.includes(k));
 
   // Map positional args to their keys, skipping options object if detected
   const argsToMap = lastArgIsOptionsObject ? args.length - 1 : args.length;

@@ -51,7 +51,7 @@ Indexes: `idx_orders_status`, `idx_orders_date`, `idx_articles_fts` (GIN), `idx_
 2. Create temporary tables with `temp_*` prefix for write operations (CREATE, INSERT, DROP, etc.)
 3. Test each tool with realistic inputs based on the schema above
 4. Clean up any `temp_*` tables after testing
-5. Report all failures, unexpected behaviors, improvement opportunities, or unnecessarily large payloads
+5. Report all failures, broken contracts, or deviations from defined standards (e.g., P154 object-existence, Split Schema validation leaks, or unoptimized payloads). Do NOT report or implement subjective "improvement opportunities" beyond these objective criteria. If the tool group meets all standards perfectly, state that 0 changes are required and stop
 6. Do not mention what already works well or issues well documented in ServerInstructions and runtime hints which are already optimal
 7. **Error path testing**: For **every** tool, test at least **two** invalid inputs: (a) a domain error (nonexistent table, invalid column, bad parameter value) and (b) a **Zod validation error** (call the tool with `{}` empty params if it has required parameters, or pass the wrong type). Both must return a **structured handler error** (`{success: false, error: "..."}`) — NOT a raw MCP error frame. See the "Structured Error Response Pattern" section below for how to distinguish the two. This is the most common deficiency found across tool groups.
 8. **Code Mode Strict Coverage Matrix**: You must create a markdown table tracking your progress in your `task.md` in C:\Users\chris\Desktop\postgres-mcp\tmp. For EVERY tool in the group, you must explicitly log: Code Mode (Happy Path) and Code Mode (Domain Error). Do not proceed to the final summary until every cell in this matrix is marked with a ✅.
@@ -240,20 +240,20 @@ cron Tool Group (8 tools +1 for code mode)
 
 > **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
-- [x] 1. `pg_cron_list_jobs()` → verify response structure `{jobs, count}`
-- [x] 2. `pg_cron_schedule({name: "checklist_test_job", schedule: "0 5 * * *", command: "SELECT 1"})` → capture jobId
-- [x] 3. `pg_cron_list_jobs()` → verify `checklist_test_job` appears
-- [x] 4. `pg_cron_unschedule({jobName: "checklist_test_job"})` → verify success
-- [x] 5. `pg_cron_list_jobs()` → verify job removed
-- [x] 6. 🔴 `pg_cron_unschedule({jobName: "nonexistent_job_xyz"})` → `{success: false, error: "..."}` handler error
-- [x] 7. 🔴 `pg_cron_schedule({})` → `{success: false, error: "..."}` (Zod validation)
-- [x] 8. 🔴 `pg_cron_cleanup_history({days: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `days` (wrong-type numeric param)
+- [ ] 1. `pg_cron_list_jobs()` → verify response structure `{jobs, count}`
+- [ ] 2. `pg_cron_schedule({name: "checklist_test_job", schedule: "0 5 * * *", command: "SELECT 1"})` → capture jobId
+- [ ] 3. `pg_cron_list_jobs()` → verify `checklist_test_job` appears
+- [ ] 4. `pg_cron_unschedule({jobName: "checklist_test_job"})` → verify success
+- [ ] 5. `pg_cron_list_jobs()` → verify job removed
+- [ ] 6. 🔴 `pg_cron_unschedule({jobName: "nonexistent_job_xyz"})` → `{success: false, error: "..."}` handler error
+- [ ] 7. 🔴 `pg_cron_schedule({})` → `{success: false, error: "..."}` (Zod validation)
+- [ ] 8. 🔴 `pg_cron_cleanup_history({days: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `days` (wrong-type numeric param)
 
-13. `pg_cron_alter_job()` → verify happy path expected behavior
-14. 🔴 `pg_cron_alter_job({})` → verify structured P154 error response or valid defaults
-15. `pg_cron_job_run_details()` → verify happy path expected behavior
-16. 🔴 `pg_cron_job_run_details({})` → verify structured P154 error response or valid defaults
-17. `pg_cron_create_extension()` → verify happy path expected behavior
-18. 🔴 `pg_cron_create_extension({})` → verify structured P154 error response or valid defaults
-19. `pg_cron_schedule_in_database()` → verify happy path expected behavior
-20. 🔴 `pg_cron_schedule_in_database({})` → verify structured P154 error response or valid defaults
+13. [ ] `pg_cron_alter_job()` → verify happy path expected behavior
+14. [ ] 🔴 `pg_cron_alter_job({})` → verify structured P154 error response or valid defaults
+15. [ ] `pg_cron_job_run_details()` → verify happy path expected behavior
+16. [ ] 🔴 `pg_cron_job_run_details({})` → verify structured P154 error response or valid defaults
+17. [ ] `pg_cron_create_extension()` → verify happy path expected behavior
+18. [ ] 🔴 `pg_cron_create_extension({})` → verify structured P154 error response or valid defaults
+19. [ ] `pg_cron_schedule_in_database()` → verify happy path expected behavior
+20. [ ] 🔴 `pg_cron_schedule_in_database({})` → verify structured P154 error response or valid defaults

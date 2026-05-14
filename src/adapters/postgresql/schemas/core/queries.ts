@@ -140,7 +140,7 @@ export const ListTablesSchemaBase = z.object({
   limit: z
     .number()
     .optional()
-    .describe("Maximum number of tables to return (default: 100)"),
+    .describe("Maximum number of tables to return (default: 20)"),
   exclude: z
     .array(z.string())
     .optional()

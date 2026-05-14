@@ -27,6 +27,7 @@ export interface ConnectionPoolConfig {
   user: string;
   password: string;
   database: string;
+  initializationSql?: string[];
   pool?: PoolConfig | undefined;
   ssl?: pg.ConnectionConfig["ssl"] | undefined;
   statementTimeout?: number | undefined;
@@ -39,6 +40,7 @@ export interface ConnectionPoolConfig {
 export class ConnectionPool {
   private pool: pg.Pool | null = null;
   private config: ConnectionPoolConfig;
+  private initializedConnections = new WeakSet<PoolClient>();
   private stats: PoolStats = {
     total: 0,
     active: 0,
@@ -165,6 +167,10 @@ export class ConnectionPool {
       this.stats.waiting++;
       const client = await this.pool.connect();
       this.stats.waiting = Math.max(0, this.stats.waiting - 1);
+
+      // Run initialization SQL if configured and not already initialized
+      await this.applyInitializationSql(client);
+
       return client;
     } catch (error: unknown) {
       this.stats.waiting = Math.max(0, this.stats.waiting - 1);
@@ -187,7 +193,8 @@ export class ConnectionPool {
   }
 
   /**
-   * Execute a query using a pooled connection
+   * Execute a query using a pooled connection.
+   * Routes through getConnection() to ensure initializationSql is applied.
    */
   async query<T extends Record<string, unknown>[]>(
     sql: string,
@@ -200,8 +207,9 @@ export class ConnectionPool {
     const startTime = Date.now();
     this.stats.totalQueries++;
 
+    const client = await this.getConnection();
     try {
-      const result = await this.pool.query<T[number]>(sql, params);
+      const result = await client.query<T[number]>(sql, params);
 
       logger.debug("Query executed", {
         sql: sql.substring(0, 100),
@@ -217,6 +225,8 @@ export class ConnectionPool {
         error: message,
       });
       throw error;
+    } finally {
+      this.releaseConnection(client);
     }
   }
 
@@ -311,5 +321,31 @@ export class ConnectionPool {
    */
   isClosing(): boolean {
     return this.shuttingDown;
+  }
+
+  /**
+   * Apply initialization SQL to a connection if configured and not yet applied.
+   * Uses WeakSet tracking so init runs exactly once per physical connection.
+   * Releases the connection and throws PoolError on failure.
+   */
+  private async applyInitializationSql(client: PoolClient): Promise<void> {
+    if (
+      !this.config.initializationSql ||
+      this.config.initializationSql.length === 0 ||
+      this.initializedConnections.has(client)
+    ) {
+      return;
+    }
+
+    try {
+      for (const sql of this.config.initializationSql) {
+        await client.query(sql);
+      }
+      this.initializedConnections.add(client);
+    } catch (error: unknown) {
+      client.release();
+      const message = error instanceof Error ? error.message : "Unknown error";
+      throw new PoolError(`Failed to initialize connection: ${message}`);
+    }
   }
 }

@@ -51,7 +51,7 @@ Indexes: `idx_orders_status`, `idx_orders_date`, `idx_articles_fts` (GIN), `idx_
 2. Create temporary tables with `temp_*` prefix for write operations (CREATE, INSERT, DROP, etc.)
 3. Test each tool with realistic inputs based on the schema above
 4. Clean up any `temp_*` tables after testing
-5. Report all failures, unexpected behaviors, improvement opportunities, or unnecessarily large payloads
+5. Report all failures, broken contracts, or deviations from defined standards (e.g., P154 object-existence, Split Schema validation leaks, or unoptimized payloads). Do NOT report or implement subjective "improvement opportunities" beyond these objective criteria. If the tool group meets all standards perfectly, state that 0 changes are required and stop
 6. Do not mention what already works well or issues well documented in ServerInstructions and runtime hints which are already optimal
 7. **Error path testing**: For **every** tool, test at least **two** invalid inputs: (a) a domain error (nonexistent table, invalid column, bad parameter value) and (b) a **Zod validation error** (call the tool with `{}` empty params if it has required parameters, or pass the wrong type). Both must return a **structured handler error** (`{success: false, error: "..."}`) — NOT a raw MCP error frame. See the "Structured Error Response Pattern" section below for how to distinguish the two. This is the most common deficiency found across tool groups.
 8. **Code Mode Strict Coverage Matrix**: You must create a markdown table tracking your progress in your `task.md` in C:\Users\chris\Desktop\postgres-mcp\tmp. For EVERY tool in the group, you must explicitly log: Code Mode (Happy Path) and Code Mode (Domain Error). Do not proceed to the final summary until every cell in this matrix is marked with a ✅.
@@ -252,29 +252,29 @@ jsonb Tool Group (20 tools +1 for code mode):
 
 **Checklist:**
 
-4. `pg_jsonb_typeof({table: "test_jsonb_docs", column: "tags", where: "id = 1"})` → `"array"`
-5. `pg_jsonb_typeof({table: "test_jsonb_docs", column: "metadata", where: "id = 1"})` → `"object"`
-6. `pg_jsonb_stats({table: "test_jsonb_docs", column: "metadata"})` → verify `topKeys` present, `typeDistribution` present
-7. `pg_jsonb_validate_path({path: "$.a.b.c"})` → valid (note: validates JSONPath syntax, not dot-notation — `"a.b.c"` is invalid JSONPath)
+1. `pg_jsonb_strip_nulls({json: {"a": 1, "b": null}})` → verify `{"a": 1}`
+2. `pg_jsonb_typeof({table: "test_jsonb_docs", column: "tags", where: "id = 1"})` → `"array"`
+3. `pg_jsonb_typeof({table: "test_jsonb_docs", column: "metadata", where: "id = 1"})` → `"object"`
+4. `pg_jsonb_validate_path({path: "$.a.b.c"})` → valid (note: validates JSONPath syntax, not dot-notation — `"a.b.c"` is invalid JSONPath)
+5. `pg_jsonb_stats({table: "test_jsonb_docs", column: "metadata"})` → verify `topKeys` present, `typeDistribution` present
+6. `pg_jsonb_merge({json1: {"a": 1}, json2: {"b": 2}})` → verify `{"a": 1, "b": 2}`
+7. `pg_jsonb_normalize({json: "{\"a\": 1, \"b\": 2}"})` → verify parsed json
 8. `pg_jsonb_diff({doc1: {"a": 1, "b": 2}, doc2: {"a": 1, "c": 3}})` → verify `differences` array with `status` field (`"added"`, `"removed"`, `"modified"`), `hasDifferences: true`
+9. `pg_jsonb_index_suggest({table: "test_jsonb_docs", column: "metadata"})` → verify expected behavior
+10. `pg_jsonb_security_scan({table: "test_jsonb_docs", column: "metadata"})` → verify expected behavior
+11. `pg_jsonb_pretty({json: "{\"a\":1,\"b\":2}"})` → verify pretty-printed JSON string with indentation
+12. `pg_jsonb_pretty({table: "test_jsonb_docs", column: "metadata", where: "id = 1"})` → verify formatted output contains `"author": "Alice"` with indentation
 
-**pg_jsonb_pretty:**
+**Domain and Zod error paths (🔴):**
 
-10. `pg_jsonb_pretty({json: "{\"a\":1,\"b\":2}"})` → verify pretty-printed JSON string with indentation
-11. `pg_jsonb_pretty({table: "test_jsonb_docs", column: "metadata", where: "id = 1"})` → verify formatted output contains `"author": "Alice"` with indentation
-12. 🔴 `pg_jsonb_pretty({})` → `{success: false, error: "..."}` (Zod validation — must provide either `json` or `table`+`column`)
-
-**Domain error paths (🔴):**
-
-15. 🔴 `pg_jsonb_stats({table: "test_jsonb_docs", column: "metadata", sampleSize: "abc"})` → must NOT return raw MCP `-32602` error — should silently default `sampleSize` to 1000 and return valid stats (wrong-type numeric param coercion)
-
-16. `pg_jsonb_index_suggest()` → verify happy path expected behavior
-17. 🔴 `pg_jsonb_index_suggest({})` → verify structured P154 error response or valid defaults
-18. `pg_jsonb_security_scan()` → verify happy path expected behavior
-19. 🔴 `pg_jsonb_security_scan({})` → verify structured P154 error response or valid defaults
-20. `pg_jsonb_merge()` → verify happy path expected behavior
-21. 🔴 `pg_jsonb_merge({})` → verify structured P154 error response or valid defaults
-22. `pg_jsonb_normalize()` → verify happy path expected behavior
-23. 🔴 `pg_jsonb_normalize({})` → verify structured P154 error response or valid defaults
-24. `pg_jsonb_strip_nulls()` → verify happy path expected behavior
-25. 🔴 `pg_jsonb_strip_nulls({})` → verify structured P154 error response or valid defaults
+13. 🔴 `pg_jsonb_stats({table: "test_jsonb_docs", column: "metadata", sampleSize: "abc"})` → must NOT return raw MCP `-32602` error — should silently default `sampleSize` to 1000 and return valid stats (wrong-type numeric param coercion)
+14. 🔴 `pg_jsonb_strip_nulls({})` → `{success: false, error: "..."}` (Zod validation)
+15. 🔴 `pg_jsonb_typeof({})` → `{success: false, error: "..."}` (Zod validation)
+16. 🔴 `pg_jsonb_validate_path({})` → `{success: false, error: "..."}` (Zod validation)
+17. 🔴 `pg_jsonb_stats({})` → `{success: false, error: "..."}` (Zod validation)
+18. 🔴 `pg_jsonb_merge({})` → `{success: false, error: "..."}` (Zod validation)
+19. 🔴 `pg_jsonb_normalize({})` → `{success: false, error: "..."}` (Zod validation)
+20. 🔴 `pg_jsonb_diff({})` → `{success: false, error: "..."}` (Zod validation)
+21. 🔴 `pg_jsonb_index_suggest({})` → `{success: false, error: "..."}` (Zod validation)
+22. 🔴 `pg_jsonb_security_scan({})` → `{success: false, error: "..."}` (Zod validation)
+23. 🔴 `pg_jsonb_pretty({})` → `{success: false, error: "..."}` (Zod validation — must provide either `json` or `table`+`column`)

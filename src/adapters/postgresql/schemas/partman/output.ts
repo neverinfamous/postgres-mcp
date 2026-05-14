@@ -97,6 +97,7 @@ export const PartmanShowPartitionsOutputSchema = z
  */
 export const PartmanShowConfigOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Operation success"),
     configs: z
       .array(
         z.record(z.string(), z.unknown()).and(

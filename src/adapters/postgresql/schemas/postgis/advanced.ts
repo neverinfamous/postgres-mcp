@@ -101,6 +101,18 @@ export const GeoClusterSchemaBase = z.object({
     .preprocess(coerceNumber, z.number().optional())
     .optional()
     .describe("DBSCAN: Distance threshold"),
+  distance: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Alias for eps"),
+  radius: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Alias for eps"),
+  epsg: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Alias for eps (user typo fallback)"),
   minPoints: z
     .preprocess(coerceNumber, z.number().optional())
     .optional()
@@ -139,7 +151,8 @@ export const GeoClusterSchema = z
       schema: data.schema,
       column: data.column ?? data.geom ?? data.geometryColumn ?? "",
       method: data.method ?? data.algorithm,
-      eps: data.eps ?? paramsObj.eps,
+      eps:
+        data.eps ?? data.distance ?? data.radius ?? data.epsg ?? paramsObj.eps,
       minPoints: data.minPoints ?? paramsObj.minPoints,
       numClusters:
         data.numClusters ??
@@ -223,9 +236,8 @@ export const GeometryBufferSchema = GeometryBufferSchemaBase.transform(
   .refine((data) => data.geometry !== "", {
     message: "geometry (or wkt/geojson alias) is required",
   })
-  .refine((data) => data.distance > 0, {
-    message:
-      "distance (or radius/meters alias) is required and must be positive",
+  .refine((data) => data.distance !== 0, {
+    message: "distance (or radius/meters alias) is required and cannot be zero",
   })
   .refine((data) => data.simplify === undefined || data.simplify >= 0, {
     message: "simplify must be a non-negative number if provided",
@@ -243,14 +255,16 @@ export const GeometryBufferSchema = GeometryBufferSchemaBase.transform(
 // pg_geometry_intersection
 export const GeometryIntersectionSchemaBase = z.object({
   geometry1: z.string().optional().describe("First WKT or GeoJSON geometry"),
+  geom1: z.string().optional().describe("Alias for geometry1"),
   geometry2: z.string().optional().describe("Second WKT or GeoJSON geometry"),
+  geom2: z.string().optional().describe("Alias for geometry2"),
 });
 
 export const GeometryIntersectionSchema =
   GeometryIntersectionSchemaBase.partial()
     .transform((data) => ({
-      geometry1: data.geometry1 ?? "",
-      geometry2: data.geometry2 ?? "",
+      geometry1: data.geometry1 ?? data.geom1 ?? "",
+      geometry2: data.geometry2 ?? data.geom2 ?? "",
     }))
     .refine((data) => data.geometry1 !== "", {
       message: "geometry1 is required",
@@ -285,15 +299,12 @@ export const GeometryTransformSchemaBase = z.object({
 export const GeometryTransformSchema = GeometryTransformSchemaBase.transform(
   (data) => ({
     geometry: data.geometry ?? data.wkt ?? data.geojson ?? "",
-    fromSrid: data.fromSrid ?? data.sourceSrid ?? 0,
+    fromSrid: data.fromSrid ?? data.sourceSrid ?? 4326,
     toSrid: data.toSrid ?? data.targetSrid ?? 0,
   }),
 )
   .refine((data) => data.geometry !== "", {
     message: "geometry (or wkt/geojson alias) is required",
-  })
-  .refine((data) => data.fromSrid > 0, {
-    message: "fromSrid (or sourceSrid alias) is required",
   })
   .refine((data) => data.toSrid > 0, {
     message: "toSrid (or targetSrid alias) is required",

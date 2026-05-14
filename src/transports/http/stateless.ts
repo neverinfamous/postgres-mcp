@@ -72,9 +72,7 @@ export async function handleStatelessRequest(
 
   // Create a fresh transport for each request (no session persistence)
   // Omitting sessionIdGenerator tells the SDK to run in stateless mode
-  const transport = new StreamableHTTPServerTransport(
-    {} as ConstructorParameters<typeof StreamableHTTPServerTransport>[0],
-  );
+  const transport = new StreamableHTTPServerTransport({});
 
   if (onConnect) {
     await onConnect(transport as unknown as Transport);

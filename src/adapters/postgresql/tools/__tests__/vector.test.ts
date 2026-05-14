@@ -130,9 +130,9 @@ describe("Vector Tools", () => {
           vector: [0.1, 0.2, 0.3],
         },
         mockContext,
-      )) as { results: unknown[]; metric: string };
+      )) as { rows: unknown[]; metric: string };
 
-      expect(result.results).toHaveLength(2);
+      expect(result.rows).toHaveLength(2);
       expect(result.metric).toBe("l2");
     });
 
@@ -199,7 +199,7 @@ describe("Vector Tools", () => {
       );
 
       expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-        expect.stringMatching(/category = 'tech'.*LIMIT 5/s),
+        expect.stringMatching(/category = 'tech'.*LIMIT 6/s),
       );
     });
   });
@@ -503,9 +503,9 @@ describe("Vector Tools", () => {
           textQuery: "machine learning",
         },
         mockContext,
-      )) as { results: unknown[]; vectorWeight: number; textWeight: number };
+      )) as { rows: unknown[]; vectorWeight: number; textWeight: number };
 
-      expect(result.results).toHaveLength(1);
+      expect(result.rows).toHaveLength(1);
       expect(result.vectorWeight).toBe(0.5);
       expect(result.textWeight).toBe(0.5);
       expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
@@ -678,12 +678,12 @@ describe("Vector Tools", () => {
       )) as {
         originalDimensions: number;
         targetDimensions: number;
-        reduced: number[];
+        reducedVector: number[];
       };
 
       expect(result.originalDimensions).toBe(100);
       expect(result.targetDimensions).toBe(10);
-      expect(result.reduced).toHaveLength(10);
+      expect(result.reducedVector).toHaveLength(10);
       expect(mockAdapter.executeQuery).not.toHaveBeenCalled();
     });
 

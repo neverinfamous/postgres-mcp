@@ -1,7 +1,7 @@
 /**
  * postgres-mcp - Code Mode API
  *
- * Main API class exposing all 21 tool groups organized for the
+ * Main API class exposing all 24 tool groups organized for the
  * sandboxed code execution environment.
  */
 
@@ -49,6 +49,9 @@ export class PgApi {
     (...args: unknown[]) => Promise<unknown>
   >;
   readonly migration: Record<string, (...args: unknown[]) => Promise<unknown>>;
+  readonly security: Record<string, (...args: unknown[]) => Promise<unknown>>;
+  readonly roles: Record<string, (...args: unknown[]) => Promise<unknown>>;
+  readonly docstore: Record<string, (...args: unknown[]) => Promise<unknown>>;
 
   private readonly toolsByGroup: Map<string, ToolDefinition[]>;
 
@@ -187,6 +190,24 @@ export class PgApi {
       this.toolsByGroup.get("migration") ?? [],
       audit,
     );
+    this.security = createGroupApi(
+      adapter,
+      "security",
+      this.toolsByGroup.get("security") ?? [],
+      audit,
+    );
+    this.roles = createGroupApi(
+      adapter,
+      "roles",
+      this.toolsByGroup.get("roles") ?? [],
+      audit,
+    );
+    this.docstore = createGroupApi(
+      adapter,
+      "docstore",
+      this.toolsByGroup.get("docstore") ?? [],
+      audit,
+    );
   }
 
   /**
@@ -225,7 +246,7 @@ export class PgApi {
   getGroupMethods(groupName: string): string[] {
     const groupApi = this[groupName as keyof PgApi];
     if (typeof groupApi === "object" && groupApi !== null) {
-      return Object.keys(groupApi as Record<string, unknown>);
+      return Object.keys(groupApi);
     }
     return [];
   }
@@ -275,6 +296,9 @@ export class PgApi {
       "pgcrypto",
       "introspection",
       "migration",
+      "security",
+      "roles",
+      "docstore",
     ] as const;
 
     for (const groupName of groupNames) {

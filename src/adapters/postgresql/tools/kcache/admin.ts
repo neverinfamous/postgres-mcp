@@ -16,8 +16,10 @@ import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
-  KcacheDatabaseStatsSchemaBase,
-  KcacheResourceAnalysisSchemaBase,
+  KcacheCreateExtensionSchema,
+  KcacheDatabaseStatsSchema,
+  KcacheResourceAnalysisSchema,
+  KcacheResetSchema,
   KcacheCreateExtensionOutputSchema,
   KcacheDatabaseStatsOutputSchema,
   KcacheResourceAnalysisOutputSchema,
@@ -36,7 +38,7 @@ export function createKcacheExtensionTool(
     description: `Enable the pg_stat_kcache extension for OS-level performance metrics.
 Requires pg_stat_statements to be installed first. Both extensions must be in shared_preload_libraries.`,
     group: "kcache",
-    inputSchema: z.object({}),
+    inputSchema: KcacheCreateExtensionSchema,
     outputSchema: KcacheCreateExtensionOutputSchema,
     annotations: write("Create Kcache Extension"),
     icons: getToolIcons("kcache", write("Create Kcache Extension")),
@@ -85,29 +87,43 @@ export function createKcacheDatabaseStatsTool(
     description: `Get aggregated OS-level statistics for a database.
 Shows total CPU time, I/O, and page faults across all queries.`,
     group: "kcache",
-    inputSchema: KcacheDatabaseStatsSchemaBase,
+    inputSchema: KcacheDatabaseStatsSchema,
     outputSchema: KcacheDatabaseStatsOutputSchema,
     annotations: readOnly("Kcache Database Stats"),
     icons: getToolIcons("kcache", readOnly("Kcache Database Stats")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { database, compact } = KcacheDatabaseStatsSchemaBase.parse(
-          params ?? {},
-        );
+        const parsed = z
+          .object({
+            database: z.string().optional(),
+            compact: z.boolean().optional(),
+          })
+          .parse(params ?? {});
+        const { database, compact } = parsed;
         const cols = await getKcacheColumnNames(adapter);
 
         let sql: string;
         const queryParams: unknown[] = [];
 
         if (database !== undefined) {
+          const dbExistsResult = await adapter.executeQuery(
+            "SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = $1) as exists",
+            [database],
+          );
+          const exists =
+            (dbExistsResult.rows?.[0]?.["exists"] as boolean) ?? false;
+          if (!exists) {
+            throw new ValidationError(`Database "${database}" does not exist`);
+          }
+
           sql = `
                     SELECT
                         d.datname as database,
                         SUM(k.${cols.userTime}) as total_user_time,
                         SUM(k.${cols.systemTime}) as total_system_time,
                         SUM(k.${cols.userTime} + k.${cols.systemTime}) as total_cpu_time,
-                        SUM(k.${cols.reads}) as total_read_bytes,
-                        SUM(k.${cols.writes}) as total_write_bytes,
+                        SUM(k.${cols.reads})::float8 as total_read_bytes,
+                        SUM(k.${cols.writes})::float8 as total_write_bytes,
                         pg_size_pretty(SUM(k.${cols.reads})::bigint) as total_reads_pretty,
                         pg_size_pretty(SUM(k.${cols.writes})::bigint) as total_writes_pretty,
                         SUM(k.${cols.minflts}) as total_minor_faults,
@@ -126,8 +142,8 @@ Shows total CPU time, I/O, and page faults across all queries.`,
                         SUM(${cols.userTime}) as total_user_time,
                         SUM(${cols.systemTime}) as total_system_time,
                         SUM(${cols.userTime} + ${cols.systemTime}) as total_cpu_time,
-                        SUM(${cols.reads}) as total_read_bytes,
-                        SUM(${cols.writes}) as total_write_bytes,
+                        SUM(${cols.reads})::float8 as total_read_bytes,
+                        SUM(${cols.writes})::float8 as total_write_bytes,
                         pg_size_pretty(SUM(${cols.reads})::bigint) as total_reads_pretty,
                         pg_size_pretty(SUM(${cols.writes})::bigint) as total_writes_pretty,
                         SUM(${cols.minflts}) as total_minor_faults,
@@ -155,7 +171,8 @@ Shows total CPU time, I/O, and page faults across all queries.`,
           : rawRows;
 
         return {
-          databaseStats: rows,
+          success: true,
+          stats: rows,
           count: rows.length,
         };
       } catch (error: unknown) {
@@ -178,7 +195,7 @@ export function createKcacheResourceAnalysisTool(
     description: `Analyze queries to classify them as CPU-bound, I/O-bound, or balanced.
 Helps identify the root cause of performance issues - is the query computation-heavy or disk-heavy?`,
     group: "kcache",
-    inputSchema: KcacheResourceAnalysisSchemaBase,
+    inputSchema: KcacheResourceAnalysisSchema,
     outputSchema: KcacheResourceAnalysisOutputSchema,
     annotations: readOnly("Kcache Resource Analysis"),
     icons: getToolIcons("kcache", readOnly("Kcache Resource Analysis")),
@@ -199,15 +216,15 @@ Helps identify the root cause of performance issues - is the query computation-h
         const threshold = parsed.threshold;
         const limit = parsed.limit;
 
-        if (limit !== undefined && (limit < 1 || limit > 100)) {
-          throw new ValidationError("limit must be between 1 and 100");
+        if (limit !== undefined && limit < 1) {
+          throw new ValidationError("limit must be greater than or equal to 1");
         }
         const minCalls = parsed.minCalls;
         const queryPreviewLength = parsed.queryPreviewLength;
 
         const thresholdVal = threshold ?? 0.5;
         const DEFAULT_LIMIT = 5;
-        const effectiveLimit = limit ?? DEFAULT_LIMIT;
+        const effectiveLimit = Math.min(limit ?? DEFAULT_LIMIT, 100);
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
         const previewLen =
           queryPreviewLength === 0
@@ -292,8 +309,8 @@ Helps identify the root cause of performance issues - is the query computation-h
                     END as resource_classification,
                     user_time,
                     system_time,
-                    reads,
-                    writes,
+                    reads::float8 as reads,
+                    writes::float8 as writes,
                     pg_size_pretty(io_bytes::bigint) as io_pretty
                 FROM query_metrics
                 ORDER BY total_time_ms DESC
@@ -331,6 +348,7 @@ Helps identify the root cause of performance issues - is the query computation-h
         ).length;
 
         const response: Record<string, unknown> = {
+          success: true,
           queries: rows,
           count: rows.length,
           summary: {
@@ -371,7 +389,7 @@ export function createKcacheResetTool(
     description: `Reset pg_stat_kcache statistics. Use this to start fresh measurements.
 Note: This also resets pg_stat_statements statistics.`,
     group: "kcache",
-    inputSchema: z.object({}),
+    inputSchema: KcacheResetSchema,
     outputSchema: KcacheResetOutputSchema,
     annotations: destructive("Reset Kcache Stats"),
     icons: getToolIcons("kcache", destructive("Reset Kcache Stats")),

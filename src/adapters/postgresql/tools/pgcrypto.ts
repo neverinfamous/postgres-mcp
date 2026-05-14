@@ -70,6 +70,15 @@ function createPgcryptoExtensionTool(adapter: PostgresAdapter): ToolDefinition {
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const { schema } = PgcryptoCreateExtensionSchema.parse(params);
+        if (schema) {
+          const checkResult = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
+            [schema],
+          );
+          if (checkResult.rows?.length === 0) {
+            throw new ValidationError(`Schema "${schema}" does not exist`);
+          }
+        }
         const schemaClause = schema ? ` SCHEMA ${schema}` : "";
         await adapter.executeQuery(
           `CREATE EXTENSION IF NOT EXISTS pgcrypto${schemaClause}`,
@@ -275,11 +284,14 @@ function createPgcryptoGenRandomBytesTool(
       try {
         const { length, encoding } = PgcryptoRandomBytesSchema.parse(params);
         const enc = encoding ?? "hex";
-        const encodeFormat = enc === "base64" ? "base64" : "hex";
+
+        const encodeFormat =
+          enc === "base64" ? "base64" : enc === "raw" ? "escape" : "hex";
         const result = await adapter.executeQuery(
           `SELECT encode(gen_random_bytes($1), $2) as random_bytes`,
           [length, encodeFormat],
         );
+
         return {
           success: true,
           randomBytes: result.rows?.[0]?.["random_bytes"] as string,
@@ -336,6 +348,10 @@ function createPgcryptoCryptTool(adapter: PostgresAdapter): ToolDefinition {
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const { password, salt } = PgcryptoCryptSchema.parse(params);
+        if (typeof salt !== "string") {
+          throw new ValidationError("Salt is required");
+        }
+
         const result = await adapter.executeQuery(
           `SELECT crypt($1, $2) as hash`,
           [password, salt],
@@ -373,8 +389,45 @@ function handlePgcryptoError(error: unknown, toolName: string): ErrorResponse {
         { tool: toolName },
       );
     }
+    if (
+      msg.includes("does not exist") &&
+      (msg.includes("function digest") ||
+        msg.includes("function hmac") ||
+        msg.includes("function pgp_") ||
+        msg.includes("function gen_random_") ||
+        msg.includes("function gen_salt") ||
+        msg.includes("function crypt"))
+    ) {
+      return formatHandlerErrorResponse(
+        new ValidationError(
+          "EXTENSION_MISSING: pgcrypto extension is not installed or available in the search path",
+        ),
+        { tool: toolName },
+      );
+    }
+    if (msg.includes("invalid symbol") || msg.includes("invalid base64")) {
+      return formatHandlerErrorResponse(
+        new ValidationError(
+          "Decryption failed: Invalid base64 encoding in encrypted data",
+        ),
+        { tool: toolName },
+      );
+    }
+    if (
+      msg.includes("Illegal argument to function") &&
+      toolName.includes("encrypt")
+    ) {
+      return formatHandlerErrorResponse(
+        new ValidationError("Encryption failed: Password must not be empty"),
+        { tool: toolName },
+      );
+    }
+    if (msg.includes("Wrong key or corrupt data")) {
+      return formatHandlerErrorResponse(
+        new ValidationError("Decryption failed: Wrong key or corrupt data"),
+        { tool: toolName },
+      );
+    }
   }
-  // Let formatHandlerErrorResponse handle DECRYPTION_FAILED and INVALID_BASE64
-  // using the P154 error-suggestions.ts mappings.
   return formatHandlerErrorResponse(error, { tool: toolName });
 }

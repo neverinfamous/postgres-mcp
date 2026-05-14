@@ -24,7 +24,7 @@ suites — they run directly with `node`.
 | `test-filter-instructions.mjs` | `--tool-filter` × `--instruction-level` matrix (8 configs)  | Instruction sections present/absent per config                  |
 | `test-instruction-levels.mjs`  | `essential` ≤ `standard` ≤ `full` ordering + section checks | Char counts monotonically increase; sections gated correctly    |
 | `test-prompts.mjs`             | `prompts/list` + `prompts/get` for all 20 prompts           | All 24 test cases return valid `messages` with expected content |
-| `test-tool-annotations.mjs`    | `tools/list` annotation coverage                            | All 248 tools have `annotations` with `openWorldHint` set       |
+| `test-tool-annotations.mjs`    | `tools/list` annotation coverage                            | All 269 tools have `annotations` with `openWorldHint` set       |
 
 ## Running
 

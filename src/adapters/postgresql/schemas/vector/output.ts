@@ -75,12 +75,16 @@ export const VectorInsertOutputSchema = z
 export const VectorSearchOutputSchema = z
   .object({
     success: z.boolean().optional().describe("Whether search succeeded"),
-    results: z
+    rows: z
       .array(z.record(z.string(), z.unknown()))
       .optional()
       .describe("Search results with distance"),
     count: z.number().optional().describe("Number of results"),
     metric: z.string().optional().describe("Distance metric used"),
+    truncated: z
+      .boolean()
+      .optional()
+      .describe("Whether results were truncated"),
     hint: z.string().optional().describe("Helpful hint"),
     note: z.string().optional().describe("Additional note"),
     error: z.string().optional().describe("Error message"),
@@ -278,7 +282,7 @@ export const VectorIndexOptimizeOutputSchema = z
 export const HybridSearchOutputSchema = z
   .object({
     success: z.boolean().optional().describe("Whether search succeeded"),
-    results: z
+    rows: z
       .array(z.record(z.string(), z.unknown()))
       .optional()
       .describe("Hybrid search results"),
@@ -361,7 +365,7 @@ export const VectorDimensionReduceOutputSchema = z
     // Table mode
     table: z.string().optional().describe("Table name"),
     column: z.string().optional().describe("Column name"),
-    results: z
+    rows: z
       .array(
         z.object({
           id: z.unknown().optional().describe("Row ID"),

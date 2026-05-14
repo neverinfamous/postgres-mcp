@@ -191,11 +191,11 @@ describe("Kcache Tools", () => {
 
       const tool = findTool("pg_kcache_top_cpu");
       const result = (await tool!.handler({}, mockContext)) as {
-        topCpuQueries: unknown[];
+        queries: unknown[];
         description: string;
       };
 
-      expect(result.topCpuQueries).toHaveLength(1);
+      expect(result.queries).toHaveLength(1);
       expect(result.description).toContain("CPU");
     });
 
@@ -251,11 +251,11 @@ describe("Kcache Tools", () => {
 
       const tool = findTool("pg_kcache_top_io");
       const result = (await tool!.handler({}, mockContext)) as {
-        topIoQueries: unknown[];
+        queries: unknown[];
         ioType: string;
       };
 
-      expect(result.topIoQueries).toHaveLength(1);
+      expect(result.queries).toHaveLength(1);
       expect(result.ioType).toBe("both");
     });
 
@@ -300,7 +300,7 @@ describe("Kcache Tools", () => {
         { ioType: "reads" },
         mockContext,
       )) as {
-        topIoQueries: unknown[];
+        queries: unknown[];
         ioType: string;
       };
 
@@ -344,7 +344,7 @@ describe("Kcache Tools", () => {
 
       const tool = findTool("pg_kcache_database_stats");
       const result = (await tool!.handler({}, mockContext)) as {
-        databaseStats: unknown[];
+        stats: unknown[];
         count: number;
       };
 
@@ -358,7 +358,11 @@ describe("Kcache Tools", () => {
     it("should filter by specific database", async () => {
       // First call: column detection
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-      // Second call: actual query
+      // Second call: existence check
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ exists: true }],
+      });
+      // Third call: actual query
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ database: "testdb", total_cpu_time: 100.5 }],
       });
@@ -370,6 +374,27 @@ describe("Kcache Tools", () => {
         expect.stringContaining("d.datname = $1"),
         ["testdb"],
       );
+    });
+
+    it("should return ValidationError if specified database does not exist", async () => {
+      // First call: column detection
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+      // Second call: existence check returns false
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ exists: false }],
+      });
+
+      const tool = findTool("pg_kcache_database_stats");
+      const result = (await tool!.handler(
+        { database: "non_existent_db" },
+        mockContext,
+      )) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("does not exist");
     });
   });
 
@@ -646,10 +671,10 @@ describe("Kcache Tools", () => {
 
       const tool = findTool("pg_kcache_top_cpu");
       const result = (await tool!.handler(undefined, mockContext)) as {
-        topCpuQueries: unknown[];
+        queries: unknown[];
       };
 
-      expect(result.topCpuQueries).toHaveLength(1);
+      expect(result.queries).toHaveLength(1);
     });
 
     it("pg_kcache_top_io should work with undefined params", async () => {
@@ -660,11 +685,11 @@ describe("Kcache Tools", () => {
 
       const tool = findTool("pg_kcache_top_io");
       const result = (await tool!.handler(undefined, mockContext)) as {
-        topIoQueries: unknown[];
+        queries: unknown[];
         ioType: string;
       };
 
-      expect(result.topIoQueries).toHaveLength(1);
+      expect(result.queries).toHaveLength(1);
       expect(result.ioType).toBe("both");
     });
 
@@ -676,10 +701,10 @@ describe("Kcache Tools", () => {
 
       const tool = findTool("pg_kcache_database_stats");
       const result = (await tool!.handler(undefined, mockContext)) as {
-        databaseStats: unknown[];
+        stats: unknown[];
       };
 
-      expect(result.databaseStats).toHaveLength(1);
+      expect(result.stats).toHaveLength(1);
     });
 
     it("pg_kcache_query_stats should work with undefined params", async () => {

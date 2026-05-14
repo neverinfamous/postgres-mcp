@@ -48,6 +48,14 @@ function createLtreeMatchTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         const { table, column, pattern, schema, limit } =
           LtreeMatchSchema.parse(params);
+
+        if (limit !== undefined && limit < 1) {
+          throw new ValidationError(
+            `Limit must be at least 1, received: ${String(limit)}`,
+            { limit },
+          );
+        }
+
         const schemaName = schema ?? "public";
         const qualifiedTable = `"${schemaName}"."${table}"`;
         const limitClause = limit !== undefined ? `LIMIT ${String(limit)}` : "";
@@ -99,7 +107,7 @@ function createLtreeMatchTool(adapter: PostgresAdapter): ToolDefinition {
         };
 
         if (resultCount > 0) {
-          response["results"] = result.rows;
+          response["rows"] = result.rows;
         }
 
         // Add truncation indicators when limit is applied

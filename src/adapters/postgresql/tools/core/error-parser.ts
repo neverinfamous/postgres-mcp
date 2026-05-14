@@ -54,6 +54,55 @@ export function parsePostgresError(
 
   const msg = error.message;
 
+  // Extension missing guards (checked first because they can throw various codes like 42883 or 42P01)
+  if (
+    context.tool?.startsWith("pg_cron_") &&
+    /(?:relation ["']?cron\.job(?:_run_details)?["']?|schema ["']?cron["']?)/i.test(
+      msg,
+    )
+  ) {
+    throw new Error(
+      `Extension "pg_cron" is not available. Ensure it is installed and enabled.`,
+      { cause: error },
+    );
+  }
+
+  if (
+    context.tool?.startsWith("pg_kcache_") &&
+    /(?:relation|function) ["']?pg_stat_kcache(?:_.*)?(?:\(\))?["']? does not exist/i.test(
+      msg,
+    )
+  ) {
+    throw new Error(
+      `Extension "pg_stat_kcache" is not available. Ensure it is installed and enabled.`,
+      { cause: error },
+    );
+  }
+
+  if (
+    context.tool?.startsWith("pg_ltree_") &&
+    /(?:type|operator|function|relation|class) ["']?(?:ltree|lquery|ltxtquery|lca|nlevel|subpath|gist_ltree_ops)["']?(?:\([^)]*\))? does not exist/i.test(
+      msg,
+    )
+  ) {
+    throw new Error(
+      `Extension "ltree" is not available. Ensure it is installed and enabled.`,
+      { cause: error },
+    );
+  }
+
+  if (
+    context.tool?.startsWith("pg_fuzzy_match") &&
+    /(?:function|type|operator) ["']?(?:levenshtein|soundex|metaphone|damerau-levenshtein|levenshtein_less_equal)["']?(?:\([^)]*\))? does not exist/i.test(
+      msg,
+    )
+  ) {
+    throw new Error(
+      `Extension "fuzzystrmatch" is not available. Ensure it is installed and enabled.`,
+      { cause: error },
+    );
+  }
+
   // 42P01 — relation does not exist (table, view, sequence)
   // Regex anchored: must NOT be preceded by "of " (which indicates 42703 column errors)
   if (
@@ -63,18 +112,6 @@ export function parsePostgresError(
     ) &&
       !/of relation/i.test(msg))
   ) {
-    if (
-      context.tool?.startsWith("pg_cron_") &&
-      /(?:relation ["']?cron\.job["']?|relation ["']?cron\.job_run_details["']?)/i.test(
-        msg,
-      )
-    ) {
-      throw new Error(
-        `Extension "pg_cron" is not available. Ensure it is installed and enabled.`,
-        { cause: error },
-      );
-    }
-
     // pg_reindex with target=index: index-specific message
     if (context.tool === "pg_reindex" && context.target === "index") {
       const match =
@@ -94,6 +131,13 @@ export function parsePostgresError(
     if (context.objectType === "sequence" || /sequence/i.test(msg)) {
       throw new Error(
         `Sequence "${objectName}" does not exist in schema "${schemaName}". Use pg_list_tables to see available sequences.`,
+        { cause: error },
+      );
+    }
+
+    if (context.objectType === "view" || /view/i.test(msg)) {
+      throw new Error(
+        `View "${objectName}" does not exist in schema "${schemaName}". Use pg_list_views to see available views.`,
         { cause: error },
       );
     }
@@ -118,6 +162,11 @@ export function parsePostgresError(
 
   // 42P07 — duplicate relation (table, index, sequence, or view already exists)
   if (pgCode === "42P07" || /already exists/i.test(msg)) {
+    // Preserve manually formatted Collection error
+    if (/^Collection ['"][^'"]+['"] already exists/i.test(msg)) {
+      throw error;
+    }
+
     const match = /relation "([^"]+)"/i.exec(msg);
     const objectName =
       match?.[1] ?? context.index ?? context.table ?? "unknown";
@@ -126,6 +175,7 @@ export function parsePostgresError(
     if (
       context.tool === "pg_create_index" ||
       context.tool === "pg_vector_create_index" ||
+      context.tool === "pg_doc_create_index" ||
       /index/i.test(msg) ||
       context.index ||
       /^idx_/i.test(objectName)
@@ -232,6 +282,19 @@ export function parsePostgresError(
     );
   }
 
+  // 2200H — sequence generator limit exceeded
+  if (
+    pgCode === "2200H" ||
+    /reached (maximum|minimum) value of sequence/i.test(msg)
+  ) {
+    const match = /sequence "([^"]+)"/i.exec(msg);
+    const seqName = match?.[1] ?? context.target ?? "unknown";
+    throw new Error(
+      `Sequence '${seqName}' has reached its limit. Alter the sequence to change limits or enable cycle.`,
+      { cause: error },
+    );
+  }
+
   // 25P02 — current transaction is aborted (checked before 42704 whose broad regex would match)
   if (pgCode === "25P02" || /current transaction is aborted/i.test(msg)) {
     throw new Error(
@@ -286,16 +349,6 @@ export function parsePostgresError(
   if (pgCode === "42704" || /does not exist/i.test(msg)) {
     // Schema-specific: "schema X does not exist" (e.g., CREATE TABLE in nonexistent schema)
     if (/schema ["'].*["'] does not exist/i.test(msg)) {
-      if (
-        context.tool?.startsWith("pg_cron_") &&
-        /schema ["']cron["']/i.test(msg)
-      ) {
-        throw new Error(
-          `Extension "pg_cron" is not available. Ensure it is installed and enabled.`,
-          { cause: error },
-        );
-      }
-
       const schemaMatch = /schema ["']([^"']+)["']/i.exec(msg);
       const schemaName = schemaMatch?.[1] ?? context.schema ?? "unknown";
       throw new Error(
@@ -390,9 +443,22 @@ export function parsePostgresError(
       );
     }
 
+    // Preserve manually formatted Collection error
+    if (/^Collection ['"][^'"]+['"] does not exist/i.test(msg)) {
+      throw error;
+    }
+
+    // Operator does not exist (e.g., trying to use LIKE on an integer column without cast)
+    if (/operator does not exist:/i.test(msg)) {
+      throw new Error(
+        `Type mismatch or missing operator: ${msg}. You may need to add explicit type casts, or verify the column type.`,
+        { cause: error },
+      );
+    }
+
     // Generic "does not exist" fallback
     const match =
-      /(?:table|relation|object) ["']([^"']+)["']/i.exec(msg) ??
+      /(?:table|relation|object|collection) ["']([^"']+)["']/i.exec(msg) ??
       /["']([^"']+)["'] does not exist/i.exec(msg);
     const objectName = match?.[1] ?? context.table ?? "unknown";
     throw new Error(
@@ -411,16 +477,6 @@ export function parsePostgresError(
 
   // 3F000 — invalid schema name
   if (pgCode === "3F000" || /schema ["'].*["'] does not exist/i.test(msg)) {
-    if (
-      context.tool?.startsWith("pg_cron_") &&
-      /schema ["']cron["']/i.test(msg)
-    ) {
-      throw new Error(
-        `Extension "pg_cron" is not available. Ensure it is installed and enabled.`,
-        { cause: error },
-      );
-    }
-
     const match = /schema "([^"]+)"/i.exec(msg);
     const schemaName = match?.[1] ?? context.schema ?? "unknown";
     throw new Error(

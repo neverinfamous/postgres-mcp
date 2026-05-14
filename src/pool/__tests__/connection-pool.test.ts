@@ -115,6 +115,142 @@ describe("ConnectionPool", () => {
     });
   });
 
+  describe("initializationSql", () => {
+    it("should not run extra queries when initializationSql is unset", async () => {
+      await pool.initialize();
+
+      // Clear calls from initialization
+      mockClientQuery.mockClear();
+
+      await pool.getConnection();
+
+      // No extra init queries should have been called
+      expect(mockClientQuery).not.toHaveBeenCalled();
+    });
+
+    it("should run initialization sql exactly once per connection", async () => {
+      const initSql = [
+        "SET SESSION search_path TO myapp, public",
+        "SET SESSION work_mem = '256MB'",
+      ];
+      const poolWithInit = new ConnectionPool({
+        host: "localhost",
+        port: 5432,
+        user: "test",
+        password: "test",
+        database: "testdb",
+        initializationSql: initSql,
+      });
+      await poolWithInit.initialize();
+
+      const internalPool = (poolWithInit as unknown as { pool: unknown })
+        .pool as {
+        connect: typeof mockPoolConnect;
+      };
+      const mockConn = {
+        query: vi.fn().mockResolvedValue({ rows: [] }),
+        release: vi.fn(),
+      };
+      vi.spyOn(internalPool, "connect")
+        .mockResolvedValueOnce(mockConn)
+        .mockResolvedValueOnce(mockConn);
+
+      await poolWithInit.getConnection();
+      expect(mockConn.query).toHaveBeenCalledWith(initSql[0]);
+      expect(mockConn.query).toHaveBeenCalledWith(initSql[1]);
+      expect(mockConn.query).toHaveBeenCalledTimes(2);
+
+      // Second checkout of the SAME connection should not run init again
+      await poolWithInit.getConnection();
+      expect(mockConn.query).toHaveBeenCalledTimes(2); // Still 2
+    });
+
+    it("should apply initialization sql via query() path", async () => {
+      const initSql = ["SET SESSION statement_timeout = 30000"];
+      const poolWithInit = new ConnectionPool({
+        host: "localhost",
+        port: 5432,
+        user: "test",
+        password: "test",
+        database: "testdb",
+        initializationSql: initSql,
+      });
+      await poolWithInit.initialize();
+
+      const internalPool = (poolWithInit as unknown as { pool: unknown })
+        .pool as {
+        connect: typeof mockPoolConnect;
+      };
+      const mockConn = {
+        query: vi.fn().mockResolvedValue({ rows: [], rowCount: 0 }),
+        release: vi.fn(),
+      };
+      vi.spyOn(internalPool, "connect").mockResolvedValue(mockConn);
+
+      // Call query() which internally routes through getConnection()
+      await poolWithInit.query("SELECT 1");
+
+      // Init SQL + the actual query = 2 calls
+      expect(mockConn.query).toHaveBeenCalledWith(initSql[0]);
+      expect(mockConn.query).toHaveBeenCalledWith("SELECT 1", undefined);
+      expect(mockConn.release).toHaveBeenCalled();
+    });
+
+    it("should fail connection checkout if initialization fails", async () => {
+      const poolWithInit = new ConnectionPool({
+        host: "localhost",
+        port: 5432,
+        user: "test",
+        password: "test",
+        database: "testdb",
+        initializationSql: ["SET INVALID"],
+      });
+      await poolWithInit.initialize();
+
+      const internalPool = (poolWithInit as unknown as { pool: unknown })
+        .pool as {
+        connect: typeof mockPoolConnect;
+      };
+      const mockConn = {
+        query: vi.fn().mockRejectedValue(new Error("Syntax error")),
+        release: vi.fn(),
+      };
+      vi.spyOn(internalPool, "connect").mockResolvedValueOnce(mockConn);
+
+      await expect(poolWithInit.getConnection()).rejects.toThrow(
+        "Failed to initialize connection: Syntax error",
+      );
+      expect(mockConn.release).toHaveBeenCalled();
+    });
+
+    it("should skip initialization when initializationSql is empty array", async () => {
+      const poolWithInit = new ConnectionPool({
+        host: "localhost",
+        port: 5432,
+        user: "test",
+        password: "test",
+        database: "testdb",
+        initializationSql: [],
+      });
+      await poolWithInit.initialize();
+
+      const internalPool = (poolWithInit as unknown as { pool: unknown })
+        .pool as {
+        connect: typeof mockPoolConnect;
+      };
+      const mockConn = {
+        query: vi.fn().mockResolvedValue({ rows: [] }),
+        release: vi.fn(),
+      };
+      vi.spyOn(internalPool, "connect").mockResolvedValueOnce(mockConn);
+
+      await poolWithInit.getConnection();
+
+      // No init queries called — empty array short-circuits
+      expect(mockConn.query).not.toHaveBeenCalled();
+    });
+  });
+
   describe("Health Monitoring", () => {
     it("should report unhealthy when not initialized", async () => {
       const health = await pool.checkHealth();
@@ -451,7 +587,7 @@ describe("ConnectionPool", () => {
       await pool.initialize();
 
       const queryError = new Error('syntax error at or near "SELCT"');
-      mockPoolQuery.mockRejectedValueOnce(queryError);
+      mockClientQuery.mockRejectedValueOnce(queryError);
 
       await expect(pool.query("SELCT 1")).rejects.toThrow("syntax error");
     });
@@ -462,7 +598,7 @@ describe("ConnectionPool", () => {
       const initialStats = pool.getStats();
       const initialQueries = initialStats.totalQueries;
 
-      mockPoolQuery.mockRejectedValueOnce(new Error("Query failed"));
+      mockClientQuery.mockRejectedValueOnce(new Error("Query failed"));
 
       try {
         await pool.query("INVALID SQL");

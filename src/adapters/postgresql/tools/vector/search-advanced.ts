@@ -9,7 +9,6 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -21,50 +20,14 @@ import { checkTableAndColumn } from "./data.js";
 import {
   HybridSearchOutputSchema,
   VectorPerformanceOutputSchema,
+  HybridSearchSchemaBase,
+  HybridSearchSchema,
+  PerformanceSchemaBase,
+  PerformanceSchema,
 } from "../../schemas/index.js";
-import { coerceNumber } from "../../../../utils/query-helpers.js";
-
 export function createHybridSearchTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  // Schema with parameter smoothing
-  const HybridSearchSchemaBase = z.object({
-    table: z.string().optional().describe("Table name"),
-    tableName: z.string().optional().describe("Alias for table"),
-    vectorColumn: z.string().optional().describe("Vector column"),
-    vectorCol: z.string().optional().describe("Alias for vectorColumn"),
-    column: z.string().optional().describe("Alias for vectorColumn"),
-    col: z.string().optional().describe("Alias for vectorColumn"),
-    textColumn: z.string().optional().describe("Text column for FTS"),
-    vector: z.array(z.number()).optional().describe("Query vector"),
-    queryVector: z.array(z.number()).optional().describe("Alias for vector"),
-    textQuery: z.string().optional().describe("Text search query"),
-    queryText: z.string().optional().describe("Alias for text search query"),
-    query: z.string().optional().describe("Alias for text search query"),
-    vectorWeight: z
-      .preprocess(coerceNumber, z.number().optional())
-      .describe("Weight for vector score (0-1, default: 0.5)"),
-    limit: z
-      .preprocess(coerceNumber, z.number().optional())
-      .describe("Max results"),
-    select: z
-      .array(z.string())
-      .optional()
-      .describe("Columns to return (defaults to non-vector columns)"),
-  });
-
-  const HybridSearchSchema = HybridSearchSchemaBase.transform((data) => ({
-    table: data.table ?? data.tableName ?? "",
-    vectorColumn:
-      data.vectorColumn ?? data.vectorCol ?? data.column ?? data.col ?? "",
-    textColumn: data.textColumn,
-    vector: data.vector ?? data.queryVector,
-    textQuery: data.textQuery ?? data.queryText ?? data.query,
-    vectorWeight: data.vectorWeight,
-    limit: data.limit,
-    select: data.select,
-  }));
-
   return {
     name: "pg_hybrid_search",
     description:
@@ -279,7 +242,7 @@ export function createHybridSearchTool(
           const result = await adapter.executeQuery(sql, [parsed.textQuery]);
           return {
             success: true,
-            results: result.rows,
+            rows: result.rows,
             count: result.rows?.length ?? 0,
             vectorWeight,
             textWeight,
@@ -369,26 +332,6 @@ export function createHybridSearchTool(
 export function createVectorPerformanceTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  // Schema with parameter smoothing
-  const PerformanceSchemaBase = z.object({
-    table: z.string().optional().describe("Table name"),
-    tableName: z.string().optional().describe("Alias for table"),
-    column: z.string().optional().describe("Vector column"),
-    col: z.string().optional().describe("Alias for column"),
-    testVector: z
-      .array(z.number())
-      .optional()
-      .describe("Test vector for benchmarking"),
-    schema: z.string().optional().describe("Database schema (default: public)"),
-  });
-
-  const PerformanceSchema = PerformanceSchemaBase.transform((data) => ({
-    table: data.table ?? data.tableName ?? "",
-    column: data.column ?? data.col ?? "",
-    testVector: data.testVector,
-    schema: data.schema,
-  }));
-
   return {
     name: "pg_vector_performance",
     description:
@@ -506,7 +449,34 @@ export function createVectorPerformanceTool(
                     ORDER BY ${columnName} <-> '${vectorStr}'::vector
                     LIMIT 10
                 `;
-          const benchResult = await adapter.executeQuery(benchSql);
+          let benchResult;
+          try {
+            benchResult = await adapter.executeQuery(benchSql);
+          } catch (error: unknown) {
+            if (error instanceof Error) {
+              const dimMatch =
+                /different vector dimensions (\d+) and (\d+)/.exec(
+                  error.message,
+                );
+              if (dimMatch) {
+                const dim1 = parseInt(dimMatch[1] ?? "0", 10);
+                const dim2 = parseInt(dimMatch[2] ?? "0", 10);
+                const providedDim = testVector.length;
+                const expectedDim = dim1 === providedDim ? dim2 : dim1;
+                return {
+                  success: false,
+                  error: `Vector dimension mismatch: column expects ${String(expectedDim)} dimensions, but you provided ${String(providedDim)} dimensions.`,
+                  code: "DIMENSION_MISMATCH",
+                  category: "query",
+                  expectedDimensions: expectedDim,
+                  providedDimensions: providedDim,
+                  suggestion:
+                    "Ensure your test vector has the same dimensions as the column.",
+                };
+              }
+            }
+            throw error;
+          }
 
           // Truncate large vectors in EXPLAIN output to reduce payload size
           // Pattern matches vector literals like '[0.1,0.2,...,0.9]'::vector

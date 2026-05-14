@@ -5,8 +5,6 @@
  */
 
 import { z } from "zod";
-import { normalizeOptionalParams } from "./shared.js";
-import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 // =============================================================================
 // Input Schemas
@@ -16,140 +14,134 @@ import { coerceNumber } from "../../../../utils/query-helpers.js";
  * Schema for querying enhanced statistics with kcache data.
  * Joins pg_stat_statements with pg_stat_kcache for full picture.
  */
-export const KcacheQueryStatsSchemaBase = z.object({
+export const KcacheQueryStatsSchema = z.object({
   limit: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe(
       "Maximum number of queries to return (default: 5, min: 1, max: 100).",
     ),
+  dbname: z.unknown().optional().describe("Filter by database name"),
+  username: z.unknown().optional().describe("Filter by username"),
   orderBy: z
-    .string()
+    .unknown()
     .optional()
     .describe(
       "Order results by metric (default: total_time). Valid: total_time, cpu_time, reads, writes",
     ),
-  minCalls: z
-    .preprocess(coerceNumber, z.number().optional())
-    .describe("Minimum call count to include"),
+  minCalls: z.unknown().optional().describe("Minimum call count to include"),
   queryPreviewLength: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
     ),
   compact: z
-    .boolean()
+    .unknown()
     .optional()
-    .describe(
-      "If true, omits the query_preview text and 0/empty fields to save output tokens",
-    ),
+    .describe("If true, omits 0/empty fields to save output tokens"),
 });
-
-export const KcacheQueryStatsSchema = z.preprocess(
-  normalizeOptionalParams,
-  KcacheQueryStatsSchemaBase,
-);
 
 /**
  * Base schema for MCP visibility - pg_kcache_top_cpu parameters.
  */
-export const KcacheTopCpuSchemaBase = z.object({
+export const KcacheTopCpuSchema = z.object({
   limit: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe(
       "Number of top queries to return (default: 5, min: 1, max: 100).",
     ),
   queryPreviewLength: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
     ),
   compact: z
-    .boolean()
+    .unknown()
     .optional()
-    .describe(
-      "If true, omits the query_preview text and 0/empty fields to save output tokens",
-    ),
+    .describe("If true, omits 0/empty fields to save output tokens"),
 });
 
 /**
  * Base schema for MCP visibility - pg_kcache_top_io parameters.
  */
-export const KcacheTopIoSchemaBase = z.object({
-  type: z.string().optional().describe("I/O type to rank by (default: both)"),
-  ioType: z.string().optional().describe("Alias for type"),
+export const KcacheTopIoSchema = z.object({
+  type: z.unknown().optional().describe("I/O type to rank by (default: both)"),
+  ioType: z.unknown().optional().describe("Alias for type"),
   limit: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe(
       "Number of top queries to return (default: 5, min: 1, max: 100).",
     ),
   queryPreviewLength: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
     ),
   compact: z
-    .boolean()
+    .unknown()
     .optional()
-    .describe(
-      "If true, omits the query_preview text and 0/empty fields to save output tokens",
-    ),
+    .describe("If true, omits 0/empty fields to save output tokens"),
 });
 
 /**
  * Schema for database-level aggregation.
  */
-export const KcacheDatabaseStatsSchemaBase = z.object({
+export const KcacheDatabaseStatsSchema = z.object({
   database: z
-    .string()
+    .unknown()
     .optional()
     .describe("Database name (all databases if omitted)"),
   compact: z
-    .boolean()
+    .unknown()
     .optional()
     .describe("If true, omits 0/empty fields to save output tokens"),
 });
 
-export const KcacheDatabaseStatsSchema = z.preprocess(
-  normalizeOptionalParams,
-  KcacheDatabaseStatsSchemaBase,
-);
-
 /**
  * Schema for identifying resource-bound queries.
  */
-export const KcacheResourceAnalysisSchemaBase = z.object({
+export const KcacheResourceAnalysisSchema = z.object({
   queryId: z
-    .string()
+    .unknown()
     .optional()
     .describe("Specific query ID to analyze (all if omitted)"),
   threshold: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe("CPU/IO ratio threshold for classification (default: 0.5)"),
   limit: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe(
       "Maximum number of queries to return (default: 5, min: 1, max: 100).",
     ),
-  minCalls: z
-    .preprocess(coerceNumber, z.number().optional())
-    .describe("Minimum call count to include"),
+  minCalls: z.unknown().optional().describe("Minimum call count to include"),
   queryPreviewLength: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
     ),
   compact: z
-    .boolean()
+    .unknown()
     .optional()
-    .describe(
-      "If true, omits the query_preview text and 0/empty fields to save output tokens",
-    ),
+    .describe("If true, omits 0/empty fields to save output tokens"),
 });
 
-export const KcacheResourceAnalysisSchema = z.preprocess(
-  normalizeOptionalParams,
-  KcacheResourceAnalysisSchemaBase,
-);
+/**
+ * Base schema for MCP visibility - pg_kcache_create_extension parameters.
+ */
+export const KcacheCreateExtensionSchema = z.object({});
+
+/**
+ * Base schema for MCP visibility - pg_kcache_reset parameters.
+ */
+export const KcacheResetSchema = z.object({});
 
 // =============================================================================
 // Output Schemas
@@ -192,7 +184,7 @@ export const KcacheQueryStatsOutputSchema = z
 export const KcacheTopCpuOutputSchema = z
   .object({
     success: z.boolean().optional().describe("Whether query succeeded"),
-    topCpuQueries: z
+    queries: z
       .array(z.record(z.string(), z.unknown()))
       .optional()
       .describe("Top CPU-consuming queries"),
@@ -210,7 +202,7 @@ export const KcacheTopCpuOutputSchema = z
 export const KcacheTopIoOutputSchema = z
   .object({
     success: z.boolean().optional().describe("Whether query succeeded"),
-    topIoQueries: z
+    queries: z
       .array(z.record(z.string(), z.unknown()))
       .optional()
       .describe("Top I/O-consuming queries"),
@@ -232,7 +224,7 @@ export const KcacheTopIoOutputSchema = z
 export const KcacheDatabaseStatsOutputSchema = z
   .object({
     success: z.boolean().optional().describe("Whether query succeeded"),
-    databaseStats: z
+    stats: z
       .array(z.record(z.string(), z.unknown()))
       .optional()
       .describe("Database-level statistics"),

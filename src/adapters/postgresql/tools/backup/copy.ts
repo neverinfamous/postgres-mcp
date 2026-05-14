@@ -10,7 +10,7 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
+
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import {
@@ -20,6 +20,7 @@ import {
 import {
   CopyExportSchema,
   CopyExportSchemaBase,
+  CopyImportSchema,
   // Output schemas
   CopyExportOutputSchema,
   CopyImportOutputSchema,
@@ -88,6 +89,7 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
 
           if (result.rows === undefined || result.rows.length === 0) {
             return {
+              success: true,
               data: lines.join("\n"),
               rowCount: 0,
               note: "Query returned no rows.",
@@ -142,6 +144,7 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
           await sendProgress(progress, 3, 3, "Export complete");
 
           return {
+            success: true,
             data: dataStr,
             rowCount: result.rows.length,
             ...(isPayloadTruncated
@@ -170,6 +173,7 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
 
           if (result.rows === undefined || result.rows.length === 0) {
             return {
+              success: true,
               data: lines.join("\n"),
               rowCount: 0,
               note: "Query returned no rows.",
@@ -220,6 +224,7 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
           await sendProgress(progress, 3, 3, "Export complete");
 
           return {
+            success: true,
             data: dataStr,
             rowCount: result.rows.length,
             ...(isPayloadTruncated
@@ -243,33 +248,20 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
   };
 }
 
-export function createCopyImportTool(
-  _adapter: PostgresAdapter,
-): ToolDefinition {
+export function createCopyImportTool(adapter: PostgresAdapter): ToolDefinition {
   return {
     name: "pg_copy_import",
     description: "Generate COPY FROM command for importing data.",
     group: "backup",
-    inputSchema: z.object({
-      table: z.string().optional(),
-      schema: z.string().optional(),
-      filePath: z
-        .string()
-        .optional()
-        .describe("Path to import file (default: /path/to/file.csv)"),
-      format: z.string().optional().describe("Format (csv, text, binary)"),
-      header: z.boolean().optional(),
-      delimiter: z.string().optional(),
-      columns: z.array(z.string()).optional(),
-    }),
+    inputSchema: CopyImportSchema,
     outputSchema: CopyImportOutputSchema,
     annotations: write("Copy Import"),
     icons: getToolIcons("backup", write("Copy Import")),
     handler: (params: unknown, _context: RequestContext) => {
       try {
         return Promise.resolve()
-          .then(() => {
-            const rawParams = params as {
+          .then(async () => {
+            const rawParams = CopyImportSchema.parse(params) as {
               table?: string;
               tableName?: string; // Alias for table
               schema?: string;
@@ -313,6 +305,19 @@ export function createCopyImportTool(
               }
             }
 
+            // Verify table exists (P154 compliance)
+            const checkSchema = schemaNamePart ?? "public";
+            const tableExists = await adapter.executeQuery(
+              "SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relname = $1 AND n.nspname = $2",
+              [tableNamePart, checkSchema],
+            );
+            if (
+              tableExists.rows === undefined ||
+              tableExists.rows.length === 0
+            ) {
+              throw new Error(`relation "${tableNamePart}" does not exist`);
+            }
+
             const tableName = sanitizeTableName(tableNamePart, schemaNamePart);
 
             const columnClause =
@@ -336,6 +341,7 @@ export function createCopyImportTool(
             const filePath = parsed.filePath ?? `/path/to/file.${ext}`;
 
             return {
+              success: true,
               command: `COPY ${tableName}${columnClause} FROM '${filePath}' WITH (${options.join(", ")})`,
               stdinCommand: `COPY ${tableName}${columnClause} FROM STDIN WITH (${options.join(", ")})`,
               notes: "Use \\copy in psql for client-side files",

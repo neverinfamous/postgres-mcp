@@ -153,30 +153,31 @@ export function createJsonbExtractTool(
 
         // If select columns were provided, return full row objects
         if (parsed.select !== undefined && parsed.select.length > 0) {
-          const rows = result.rows?.map((r) => {
-            // Rename extracted_value back to 'value' for consistency
-            const row: Record<string, unknown> = {};
-            for (const [key, val] of Object.entries(r)) {
-              if (key === "extracted_value") {
-                row["value"] = val;
-              } else {
-                row[key] = val;
+          const rows =
+            result.rows?.map((r) => {
+              // Rename extracted_value back to 'value' for consistency
+              const row: Record<string, unknown> = {};
+              for (const [key, val] of Object.entries(r)) {
+                if (key === "extracted_value") {
+                  row["value"] = val;
+                } else {
+                  row[key] = val;
+                }
               }
-            }
-            return row;
-          });
-          const allNulls = rows?.every((r) => r["value"] === null) ?? false;
+              return row;
+            }) ?? [];
+          const allNulls = rows.every((r) => r["value"] === null);
           const response: {
             success: boolean;
-            rows?: unknown;
+            rows: unknown;
             count: number;
             hint?: string;
           } = {
             success: true,
-            count: rows?.length ?? 0,
+            count: rows.length,
+            rows,
           };
-          if (rows && rows.length > 0) response.rows = rows;
-          if (allNulls && (rows?.length ?? 0) > 0) {
+          if (allNulls && rows.length > 0) {
             response.hint =
               "All values are null - path may not exist in data. Use pg_jsonb_typeof to check.";
           }
@@ -185,20 +186,22 @@ export function createJsonbExtractTool(
 
         // Original behavior: return just the extracted values
         // Wrap each value in an object with 'value' key for consistency with select mode
-        const rows = result.rows?.map((r) => ({ value: r["extracted_value"] }));
+        const rows = (result.rows ?? []).map((r) => ({
+          value: r["extracted_value"],
+        }));
         // Check if all results are null (path may not exist)
-        const allNulls = rows?.every((r) => r.value === null) ?? false;
+        const allNulls = rows.every((r) => r.value === null);
         const response: {
           success: boolean;
-          rows?: { value: unknown }[];
+          rows: { value: unknown }[];
           count: number;
           hint?: string;
         } = {
           success: true,
-          count: rows?.length ?? 0,
+          count: rows.length,
+          rows,
         };
-        if (rows && rows.length > 0) response.rows = rows;
-        if (allNulls && (rows?.length ?? 0) > 0) {
+        if (allNulls && rows.length > 0) {
           response.hint =
             "All values are null - path may not exist in data. Use pg_jsonb_typeof to check.";
         }
@@ -297,7 +300,7 @@ export function createJsonbContainsTool(
           Object.keys(value).length === 0;
         const response: {
           success: boolean;
-          rows?: unknown;
+          rows: unknown;
           count: number;
           truncated?: boolean;
           totalCount?: number;
@@ -305,8 +308,9 @@ export function createJsonbContainsTool(
         } = {
           success: true,
           count: rows.length,
+          rows,
         };
-        if (rows.length > 0) response.rows = rows;
+
         if (isTruncated) {
           response.truncated = true;
           // Get exact total count
@@ -431,12 +435,12 @@ export function createJsonbPathQueryTool(
 
         const response: {
           success: boolean;
-          results?: unknown[];
+          results: unknown[];
           count: number;
           truncated?: boolean;
           totalCount?: number;
-        } = { success: true, count: results.length };
-        if (results.length > 0) response.results = results;
+        } = { success: true, count: results.length, results };
+
         if (isTruncated) {
           response.truncated = true;
           if (exactTotalCount !== undefined) {

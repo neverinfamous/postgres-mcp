@@ -1,24 +1,20 @@
-# Advanced Stress Test — postgres-mcp — cross-group Integration
+# postgres-mcp Tool Group Re-Testing: [roles]
 
 **ESSENTIAL INSTRUCTIONS**
 
-- Execute **EVERY** numbered stress test below using code mode (`pg_execute_code`).
+- Execute **EVERY** numbered stress test below using direct MCP tool calls, **NOT** codemode.
 - Do not use scripts or terminal to replace planned tests.
-- Do not modify or skip tests, run any other test files, or do anything other than these tests. Ignore distractions in terminal from work being done in other thread.
-- All changes **MUST** be consistent with other postgres-mcp tools and `code-map.md`.
-- Allow me to handle Lint, typecheck, Vitest, and Playwright. You cannot restart the server in Antigravity as the cache has to be refreshed manually.
-- If you have trouble saving task.md because it already exists, use a different filename.
-- Please let me handle checking lint, typecheck, vitest, and playwright. You cannot restart the server in antigravity as the cache has to be refreshed manually.
+- Do not modify or skip tests.
+- Do not put temp files in root; Use C:\Users\chris\Desktop\postgres-mcp\tmp
 
-## Code Mode Execution
+## Reporting Format
 
-All tests should be executed via `pg_execute_code` code mode. Code Mode is explicitly designed for multi-group coordination inside a single sandboxed worker.
+- ❌ Fail: Tool errors or produces incorrect results (include error message)
+- ⚠️ Issue: Unexpected behavior or improvement opportunity
+- 📦 Payload: Unnecessarily large response that should be optimized — **blocking, equally important as ❌ bugs**. Oversized payloads waste LLM context window tokens and degrade downstream tool-calling quality. **You MUST monitor `_meta.tokenEstimate` for every operation**. Report the response size in tokens/KB and suggest a concrete optimization (e.g., filter system tables, add `compact` option, omit empty arrays).
 
-**Key rules:**
-
-- Use `pg.<group>.help()` to discover method names and parameters natively.
-- State **persists** across `pg_execute_code` calls.
-- Group multiple related tests into a single code mode call cleanly.
+> **Token estimates**: Every tool response includes `_meta.tokenEstimate` in its `content[].text` payload (approximate token count based on ~4 bytes/token). Code Mode responses include `metrics.tokenEstimate` instead. These are injected automatically by the adapter — no per-tool assertions needed, but report as ⚠️ if absent.
+> **Code Mode Token Tracking**: For at least one `pg_execute_code` test, explicitly verify that `metrics.tokenEstimate` is present in the response and is a number greater than 0, reporting as ❌ if it is missing or zero.
 
 ## Test Database Schema
 
@@ -30,9 +26,9 @@ The test database (`postgres`) contains these tables:
 | `test_orders`       | 20   | id, product_id (FK), quantity, total_price, status                                 | —                        | Core, Stats, Trans    |
 | `test_jsonb_docs`   | 3    | id                                                                                 | metadata, settings, tags | JSONB (20 tools)      |
 | `test_articles`     | 3    | id, title, body, search_vector (TSVECTOR)                                          | —                        | Text                  |
-| `test_measurements` | 500  | id, sensor_id (INT 1-6), temperature, humidity, pressure                           | —                        | Stats (19 tools)      |
-| `test_embeddings`   | 50   | id, content, category, embedding (vector 384d)                                     | —                        | Vector (16 tools)     |
-| `test_locations`    | 5    | id, name, location (GEOMETRY POINT SRID 4326)                                      | —                        | PostGIS (15 tools)    |
+| `test_measurements` | 640  | id, sensor_id (INT 1-6), temperature, humidity, pressure                           | —                        | Stats (19 tools)      |
+| `test_embeddings`   | 75   | id, content, category, embedding (vector 384d)                                     | —                        | Vector (16 tools)     |
+| `test_locations`    | 25   | id, name, location (GEOMETRY POINT SRID 4326)                                      | —                        | PostGIS (15 tools)    |
 | `test_users`        | 3    | id, username (CITEXT), email (CITEXT)                                              | —                        | Citext (6 tools)      |
 | `test_categories`   | 6    | id, name, path (LTREE)                                                             | —                        | Ltree (8 tools)       |
 | `test_secure_data`  | 0    | id, user_id, sensitive_data (BYTEA), created_at                                    | —                        | pgcrypto (9 tools)    |
@@ -45,24 +41,26 @@ The test database (`postgres`) contains these tables:
 | `test_audit_log`    | 3    | entry_id (no PK!), employee_id (FK, no index!), action, created_at                 | —                        | Introspection         |
 
 Schema objects: `test_schema`, `test_schema.order_seq` (starts at 1000), `test_order_summary` (view), `test_get_order_count()` (function).
-Indexes: `idx_orders_status`, `idx_orders_date`, `idx_articles_fts` (GIN), `idx_locations_geo` (GIST), `idx_categories_path` (GIST), HNSW on `test_embeddings.embedding`.
+
+> **Note:** Row counts reflect the post-seed state after both `test-database.sql` and `test-resources.sql` run. The resource seed adds ~200 measurements (minus deletions by `id % 5 = 0 AND id > 400`), 25 embeddings (IDs 51-75), and 20 locations (IDs 6-25).
+> Indexes: `idx_orders_status`, `idx_orders_date`, `idx_articles_fts` (GIN), `idx_locations_geo` (GIST), `idx_categories_path` (GIST), HNSW on `test_embeddings.embedding`.
 
 ## Testing Requirements
 
 1. Use existing `test_*` tables for read operations (SELECT, COUNT, EXISTS, etc.)
-2. Create temporary tables with `stress_*` prefix for write operations (CREATE, INSERT, DROP, etc.)
+2. Create temporary tables with `temp_` prefix for write operations (CREATE, INSERT, DROP, etc.)
 3. Test each tool with realistic inputs based on the schema above
-4. Clean up any `stress_*` tables after testing
-5. Report all failures, unexpected behaviors, improvement opportunities, or unnecessarily large payloads
+4. Clean up any `temp_*` tables after testing
+5. Report all failures, broken contracts, or deviations from defined standards (e.g., P154 object-existence, Split Schema validation leaks, or unoptimized payloads). Do NOT report or implement subjective "improvement opportunities" beyond these objective criteria. If the tool group meets all standards perfectly, state that 0 changes are required and stop.
 6. Do not mention what already works well or issues well documented in ServerInstructions and runtime hints which are already optimal
 7. **Error path testing**: For **every** tool, test at least **two** invalid inputs: (a) a domain error (nonexistent table, invalid column, bad parameter value) and (b) a **Zod validation error** (call the tool with `{}` empty params if it has required parameters, or pass the wrong type). Both must return a **structured handler error** (`{success: false, error: "..."}`) — NOT a raw MCP error frame. See the "Structured Error Response Pattern" section below for how to distinguish the two. This is the most common deficiency found across tool groups.
-8. **Advanced Strict Coverage Matrix**: You must create a markdown table tracking your progress in your `task.md` in C:\Users\chris\Desktop\postgres-mcp\tmp. For EVERY tool in the advanced test categories, you must explicitly track completions. Do not proceed to the final summary until every check is marked with a ✅.
-9. **Scripting Efficiency**: You should bundle multiple tool checks into a single `pg_execute_code` call to save LLM context window tokens. Use conditional checks to aggregate errors and return a `failures` array.
-10. **Pacing**: Test up to an entire tool group in a single script if feasible, but limit scripts to ~10-15 steps to remain manageable. Report the aggregated results, update your matrix, and move to the next group.
-11. **Deterministic checklist first**: Complete ALL items in the Deterministic Checklist below using Code Mode before moving to the Strict Coverage Matrix exploration.
+8. **Strict Coverage Matrix**: You must create a markdown table tracking your progress in your `task.md`. For EVERY tool in the group, you must explicitly log: Direct Call (Happy Path), Domain Error (Direct Call), Zod Empty Param (Direct Call), and Alias Acceptance (if applicable). Do not proceed to the final summary until every cell in this matrix is marked with a ✅.
+9. **No Scripted Loops**: You must test each error path by writing an individual, distinct tool call.
+10. **Pacing**: Test a maximum of 3-5 tools at a time. Report the results, update your matrix, and then move on to the next chunk.
+11. **Deterministic checklist first**: Complete ALL items in the Deterministic Checklist below before moving to the Strict Coverage Matrix exploration. The checklist uses exact inputs and expected outputs to ensure reproducible coverage every run.
 12. **Audit backup tools**: The 3 `pg_audit_*` tools require `--audit-backup` to be enabled on the test server. When enabled, destructive operations (`pg_truncate`, `pg_drop_table`, `pg_vacuum`, etc.) create gzip-compressed `.snapshot.json.gz` files alongside the audit log. **V2 features to verify**: `pg_audit_diff_backup` now returns a `volumeDrift` field (row count + size changes); `pg_audit_restore_backup` supports `restoreAs` for side-by-side non-destructive restore; and Code Mode calls through `pg_execute_code` that trigger destructive operations are also captured by the interceptor. When disabled, all 3 tools return `{success: false, error: "Audit backup not enabled"}`.
 
-Note: The isError flag propagation issue has been fixed. P154 structured errors (`{success: false, error: "..."}`) return as parseable JSON objects. During error path testing, verify this: if an invalid Code Mode call returns a raw error string instead of a JSON object with `success` and `error` fields, report it as ❌.
+Note: The isError flag propagation issue has been fixed. P154 structured errors (`{success: false, error: "..."}`) now return as parseable JSON objects via direct tool calls — not as raw MCP error strings. During error path testing, verify this: if a direct tool call for a nonexistent schema/table returns a raw error string instead of a JSON object with `success` and `error` fields, report it as ❌.
 
 ## Structured Error Response Pattern
 
@@ -130,9 +128,9 @@ Calling a tool with wrong parameter types or missing required fields triggers a 
 All tools use the Split Schema pattern: a plain `z.object()` Base schema for MCP parameter visibility (used as `inputSchema`), and handler-side parsing via `z.preprocess()`, `.default({})`, or direct `.parse()` inside `try/catch`. Verify:
 
 1. **JSON Schema visibility**: Before testing tool behavior, call `tools/list` (or inspect the MCP server's tool definitions) and confirm each tool's `inputSchema` exposes its parameters. Tools with optional parameters (e.g., `schema`, `limit`, `direction`) must show non-empty `properties` in the JSON Schema. If a tool's `inputSchema` is empty or missing `properties`, report as a Split Schema violation.
-2. **Parameter visibility**: For tools with optional parameters (e.g., `schema`, `limit`), make a Code Mode call using those parameters. If the tool ignores or rejects documented parameters, report as a Split Schema violation.
-3. **Alias acceptance**: For tools with documented parameter aliases (e.g., table/tableName/name, sql/query), verify that Code Mode calls correctly accept the aliases—not just the primary parameter name. If a call using only an alias fails with a validation error like "X is required", report it as a Split Schema violation requiring a fix.
-4. **`z.preprocess()` as `inputSchema`**: If a tool uses `z.preprocess()` directly as its `inputSchema` (instead of a plain `SchemaBase`), parameter metadata is stripped from JSON Schema generation, making MCP tooling unable to see or use those parameters. Report as a Split Schema violation.
+2. **Parameter visibility**: For tools with optional parameters (e.g., `schema`, `limit`), make a direct MCP call using those parameters. If the tool ignores or rejects documented parameters, report as a Split Schema violation.
+3. **Alias acceptance**: For tools with documented parameter aliases (e.g., table/tableName/name, sql/query), verify that direct MCP tool calls correctly accept the aliases—not just the primary parameter name. If a direct call using only an alias fails with a validation error like "X is required", report it as a Split Schema violation requiring a fix.
+4. **`z.preprocess()` as `inputSchema`**: If a tool uses `z.preprocess()` directly as its `inputSchema` (instead of a plain `SchemaBase`), parameter metadata is stripped from JSON Schema generation, making direct MCP calls unable to see or use those parameters. Report as a Split Schema violation.
 
 ## P154 Object Existence Verification
 
@@ -186,7 +184,8 @@ For each tool group under test, verify at least one scenario from each applicabl
 
 During testing, use these naming conventions:
 
-- **Temporary tables**: Prefix with `stress_` (e.g., `stress_analysis_results`)
+- **Temporary tables**: Prefix with `temp_` (e.g., `temp_rls_demo`)
+- **Temporary roles**: Prefix with `temp_test_role_` (e.g., `temp_test_role_analyst`)
 - **Test views**: Prefix with `test_view_` (e.g., `test_view_order_summary`)
 - **Test functions**: Prefix with `test_func_` (e.g., `test_func_calculate`)
 - **Test schemas**: Prefix with `test_schema_` (e.g., `test_schema_temp`)
@@ -196,10 +195,14 @@ After testing, clean up:
 ```sql
 -- List temp tables
 SELECT tablename FROM pg_tables
-WHERE schemaname = 'public' AND tablename LIKE 'stress_%';
+WHERE schemaname = 'public' AND tablename LIKE 'temp_%';
 
 -- Drop temp table
-DROP TABLE IF EXISTS stress_my_test_table;
+DROP TABLE IF EXISTS temp_rls_demo;
+
+-- Drop temp roles
+DROP ROLE IF EXISTS temp_test_role_analyst;
+DROP ROLE IF EXISTS temp_test_role_writer;
 ```
 
 ## Post-Test Procedures
@@ -211,45 +214,84 @@ DROP TABLE IF EXISTS stress_my_test_table;
 
 ### After Testing
 
-1. **Cleanup**: Confirm all `stress_*` tables and temporary testing data are removed
-2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, 📦 Payload problems (responses that should be truncated or offer a `limit` param) and files listed below. All changes MUST be consistent with other postgres-mcp tools and `code-map.md`
-3. **Scope of fixes** includes corrections to any of:
+1. **Token Audit**: Before concluding, call `read_resource` on `postgres://audit` to retrieve the `sessionTokenEstimate` (total token usage) for your testing session. Include this "Total Token Usage" in your final test report and session summary. Highlight the single most expensive tool call.
+2. **Cleanup**: Confirm all `temp_*` tables, `temp_test_role_*` roles, and temporary testing data are removed including any files created during testing.
+3. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in the files listed below, and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
+4. **Read `code-map.md` before making changes and make all changes consistent with other tools.**
+5. **Scope of fixes** includes corrections to any of:
    - Handler code
    - `server-instructions.md`
    - Test database (`test-database.sql`)
-   - This prompt (`test-tools-codemode.md`) and group file (`test-group-tools-codemode.md`)
-4. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
-5. **Token Audit**: Before concluding, call `read_resource` on `postgres://audit` to retrieve the `sessionTokenEstimate` (total token usage) for your testing session. Include this "Total Token Usage" in your final test report and session summary. Highlight the single most expensive Code Mode execution block.
-6. Stop and briefly summarize the testing results and fixes, **ensuring the total token count is prominently displayed.**
+   - This prompt
+6. **User will handle validation**
+7. Update the changelog if there were any changes made (being careful not to create duplicate headers), and commit without pushing.
+8. Create a /session-summary in memory-journal-mcp for the issues and their fixes, explicitly including the "Total Token Usage" captured.
+9. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
 
 ---
 
-## cross-group Advanced Workflows
+## Group Focus: roles
 
-> **Purpose**: Test realistic deep multi-group pipelines dynamically tracked purely inside Javascript worker threads. These catch serialization, token bound, isolation, and handler decoupling bugs that identical API calls miss natively.
+### roles Group-Specific Testing
 
-### Category 1: Core → JSONB → Stats (Data Pipeline)
+roles Tool Group (12 tools +1 for code mode)
 
-1. Create a `stress_cross_data` table mapping `SERIAL` id to `JSONB` blobs.
-   a) Populate 100 rows containing nested numeric telemetry inside the JSONB structure using `pg.core.batchInsert`.
-   b) Invoke `pg.jsonb.extract` to cleanly extract the nested array values across all rows.
-   c) Bridge the extracted dynamic arrays safely into `pg.stats.percentiles` to verify math operations on dynamically transformed JSON arrays limit accurately.
+1. 'pg_role_list'
+2. 'pg_role_create'
+3. 'pg_role_drop'
+4. 'pg_role_attributes'
+5. 'pg_role_grants'
+6. 'pg_role_grant'
+7. 'pg_role_assign'
+8. 'pg_role_revoke'
+9. 'pg_user_roles'
+10. 'pg_role_set'
+11. 'pg_role_rls_enable'
+12. 'pg_role_rls_policies'
+13. 'pg_execute_code' (codemode, auto-added)
 
-### Category 2: Core → Vector → Text (AI Search Pipeline)
+> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
 
-2. Create `stress_cross_ai` mapping `VECTOR`, `TEXT`, and `JSONB` parameters cleanly.
-   a) Inject 3 rows with explicit embeddings and text descriptions.
-   b) Capture `pg.vector.search` locally to find the nearest neighbor.
-   c) Execute `pg.text.search` purely using the extracted ID from the vector search to confirm string metadata alignment safely.
+**Test data:** Roles tools operate on PostgreSQL catalog views (`pg_roles`, `pg_auth_members`, `pg_policies`) and DDL statements (`CREATE ROLE`, `GRANT`, `SET ROLE`, etc.). No user-created test tables are required for most tools. Create `temp_rls_demo` for RLS testing via `pg_write_query`. Create `temp_test_role_*` roles for role CRUD and privilege testing.
 
-### Category 3: Transactions → Backup → Migration (Exception IPC Parity)
+> **Superuser note:** Most roles tools (`pg_role_create`, `pg_role_drop`, `pg_role_grant`, `pg_role_assign`, `pg_role_revoke`, `pg_role_set`, `pg_role_rls_enable`) require superuser access or appropriate role management privileges. The test server runs as `postgres` (superuser). If running against a non-superuser connection, these tools should return a structured error — not a raw MCP error.
 
-3. Deep Handler Validation: Call `pg.transactions.begin` then `pg.migration.apply`. Force a synthetic parser failure seamlessly (e.g. invalid migration path). Ensure `pg.transactions.rollback` smartly cleans up the migration partial state cleanly, and retrieve the audit log inside the same script using `pg.backup` tools (e.g., `auditListBackups`) or `pg.migration.history` to verify the rollback was recorded gracefully.
+**Setup (run before checklist):**
 
-### Category 4: Vector → JSONB → Code Mode Context Limits
+- Create `temp_rls_demo` table via `pg_write_query({sql: "CREATE TABLE temp_rls_demo (id SERIAL PRIMARY KEY, user_id TEXT, data TEXT)"})`
 
-4. Inject 500 large mock vectors directly into a Code Mode array and batch insert them, immediately pulling them back via `pg.jsonb.extract` and reading the payload size natively. Verify the sandbox context limits gracefully reject massive allocations or return `metrics.tokenEstimate` effectively.
+**Checklist:**
 
-### Final Reporting
+1. `pg_role_list()` → verify `{success: true, roles: [...]}` with `postgres` role present, each role has `name`, `login`, `superuser` fields
+2. `pg_role_list({pattern: "postgres"})` → verify filtered result contains only `postgres` role
+3. `pg_role_create({name: "temp_test_role_analyst"})` → verify `{success: true}` with confirmation message
+4. `pg_role_create({name: "temp_test_role_writer", login: true, password: "testpass123"})` → verify `{success: true}` with LOGIN attribute
+5. `pg_role_attributes({role: "temp_test_role_analyst"})` → verify includes OID, inherit status, connection limit, login=false (default)
+6. `pg_role_attributes({role: "postgres"})` → verify `superuser: true`, `login: true`
+7. `pg_role_grants({role: "temp_test_role_analyst"})` → verify empty grants for freshly-created role
+8. `pg_role_grant({role: "temp_test_role_analyst", privileges: ["SELECT"], table: "test_products"})` → verify `{success: true}`
+9. `pg_role_grants({role: "temp_test_role_analyst"})` → verify SELECT on test_products now appears in grants
+10. `pg_role_assign({role: "temp_test_role_analyst", member: "temp_test_role_writer"})` → verify `{success: true}` membership assigned
+11. `pg_user_roles({role: "temp_test_role_writer"})` → verify `temp_test_role_analyst` appears in memberships
+12. `pg_role_revoke({role: "temp_test_role_analyst", member: "temp_test_role_writer"})` → verify `{success: true}` membership revoked
+13. `pg_user_roles({role: "temp_test_role_writer"})` → verify `temp_test_role_analyst` no longer in memberships
+14. `pg_role_set({role: "temp_test_role_analyst"})` → verify `{success: true}` SET ROLE executed
+15. `pg_role_set({reset: true})` → verify `{success: true}` RESET ROLE to original
+16. `pg_role_rls_enable({table: "temp_rls_demo", enable: true})` → verify `{success: true}` RLS enabled
+17. `pg_role_rls_policies({table: "temp_rls_demo"})` → verify `{success: true}` with empty policies array (no policies created yet)
+18. `pg_role_rls_enable({table: "temp_rls_demo", enable: false})` → verify `{success: true}` RLS disabled
+19. `pg_role_drop({name: "temp_test_role_writer"})` → verify `{success: true}` role dropped
 
-Verify completely flawlessly that all state chains correctly dropped and temporary `stress_cross_` structures are removed cleanly.
+20. 🔴 `pg_role_create({})` → `{success: false, error: "..."}` (missing required `name` param)
+21. 🔴 `pg_role_drop({})` → `{success: false, error: "..."}` (missing required `name` param)
+22. 🔴 `pg_role_attributes({role: "nonexistent_role_xyz"})` → `{success: false, error: "..."}` (P154 — role doesn't exist)
+23. 🔴 `pg_role_grants({role: "nonexistent_role_xyz"})` → `{success: false, error: "..."}` (P154 — role doesn't exist)
+24. 🔴 `pg_role_grant({role: "temp_test_role_analyst", privileges: ["SELECT"], table: "nonexistent_table_xyz"})` → `{success: false, error: "..."}` (P154 — table doesn't exist)
+25. 🔴 `pg_role_assign({role: "nonexistent_role_xyz", member: "postgres"})` → `{success: false, error: "..."}` (P154 — role doesn't exist)
+26. 🔴 `pg_role_rls_enable({table: "nonexistent_table_xyz"})` → `{success: false, error: "..."}` (P154 — table doesn't exist)
+27. 🔴 `pg_role_rls_policies({table: "nonexistent_table_xyz"})` → `{success: false, error: "..."}` (P154 — table doesn't exist)
+
+**Cleanup:**
+
+28. Drop remaining temp roles: `pg_role_drop({name: "temp_test_role_analyst"})` (revoke grants first if needed)
+29. Drop temp table: `pg_write_query({sql: "DROP TABLE IF EXISTS temp_rls_demo"})`

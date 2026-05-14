@@ -52,13 +52,14 @@ test.describe("E2E Prompt Reads (via MCP SDK Client)", () => {
     "pg_setup_ltree",
     "pg_setup_pgcrypto",
     "pg_safe_restore_workflow",
+    "pg_setup_docstore",
   ];
 
-  test("should list all 20 prompts", async () => {
+  test("should list all 21 prompts", async () => {
     const listResponse = await client.listPrompts();
 
     expect(listResponse.prompts).toBeDefined();
-    expect(listResponse.prompts.length).toBe(20);
+    expect(listResponse.prompts.length).toBe(21);
 
     const names = listResponse.prompts.map((p) => p.name);
     for (const expected of EXPECTED_PROMPTS) {
@@ -285,5 +286,16 @@ test.describe("E2E Prompt Reads (via MCP SDK Client)", () => {
     const text = (response.messages[0].content as any).text as string;
     expect(text.toLowerCase()).toContain("restore");
     expect(text).toContain("restoreAs");
+  });
+
+  test("should get pg_setup_docstore prompt", async () => {
+    const response = await client.getPrompt({
+      name: "pg_setup_docstore",
+      arguments: {},
+    });
+
+    expect(response.messages).toBeDefined();
+    const text = (response.messages[0].content as any).text as string;
+    expect(text.toLowerCase()).toContain("document store");
   });
 });

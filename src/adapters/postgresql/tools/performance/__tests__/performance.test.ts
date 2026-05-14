@@ -3300,7 +3300,7 @@ describe("P154 pre-checks", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("not found");
+    expect(result.error).toContain("does not exist");
     expect(result.error).toContain("nonexistent_table");
   });
 
@@ -3329,7 +3329,7 @@ describe("P154 pre-checks", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("not found");
+    expect(result.error).toContain("does not exist");
   });
 
   it("pg_table_stats should return error for nonexistent schema", async () => {
@@ -3355,7 +3355,7 @@ describe("P154 pre-checks", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("not found");
+    expect(result.error).toContain("does not exist");
   });
 
   it("pg_bloat_check should return error for nonexistent table", async () => {
@@ -3368,7 +3368,7 @@ describe("P154 pre-checks", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("not found");
+    expect(result.error).toContain("does not exist");
   });
 
   it("pg_index_recommendations should return error for nonexistent table (table mode)", async () => {
@@ -3383,7 +3383,7 @@ describe("P154 pre-checks", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("not found");
+    expect(result.error).toContain("does not exist");
   });
 
   it("pg_seq_scan_tables should return error for nonexistent schema", async () => {

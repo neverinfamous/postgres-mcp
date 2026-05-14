@@ -38,7 +38,7 @@ describe("getMonitoringTools", () => {
     expect(toolNames).toContain("pg_uptime");
     expect(toolNames).toContain("pg_recovery_status");
     expect(toolNames).toContain("pg_capacity_planning");
-    expect(toolNames).toContain("pg_resource_usage_analyze");
+    expect(toolNames).toContain("pg_system_health");
     expect(toolNames).toContain("pg_alert_threshold_set");
   });
 
@@ -75,7 +75,7 @@ describe("Tool Annotations", () => {
       "pg_uptime",
       "pg_recovery_status",
       "pg_capacity_planning",
-      "pg_resource_usage_analyze",
+      "pg_system_health",
     ];
 
     for (const toolName of readOnlyTools) {
@@ -718,7 +718,7 @@ describe("pg_capacity_planning", () => {
   });
 });
 
-describe("pg_resource_usage_analyze", () => {
+describe("pg_system_health", () => {
   let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
   let tools: ReturnType<typeof getMonitoringTools>;
   let mockContext: ReturnType<typeof createMockRequestContext>;
@@ -762,7 +762,7 @@ describe("pg_resource_usage_analyze", () => {
         ],
       });
 
-    const tool = tools.find((t) => t.name === "pg_resource_usage_analyze")!;
+    const tool = tools.find((t) => t.name === "pg_system_health")!;
     const result = (await tool.handler({}, mockContext)) as {
       backgroundWriter: unknown;
       checkpoints: unknown;
@@ -790,7 +790,7 @@ describe("pg_resource_usage_analyze", () => {
         rows: [{ active_queries: 1, io_waiting: 0, lock_waiting: 0 }],
       });
 
-    const tool = tools.find((t) => t.name === "pg_resource_usage_analyze")!;
+    const tool = tools.find((t) => t.name === "pg_system_health")!;
     const result = (await tool.handler({}, mockContext)) as {
       analysis: { checkpointPressure: string };
     };
@@ -813,7 +813,7 @@ describe("pg_resource_usage_analyze", () => {
         rows: [{ active_queries: 5, io_waiting: 3, lock_waiting: 0 }],
       });
 
-    const tool = tools.find((t) => t.name === "pg_resource_usage_analyze")!;
+    const tool = tools.find((t) => t.name === "pg_system_health")!;
     const result = (await tool.handler({}, mockContext)) as {
       analysis: { ioPattern: string };
     };
@@ -834,7 +834,7 @@ describe("pg_resource_usage_analyze", () => {
         rows: [{ active_queries: 5, io_waiting: 0, lock_waiting: 4 }],
       });
 
-    const tool = tools.find((t) => t.name === "pg_resource_usage_analyze")!;
+    const tool = tools.find((t) => t.name === "pg_system_health")!;
     const result = (await tool.handler({}, mockContext)) as {
       analysis: { lockContention: string };
     };
@@ -859,7 +859,7 @@ describe("pg_resource_usage_analyze", () => {
         rows: [{ active_queries: 1, io_waiting: 0, lock_waiting: 0 }],
       });
 
-    const tool = tools.find((t) => t.name === "pg_resource_usage_analyze")!;
+    const tool = tools.find((t) => t.name === "pg_system_health")!;
     const result = (await tool.handler({}, mockContext)) as {
       bufferUsage: { heapHitRate: string; indexHitRate: string };
     };
@@ -885,7 +885,7 @@ describe("pg_resource_usage_analyze", () => {
         rows: [{ active_queries: 1, io_waiting: 0, lock_waiting: 0 }],
       });
 
-    const tool = tools.find((t) => t.name === "pg_resource_usage_analyze")!;
+    const tool = tools.find((t) => t.name === "pg_system_health")!;
     const result = (await tool.handler({}, mockContext)) as {
       bufferUsage: { heapHitRate: string; indexHitRate: string };
     };
@@ -907,7 +907,7 @@ describe("pg_resource_usage_analyze", () => {
         rows: [{ active_queries: 5, io_waiting: 0, lock_waiting: 0 }],
       });
 
-    const tool = tools.find((t) => t.name === "pg_resource_usage_analyze")!;
+    const tool = tools.find((t) => t.name === "pg_system_health")!;
     const result = (await tool.handler({}, mockContext)) as {
       analysis: { ioPattern: string; lockContention: string };
     };
@@ -1225,7 +1225,7 @@ describe("monitoring.ts branch coverage", () => {
     expect(result).toEqual({ success: true });
   });
 
-  it("pg_resource_usage_analyze PG17+ code path", async () => {
+  it("pg_system_health PG17+ code path", async () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({ rows: [{ version_num: 170000 }] }) // PG17+
       .mockResolvedValueOnce({
@@ -1266,7 +1266,7 @@ describe("monitoring.ts branch coverage", () => {
         ],
       });
 
-    const tool = tools.find((t) => t.name === "pg_resource_usage_analyze")!;
+    const tool = tools.find((t) => t.name === "pg_system_health")!;
     const result = (await tool.handler({}, mockContext)) as Record<
       string,
       unknown
@@ -1443,7 +1443,7 @@ describe("pg_capacity_planning — uncovered branches", () => {
   });
 });
 
-describe("pg_resource_usage_analyze — uncovered branches", () => {
+describe("pg_system_health — uncovered branches", () => {
   let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
   let tools: ReturnType<typeof getMonitoringTools>;
   let mockContext: ReturnType<typeof createMockRequestContext>;
@@ -1479,7 +1479,7 @@ describe("pg_resource_usage_analyze — uncovered branches", () => {
         ],
       });
 
-    const tool = tools.find((t) => t.name === "pg_resource_usage_analyze")!;
+    const tool = tools.find((t) => t.name === "pg_system_health")!;
     const result = (await tool.handler({}, mockContext)) as {
       bufferUsage: { heapHitRate: string; indexHitRate: string };
       analysis: {
@@ -1527,7 +1527,7 @@ describe("pg_resource_usage_analyze — uncovered branches", () => {
         ],
       });
 
-    const tool = tools.find((t) => t.name === "pg_resource_usage_analyze")!;
+    const tool = tools.find((t) => t.name === "pg_system_health")!;
     const result = (await tool.handler({}, mockContext)) as {
       analysis: {
         heapCachePerformance: string;
@@ -1582,7 +1582,7 @@ describe("pg_resource_usage_analyze — uncovered branches", () => {
         ],
       });
 
-    const tool = tools.find((t) => t.name === "pg_resource_usage_analyze")!;
+    const tool = tools.find((t) => t.name === "pg_system_health")!;
     const result = (await tool.handler({}, mockContext)) as {
       backgroundWriter: Record<string, unknown>;
       checkpoints: Record<string, unknown>;
@@ -1627,7 +1627,7 @@ describe("pg_resource_usage_analyze — uncovered branches", () => {
         ],
       });
 
-    const tool = tools.find((t) => t.name === "pg_resource_usage_analyze")!;
+    const tool = tools.find((t) => t.name === "pg_system_health")!;
     const result = (await tool.handler({}, mockContext)) as {
       analysis: {
         heapCachePerformance: string;

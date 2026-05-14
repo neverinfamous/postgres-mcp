@@ -108,8 +108,8 @@ export const METHOD_ALIASES: Record<string, Record<string, string>> = {
     config: "showSettings", // config() → showSettings()
     alerts: "alertThresholdSet", // alerts() → alertThresholdSet()
     thresholds: "alertThresholdSet", // thresholds() → alertThresholdSet()
-    activeConnections: "connectionStats",
-    systemHealth: "resourceUsageAnalyze",
+    systemHealth: "systemHealth",
+    resourceUsageAnalyze: "systemHealth",
   },
   // Transactions: shorter aliases
   transactions: {
@@ -269,6 +269,71 @@ export const METHOD_ALIASES: Record<string, Record<string, string>> = {
     list: "history", // list() → history()
     dashboard: "status", // dashboard() → status()
   },
+  // Security: naming aliases for security tools
+  security: {
+    securitySslStatus: "sslStatus",
+    securityEncryptionStatus: "encryptionStatus",
+    securityPasswordValidate: "passwordValidate",
+    securityMaskData: "maskData",
+    securityUserPrivileges: "userPrivileges",
+    securitySensitiveTables: "sensitiveTables",
+    securityAudit: "audit",
+    securityFirewallStatus: "firewallStatus",
+    securityFirewallRules: "firewallRules",
+    // Intuitive aliases
+    ssl: "sslStatus",
+    privileges: "userPrivileges",
+    mask: "maskData",
+    sensitive: "sensitiveTables",
+    hba: "firewallStatus",
+    hbaRules: "firewallRules",
+  },
+  // Roles: naming aliases for role management tools
+  roles: {
+    list: "roleList",
+    create: "roleCreate",
+    drop: "roleDrop",
+    attributes: "roleAttributes",
+    grants: "roleGrants",
+    grant: "roleGrant",
+    assign: "roleAssign",
+    revoke: "roleRevoke",
+    set: "roleSet",
+    rlsEnable: "roleRlsEnable",
+    rlsPolicies: "roleRlsPolicies",
+    // Intuitive aliases
+    members: "userRoles",
+    membership: "userRoles",
+    permissions: "roleGrants",
+    addMember: "roleAssign",
+    removeMember: "roleRevoke",
+    switchRole: "roleSet",
+    rls: "roleRlsPolicies",
+    enableRls: "roleRlsEnable",
+    policies: "roleRlsPolicies",
+  },
+  // Docstore: shorthand aliases for document collection tools
+  docstore: {
+    listCollections: "docListCollections",
+    createCollection: "docCreateCollection",
+    dropCollection: "docDropCollection",
+    collectionInfo: "docCollectionInfo",
+    find: "docFind",
+    add: "docAdd",
+    modify: "docModify",
+    remove: "docRemove",
+    createIndex: "docCreateIndex",
+    // Intuitive aliases
+    create: "docCreateCollection",
+    drop: "docDropCollection",
+    list: "docListCollections",
+    info: "docCollectionInfo",
+    search: "docFind",
+    insert: "docAdd",
+    update: "docModify",
+    delete: "docRemove",
+    index: "docCreateIndex",
+  },
 };
 
 /**
@@ -365,7 +430,7 @@ export const GROUP_EXAMPLES: Record<string, string[]> = {
     "pg.stats.percentiles({ table: 'orders', column: 'amount', percentiles: [0.5, 0.95, 0.99] })",
     "pg.stats.timeSeries({ table: 'metrics', timeColumn: 'ts', valueColumn: 'value', interval: '1 hour' })",
     "pg.stats.rowNumber({ table: 'orders', orderBy: 'created_at' })",
-    "pg.stats.rank({ table: 'sales', orderBy: 'revenue', rankType: 'dense_rank' })",
+    "pg.stats.rank({ table: 'sales', orderBy: 'revenue', method: 'dense_rank' })",
     "pg.stats.runningTotal({ table: 'orders', column: 'amount', orderBy: 'created_at' })",
     "pg.stats.movingAvg({ table: 'metrics', column: 'value', orderBy: 'ts', windowSize: 7 })",
     "pg.stats.outliers({ table: 'orders', column: 'amount', method: 'iqr' })",
@@ -424,6 +489,44 @@ export const GROUP_EXAMPLES: Record<string, string[]> = {
     "pg.migration.rollback({ version: '1.0.0', dryRun: true })",
     "pg.migration.history({ status: 'applied' })",
     "pg.migration.status()",
+  ],
+  security: [
+    "pg.security.sslStatus()",
+    "pg.security.encryptionStatus()",
+    "pg.security.userPrivileges({ user: 'myapp' })",
+    'pg.security.maskData({ value: "test@email.com", type: "email" })',
+    "pg.security.sensitiveTables({ schema: 'public' })",
+    "pg.security.audit()",
+    "pg.security.firewallStatus()",
+    "pg.security.firewallRules({ type: 'hostssl' })",
+    'pg.security.passwordValidate({ password: "MyP@ssw0rd!" })',
+  ],
+  roles: [
+    "pg.roles.list()",
+    'pg.roles.create({ name: "readonly" })',
+    'pg.roles.create({ name: "webapp", login: true, password: "secure123" })',
+    'pg.roles.grant({ role: "readonly", privileges: ["SELECT"], schema: "public", table: "*" })',
+    'pg.roles.assign({ role: "readonly", user: "webapp" })',
+    'pg.roles.grants({ role: "readonly" })',
+    'pg.roles.userRoles({ user: "webapp" })',
+    'pg.roles.attributes({ role: "webapp" })',
+    'pg.roles.revoke({ role: "readonly", user: "webapp" })',
+    'pg.roles.set({ role: "readonly" })',
+    'pg.roles.rlsEnable({ table: "users" })',
+    'pg.roles.rlsPolicies({ table: "users" })',
+  ],
+  docstore: [
+    "pg.docstore.createCollection({ name: 'products' })",
+    "pg.docstore.add({ collection: 'products', documents: [{ name: 'Widget', price: 9.99 }] })",
+    "pg.docstore.find({ collection: 'products' })",
+    "pg.docstore.find({ collection: 'products', filter: '$.name' })",
+    "pg.docstore.find({ collection: 'products', filter: 'name=Widget' })",
+    "pg.docstore.modify({ collection: 'products', filter: 'name=Widget', set: { price: 12.99 } })",
+    "pg.docstore.remove({ collection: 'products', filter: 'name=Widget' })",
+    "pg.docstore.createIndex({ collection: 'products', name: 'idx_name', fields: [{ path: 'name' }] })",
+    "pg.docstore.collectionInfo({ collection: 'products' })",
+    "pg.docstore.listCollections()",
+    "pg.docstore.dropCollection({ name: 'products' })",
   ],
 };
 
@@ -595,6 +698,32 @@ export const POSITIONAL_PARAM_MAP: Record<string, string | string[]> = {
   apply: ["version", "migrationSql"],
   // Explicitly skipping rollback and status to prevent TS1117 collisions with transactions group
   history: "status",
+
+  // ============ SECURITY GROUP ============
+  passwordValidate: "password",
+  maskData: ["value", "type"],
+  userPrivileges: "user",
+  sensitiveTables: "schema",
+  firewallRules: "user",
+
+  // ============ ROLES GROUP ============
+  attributes: "role",
+  grants: "role",
+  grant: ["role", "privileges"],
+  assign: ["role", "user"],
+  userRoles: "user",
+  rlsEnable: ["table", "schema"],
+  rlsPolicies: "table",
+
+  // ============ DOCSTORE GROUP ============
+  listCollections: "schema",
+  createCollection: "name",
+  dropCollection: "name",
+  collectionInfo: "collection",
+  find: ["collection", "filter"],
+  add: ["collection", "documents"],
+  modify: ["collection", "filter"],
+  remove: ["collection", "filter"],
 };
 
 /**

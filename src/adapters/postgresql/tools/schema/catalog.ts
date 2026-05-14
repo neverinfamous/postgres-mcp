@@ -13,6 +13,7 @@ import type {
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import {
   ListFunctionsSchemaBase,
   ListFunctionsSchema,
@@ -69,7 +70,7 @@ export function createListFunctionsTool(
             [parsed.schema],
           );
           if ((schemaCheck.rows?.length ?? 0) === 0) {
-            throw new Error(
+            throw new ValidationError(
               `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
             );
           }
@@ -191,7 +192,7 @@ export function createListTriggersTool(
             [schemaName],
           );
           if ((schemaCheck.rows?.length ?? 0) === 0) {
-            throw new Error(
+            throw new ValidationError(
               `Schema '${schemaName}' does not exist. Use pg_list_schemas to see available schemas.`,
             );
           }
@@ -204,7 +205,7 @@ export function createListTriggersTool(
             [resolvedSchema, tableName],
           );
           if ((tableCheck.rows?.length ?? 0) === 0) {
-            throw new Error(
+            throw new ValidationError(
               `Table '${resolvedSchema}.${tableName}' not found. Use pg_list_tables to see available tables.`,
             );
           }
@@ -297,10 +298,9 @@ export function createListConstraintsTool(
           parsed.type !== undefined &&
           !validTypes.includes(parsed.type as (typeof validTypes)[number])
         ) {
-          return {
-            success: false,
-            error: `Validation error: type must be one of: ${validTypes.join(", ")}`,
-          };
+          throw new ValidationError(
+            `type must be one of: ${validTypes.join(", ")}`,
+          );
         }
 
         // Parse schema.table format
@@ -325,7 +325,7 @@ export function createListConstraintsTool(
             [parsed.schema],
           );
           if ((schemaCheck.rows?.length ?? 0) === 0) {
-            throw new Error(
+            throw new ValidationError(
               `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
             );
           }
@@ -338,7 +338,7 @@ export function createListConstraintsTool(
             [schemaName, parsed.table],
           );
           if ((tableCheck.rows?.length ?? 0) === 0) {
-            throw new Error(
+            throw new ValidationError(
               `Table '${schemaName}.${parsed.table}' not found. Use pg_list_tables to see available tables.`,
             );
           }

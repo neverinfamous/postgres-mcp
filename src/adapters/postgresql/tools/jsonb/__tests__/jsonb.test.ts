@@ -495,7 +495,7 @@ describe("JSONB Validation and Error Paths", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/value parameter/);
+      expect(result.error).toMatch(/pg_jsonb_set requires a value parameter/i);
     });
 
     it("should handle empty path - replace entire column", async () => {
@@ -623,6 +623,17 @@ describe("JSONB Validation and Error Paths", () => {
   });
 
   describe("pg_jsonb_insert validations", () => {
+    it("should reject when value is undefined", async () => {
+      const tool = tools.find((t) => t.name === "pg_jsonb_insert")!;
+      const result = (await tool.handler(
+        { table: "users", column: "tags", path: ["tags", 0], where: "id = 1" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/value is required/i);
+    });
+
     it("should reject empty WHERE clause", async () => {
       const tool = tools.find((t) => t.name === "pg_jsonb_insert")!;
 
@@ -1160,7 +1171,7 @@ describe("JSONB Validation and Error Paths", () => {
   });
 
   describe("wrong-type numeric param coercion", () => {
-    it("pg_jsonb_stats should silently default non-numeric sampleSize", async () => {
+    it("pg_jsonb_stats should coerce non-numeric sampleSize", async () => {
       const tool = tools.find((t) => t.name === "pg_jsonb_stats")!;
       // Mock the adapter calls that pg_jsonb_stats makes
       mockAdapter.executeQuery.mockResolvedValueOnce({
@@ -1183,12 +1194,13 @@ describe("JSONB Validation and Error Paths", () => {
         mockContext,
       )) as Record<string, unknown>;
 
-      // coerceNumber converts "abc" → undefined → default sampleSize is used
+      // coerceNumber silently defaults
       expect(result).toBeDefined();
-      expect(result.success).not.toBe(false);
+      expect(result.success).toBe(true);
+      expect(result.error).toBeUndefined();
     });
 
-    it("pg_jsonb_contains should silently default non-numeric limit", async () => {
+    it("pg_jsonb_contains should coerce non-numeric limit", async () => {
       const tool = tools.find((t) => t.name === "pg_jsonb_contains")!;
       // Mock the adapter call that pg_jsonb_contains makes
       mockAdapter.executeQuery.mockResolvedValueOnce({
@@ -1205,9 +1217,10 @@ describe("JSONB Validation and Error Paths", () => {
         mockContext,
       )) as Record<string, unknown>;
 
-      // coerceNumber converts "abc" → undefined → default limit is used
+      // coerceNumber silently defaults
       expect(result).toBeDefined();
-      expect(result.success).not.toBe(false);
+      expect(result.success).toBe(true);
+      expect(result.error).toBeUndefined();
     });
   });
 });

@@ -31,7 +31,7 @@ import {
   TRACKING_TABLE,
   ensureTrackingTable,
   formatRecord,
-} from "./migration/helpers.js";
+} from "./helpers.js";
 
 // =============================================================================
 // pg_migration_rollback
@@ -55,7 +55,14 @@ export function createMigrationRollbackTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = MigrationRollbackSchema.parse(params);
-        await ensureTrackingTable(adapter);
+        const targetSchema = parsed.schema ?? "public";
+        const sanitizedSchema = sanitizeIdentifier(targetSchema);
+        const qualifiedTable =
+          targetSchema === "public"
+            ? TRACKING_TABLE
+            : `${sanitizedSchema}."${TRACKING_TABLE}"`;
+
+        await ensureTrackingTable(adapter, targetSchema);
 
         if (parsed.id === undefined && parsed.version === undefined) {
           throw new ValidationError(
@@ -81,7 +88,7 @@ export function createMigrationRollbackTool(
         const whereValue = coercedId ?? parsed.version;
 
         const findResult = await adapter.executeQuery(
-          `SELECT * FROM ${TRACKING_TABLE} WHERE ${whereClause} ORDER BY id DESC LIMIT 1`,
+          `SELECT * FROM ${qualifiedTable} WHERE ${whereClause} ORDER BY id DESC LIMIT 1`,
           [whereValue],
         );
 
@@ -137,7 +144,7 @@ export function createMigrationRollbackTool(
           await adapter.executeOnConnection(client, rollbackSql);
           await adapter.executeOnConnection(
             client,
-            `UPDATE ${TRACKING_TABLE} SET status = 'rolled_back' WHERE id = $1`,
+            `UPDATE ${qualifiedTable} SET status = 'rolled_back' WHERE id = $1`,
             [rowId],
           );
           await adapter.commitTransaction(transactionId);
@@ -189,7 +196,14 @@ export function createMigrationHistoryTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = MigrationHistorySchema.parse(params);
-        await ensureTrackingTable(adapter);
+        const targetSchema = parsed.schema ?? "public";
+        const sanitizedSchema = sanitizeIdentifier(targetSchema);
+        const qualifiedTable =
+          targetSchema === "public"
+            ? TRACKING_TABLE
+            : `${sanitizedSchema}."${TRACKING_TABLE}"`;
+
+        await ensureTrackingTable(adapter, targetSchema);
 
         // Coerce limit/offset: wrong-type values silently default
         const limit = parsed.limit ?? 50;
@@ -216,7 +230,7 @@ export function createMigrationHistoryTool(
 
         // Get total count
         const countResult = await adapter.executeQuery(
-          `SELECT COUNT(*)::int AS count FROM ${TRACKING_TABLE} ${whereClause}`,
+          `SELECT COUNT(*)::int AS count FROM ${qualifiedTable} ${whereClause}`,
           values.length > 0 ? values : undefined,
         );
         const countRow = (countResult.rows ?? [])[0];
@@ -229,7 +243,7 @@ export function createMigrationHistoryTool(
         const dataResult = await adapter.executeQuery(
           `SELECT id, version, description, applied_at, applied_by,
                 migration_hash, source_system, rollback_sql IS NOT NULL AS has_rollback, status, error_information
-         FROM ${TRACKING_TABLE}
+         FROM ${qualifiedTable}
          ${whereClause}
          ORDER BY applied_at DESC
          LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
@@ -279,6 +293,20 @@ export function createMigrationStatusTool(
 
         // Sanitize schema to prevent SQL injection via identifier interpolation
         const sanitizedSchema = sanitizeIdentifier(targetSchema);
+
+        // Check if schema exists first (except for public)
+        if (targetSchema !== "public") {
+          const schemaCheck = await adapter.executeQuery(
+            `SELECT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = $1) AS "schema_exists"`,
+            [targetSchema],
+          );
+          if (
+            schemaCheck.rows &&
+            schemaCheck.rows[0]?.["schema_exists"] === false
+          ) {
+            throw new Error(`schema "${targetSchema}" does not exist`);
+          }
+        }
 
         // Check if tracking table exists
         const check = await adapter.executeQuery(

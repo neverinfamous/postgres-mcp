@@ -1,3 +1,32 @@
+-- Ensure public schema exists (in case stress tests dropped it)
+CREATE SCHEMA IF NOT EXISTS public;
+GRANT ALL ON SCHEMA public TO public;
+
+-- Ensure required extensions are installed (tests might drop them)
+CREATE EXTENSION IF NOT EXISTS ltree SCHEMA public CASCADE;
+CREATE EXTENSION IF NOT EXISTS vector SCHEMA public CASCADE;
+CREATE EXTENSION IF NOT EXISTS postgis SCHEMA public CASCADE;
+CREATE EXTENSION IF NOT EXISTS citext SCHEMA public CASCADE;
+CREATE EXTENSION IF NOT EXISTS pgcrypto SCHEMA public CASCADE;
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements SCHEMA public CASCADE;
+CREATE EXTENSION IF NOT EXISTS pg_stat_kcache SCHEMA public CASCADE;
+CREATE EXTENSION IF NOT EXISTS pg_partman SCHEMA public CASCADE;
+
+-- Move extensions to public if they were accidentally installed in topology
+DO $$
+BEGIN
+  EXECUTE 'ALTER EXTENSION ltree SET SCHEMA public';
+  EXECUTE 'ALTER EXTENSION vector SET SCHEMA public';
+  EXECUTE 'ALTER EXTENSION postgis SET SCHEMA public';
+  EXECUTE 'ALTER EXTENSION citext SET SCHEMA public';
+  EXECUTE 'ALTER EXTENSION pgcrypto SET SCHEMA public';
+  EXECUTE 'ALTER EXTENSION pg_stat_statements SET SCHEMA public';
+  EXECUTE 'ALTER EXTENSION pg_stat_kcache SET SCHEMA public';
+  EXECUTE 'ALTER EXTENSION pg_partman SET SCHEMA public';
+EXCEPTION WHEN OTHERS THEN
+  -- Ignore errors if extension doesn't exist yet or already in public
+END $$;
+
 -- Core test tables
 CREATE TABLE test_products (
   id SERIAL PRIMARY KEY,
@@ -272,3 +301,16 @@ INSERT INTO test_assignments (employee_id, project_id, role) VALUES
 
 INSERT INTO test_audit_log (entry_id, employee_id, action) VALUES
   (1, 1, 'login'), (2, 2, 'update_profile'), (3, 1, 'logout');
+
+-- Docstore test collection (JSONB document store)
+CREATE TABLE test_documents (
+  _id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  doc JSONB NOT NULL DEFAULT '{}'::jsonb
+);
+
+INSERT INTO test_documents (_id, doc) VALUES
+  ('doc-001', '{"name": "Alice", "age": 30, "tags": ["admin", "user"], "address": {"city": "NYC"}}'),
+  ('doc-002', '{"name": "Bob", "age": 25, "tags": ["user"], "address": {"city": "LA"}}'),
+  ('doc-003', '{"name": "Charlie", "age": 35, "tags": ["admin"], "address": {"city": "Chicago"}}'),
+  ('doc-004', '{"name": "Diana", "age": 28, "tags": ["user", "moderator"], "address": {"city": "London"}}'),
+  ('doc-005', '{"name": "Eve", "age": 32, "tags": ["admin", "user"], "address": {"city": "Tokyo"}}');

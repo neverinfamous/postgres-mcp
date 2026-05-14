@@ -248,11 +248,8 @@ export function createCronListJobsTool(
         const resultPayload: Record<string, unknown> = {
           success: true,
           count: jobs.length,
+          jobs: jobs,
         };
-
-        if (jobs.length > 0) {
-          resultPayload["jobs"] = jobs;
-        }
 
         if (truncated) {
           resultPayload["truncated"] = true;
@@ -453,12 +450,9 @@ Useful for monitoring and debugging scheduled jobs. Default limit is 10 rows.`,
         const resultPayload: Record<string, unknown> = {
           success: true,
           count: rows.length,
+          runs: rows,
+          summary: summaryStats,
         };
-
-        if (rows.length > 0) {
-          resultPayload["runs"] = rows;
-          resultPayload["summary"] = summaryStats;
-        }
 
         if (truncated) {
           resultPayload["truncated"] = true;

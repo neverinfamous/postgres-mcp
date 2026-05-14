@@ -117,24 +117,28 @@ ON CONFLICT DO NOTHING;
 -- PARTMAN RESOURCE: Create a partman-managed table
 -- ============================================================================
 DO $$
+DECLARE
+  v_schema TEXT;
+  v_dummy INT;
 BEGIN
   -- Only if pg_partman is installed
   IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_partman') THEN
+    SELECT extnamespace::regnamespace::text INTO v_schema FROM pg_extension WHERE extname = 'pg_partman';
     -- Check if already configured
-    IF NOT EXISTS (SELECT 1 FROM public.part_config WHERE parent_table = 'public.test_logs') THEN
+    EXECUTE format('SELECT 1 FROM %I.part_config WHERE parent_table = ''public.test_logs''', v_schema) INTO v_dummy;
+    IF v_dummy IS NULL THEN
       -- First create the template and initial partition
-      PERFORM public.create_parent(
-        p_parent_table := 'public.test_logs',
-        p_control := 'created_at',
-        p_interval := '1 day',
-        p_premake := 7,
-        p_start_partition := (NOW() - INTERVAL '14 days')::text
-      );
+      EXECUTE format('
+        SELECT %I.create_parent(
+          p_parent_table := ''public.test_logs'',
+          p_control := ''created_at'',
+          p_interval := ''1 day'',
+          p_premake := 7,
+          p_start_partition := (NOW() - INTERVAL ''14 days'')::text
+        )', v_schema);
       RAISE NOTICE 'Created partman config for test_logs';
     END IF;
   END IF;
-EXCEPTION WHEN OTHERS THEN
-  RAISE NOTICE 'pg_partman setup skipped: %', SQLERRM;
 END $$;
 
 -- Insert log data

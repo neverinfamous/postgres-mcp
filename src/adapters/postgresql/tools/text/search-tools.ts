@@ -10,7 +10,7 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
+
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -23,7 +23,10 @@ import {
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import { buildLimitClause } from "../../../../utils/query-helpers.js";
 import {
-  preprocessTextParams,
+  LikeSearchSchema,
+  LikeSearchSchemaBase,
+  SentimentSchema,
+  SentimentSchemaBase,
   // Output schemas
   TextRowsOutputSchema,
   TextSentimentOutputSchema,
@@ -34,31 +37,6 @@ import {
 // =============================================================================
 
 export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
-  // Base schema for MCP visibility (no preprocess)
-  const LikeSearchSchemaBase = z.object({
-    table: z.string().optional().describe("Table name"),
-    tableName: z.string().optional().describe("Table name (alias for table)"),
-    column: z.string().optional(),
-    pattern: z.string().optional(),
-    caseSensitive: z
-      .boolean()
-      .optional()
-      .describe("Use case-sensitive LIKE (default: false, uses ILIKE)"),
-    select: z.array(z.string()).optional(),
-    limit: z
-      .any()
-      .optional()
-      .describe("Max results (default: 100 to prevent large payloads)"),
-    where: z.string().optional().describe("Additional WHERE clause filter"),
-    schema: z.string().optional().describe("Schema name (default: public)"),
-  });
-
-  // Full schema with preprocess for handler parsing
-  const LikeSearchSchema = z.preprocess(
-    preprocessTextParams,
-    LikeSearchSchemaBase,
-  );
-
   return {
     name: "pg_like_search",
     description:
@@ -75,23 +53,13 @@ export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
         // The preprocessor guarantees table is set (converts tableName → table)
         const resolvedTable = parsed.table ?? parsed.tableName;
         if (!resolvedTable) {
-          return {
-            success: false,
-            error: "Either 'table' or 'tableName' is required",
-            code: "VALIDATION_ERROR",
-            category: "validation",
-            recoverable: false,
-          };
+          throw new ValidationError(
+            "Either 'table' or 'tableName' is required",
+          );
         }
         const tableName = sanitizeTableName(resolvedTable, parsed.schema);
         if (!parsed.column || !parsed.pattern) {
-          return {
-            success: false,
-            error: "column and pattern are required",
-            code: "VALIDATION_ERROR",
-            category: "validation",
-            recoverable: false,
-          };
+          throw new ValidationError("column and pattern are required");
         }
         const columnName = sanitizeIdentifier(parsed.column);
         const selectCols =
@@ -102,7 +70,7 @@ export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
         const additionalWhere = parsed.where
           ? ` AND (${sanitizeWhereClause(parsed.where)})`
           : "";
-        const safeLimit = parsed.limit as number | undefined;
+        const safeLimit = parsed.limit;
         let limitVal = 100;
         if (safeLimit !== undefined) {
           if (safeLimit < 0) {
@@ -129,6 +97,7 @@ export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
         const count = result.rows?.length ?? 0;
         const truncated = limitVal !== null && count === limitVal;
         return {
+          success: true,
           rows: result.rows,
           count,
           ...(truncated
@@ -157,25 +126,6 @@ export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
 export function createTextSentimentTool(
   _adapter: PostgresAdapter,
 ): ToolDefinition {
-  const SentimentSchemaBase = z.object({
-    text: z.string().optional().describe("Text to analyze"),
-    returnWords: z
-      .boolean()
-      .optional()
-      .describe("Return matched sentiment words"),
-  });
-
-  const SentimentSchema = z.object({
-    text: z
-      .string()
-      .min(1, "Text must not be empty")
-      .describe("Text to analyze"),
-    returnWords: z
-      .boolean()
-      .optional()
-      .describe("Return matched sentiment words"),
-  });
-
   return {
     name: "pg_text_sentiment",
     description:
@@ -188,6 +138,9 @@ export function createTextSentimentTool(
     handler: (params: unknown, _context: RequestContext) => {
       try {
         const parsed = SentimentSchema.parse(params ?? {});
+        if (!parsed.text || parsed.text.trim().length === 0) {
+          throw new ValidationError("Text must not be empty");
+        }
         const text = parsed.text.toLowerCase();
 
         const positiveWords = [
@@ -287,7 +240,7 @@ export function createTextSentimentTool(
           result.matchedNegative = matchedNegative;
         }
 
-        return Promise.resolve(result);
+        return Promise.resolve({ success: true, ...result });
       } catch (error: unknown) {
         return Promise.resolve(
           formatHandlerErrorResponse(error, {

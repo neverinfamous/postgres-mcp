@@ -207,7 +207,7 @@ describe("PostGIS Tools", () => {
           limit: 5,
         },
         mockContext,
-      )) as { results: unknown[]; count: number };
+      )) as { rows: unknown[]; count: number };
 
       expect(result.count).toBe(2);
       expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
@@ -355,9 +355,9 @@ describe("PostGIS Tools", () => {
           distance: 500,
         },
         mockContext,
-      )) as { results: unknown[] };
+      )) as { rows: unknown[] };
 
-      expect(result.results).toHaveLength(1);
+      expect(result.rows).toHaveLength(1);
       expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
         expect.stringContaining("ST_Buffer"),
         [500],
@@ -471,7 +471,7 @@ describe("PostGIS Tools", () => {
           maxLat: 40.8,
         },
         mockContext,
-      )) as { results: unknown[]; count: number };
+      )) as { rows: unknown[]; count: number };
 
       expect(result.count).toBe(3);
       expect(mockAdapter.executeQuery).toHaveBeenCalledWith(

@@ -1300,8 +1300,8 @@ describe("jsonb/read.ts — uncovered branches", () => {
 
   const findTool = (name: string) => tools.find((t) => t.name === name);
 
-  // coerceNumber converts non-numeric strings to undefined → default limit is used
-  it("pg_jsonb_extract should silently default non-numeric limit", async () => {
+  // coerceNumber converts "abc" to undefined, so it defaults and succeeds
+  it("pg_jsonb_extract should coerce non-numeric limit to default", async () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ extracted_value: "test" }],
     });
@@ -1310,11 +1310,16 @@ describe("jsonb/read.ts — uncovered branches", () => {
     const result = (await tool.handler(
       { table: "users", column: "data", path: "$.name", limit: "abc" },
       mockContext,
-    )) as { rows: unknown[]; count: number };
+    )) as {
+      success: boolean;
+      error?: string;
+      rows?: unknown[];
+      count?: number;
+    };
 
-    // coerceNumber converts "abc" → undefined → default limit is used
-    expect(result.rows).toBeDefined();
-    expect(result.count).toBe(1);
+    // limit defaults silently
+    expect(result.success).toBe(true);
+    expect(result.error).toBeUndefined();
   });
 
   it("pg_jsonb_extract should return error when table is missing", async () => {

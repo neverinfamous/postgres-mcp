@@ -47,7 +47,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build image for scanning (local only)
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
           context: .
           file: Dockerfile
@@ -193,7 +193,7 @@ jobs:
 
       - name: Build and push platform image
         id: build
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
           context: .
           file: Dockerfile
@@ -213,7 +213,7 @@ jobs:
           touch "/tmp/digests/${digest#sha256:}"
 
       - name: Upload digest
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: digests-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
           path: /tmp/digests/*
@@ -233,7 +233,7 @@ jobs:
       deployments: write
 
     environment:
-      name: ${{ github.ref == 'refs/heads/main' && 'production' || '' }}
+      name: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || '' }}
       url: https://hub.docker.com/r/writenotenow/postgres-mcp
 
     steps:
@@ -274,8 +274,8 @@ jobs:
           flavor: |
             latest=false
           tags: |
-            type=raw,value=v${{ steps.version.outputs.version }},enable=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=v${{ steps.version.outputs.version }},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
             type=sha,prefix=sha-,format=short
 
       - name: Create and push manifest
@@ -290,7 +290,7 @@ jobs:
 
       # Update Docker Hub description
       - name: Update Docker Hub Description
-        if: github.ref == 'refs/heads/main'
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: peter-evans/dockerhub-description@1b9a80c056b620d92cedb9d9b5a223409c68ddfa # v5
         timeout-minutes: 5
         with:
@@ -298,10 +298,10 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: ${{ env.IMAGE_NAME }}
           readme-filepath: ./DOCKER_README.md
-          short-description: "PostgreSQL MCP: 248 Tools in 1 Code Mode, Audit+Token Log, Tool Filtering, Pooling, HTTP/SSE, OAuth"
+          short-description: "PostgreSQL MCP: 278 Tools in 1 Code Mode, Audit+Token Log, Tool Filtering, Pooling, HTTP/SSE, OAuth"
 
       - name: Deployment Summary
-        if: github.ref == 'refs/heads/main'
+        if: startsWith(github.ref, 'refs/tags/v')
         run: |
           echo "✅ Successfully published Docker images to production"
           echo "🐳 Registry: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
@@ -315,7 +315,7 @@ jobs:
   # - If Lint/Test fails → nothing publishes
   npm-publish:
     needs: [merge-and-push]
-    if: always() && needs.merge-and-push.result == 'success' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    if: always() && needs.merge-and-push.result == 'success' && startsWith(github.ref, 'refs/tags/v')
     uses: ./.github/workflows/publish-npm.yml
     secrets:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

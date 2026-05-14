@@ -103,7 +103,20 @@ export function createVectorSearchTool(
           };
         }
         const vectorStr = `[${vector.join(",")}]`;
-        const limitVal = limit ?? 10;
+        const requestedLimit = limit ?? 10;
+        if (requestedLimit === 0) {
+          throw new ValidationError(
+            "limit: 0 is not permitted. Please specify a reasonable limit (max 100) or omit for the default limit.",
+          );
+        }
+
+        let limitVal = requestedLimit;
+        let limitWasLowered = false;
+        if (limitVal > 100) {
+          limitVal = 100;
+          limitWasLowered = true;
+        }
+
         const selectCols =
           select !== undefined && select.length > 0
             ? select.map((c) => sanitizeIdentifier(c)).join(", ") + ", "
@@ -121,18 +134,39 @@ export function createVectorSearchTool(
           case "inner_product":
             distanceExpr = `${columnName} <#>'${vectorStr}'`;
             break;
-          default: // l2
+          case "l2":
+          case undefined:
+          case null:
             distanceExpr = `${columnName} <-> '${vectorStr}'`;
+            break;
+          default:
+            return {
+              success: false,
+              error: `Validation error: Invalid metric '${metric}'`,
+              code: "VALIDATION_ERROR",
+              category: "validation",
+              suggestion:
+                "Metric must be one of: 'l2', 'cosine', 'inner_product'",
+            };
         }
 
+        // Query limitVal + 1 to detect if there are more rows than requested
         const sql = `SELECT ${selectCols}${distanceExpr} as distance
                         FROM ${tableName}
                         WHERE TRUE${nullFilter}${whereClause}
                         ORDER BY ${distanceExpr}
-                        LIMIT ${String(limitVal)} `;
+                        LIMIT ${String(limitVal + 1)} `;
 
         try {
           const result = await adapter.executeQuery(sql);
+
+          let hasMore = false;
+          if (result.rows && result.rows.length > limitVal) {
+            hasMore = true;
+            result.rows.pop(); // Remove the extra row
+          }
+
+          const isTruncated = hasMore;
 
           // Check for NULL distance values (from NULL vectors)
           const nullCount = (result.rows ?? []).filter(
@@ -159,15 +193,35 @@ export function createVectorSearchTool(
 
           const response: Record<string, unknown> = {
             success: true,
-            results: finalRows,
+            rows: finalRows,
             count: finalRows.length,
             metric: metric ?? "l2",
           };
 
+          const hints: string[] = [];
+
+          if (isTruncated) {
+            response["truncated"] = true;
+            if (limitWasLowered) {
+              hints.push(
+                `Results truncated to max limit of ${String(limitVal)} rows.`,
+              );
+            } else {
+              hints.push(
+                `Results truncated to requested limit of ${String(limitVal)} rows.`,
+              );
+            }
+          }
+
           // Add hint when no select columns specified
           if (select === undefined || select.length === 0) {
-            response["hint"] =
-              'Results only contain distance. Use select param (e.g., select: ["id", "name"]) to include identifying columns.';
+            hints.push(
+              'Results only contain distance. Use select param (e.g., select: ["id", "name"]) to include identifying columns.',
+            );
+          }
+
+          if (hints.length > 0) {
+            response["hint"] = hints.join(" ");
           }
 
           // Note about NULL vectors
@@ -252,6 +306,32 @@ export function createVectorCreateIndexTool(
         // Refine guarantees type is defined, but TypeScript can't narrow through .refine()
         if (type === undefined) {
           throw new ValidationError("type (or method alias) is required");
+        }
+
+        if (type !== "ivfflat" && type !== "hnsw") {
+          return {
+            success: false,
+            error: `Validation error: Invalid index type '${type}'`,
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            suggestion: "Index type must be one of: 'ivfflat', 'hnsw'",
+          };
+        }
+
+        if (
+          metric !== undefined &&
+          metric !== "l2" &&
+          metric !== "cosine" &&
+          metric !== "inner_product"
+        ) {
+          return {
+            success: false,
+            error: `Validation error: Invalid distance metric '${metric}'`,
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            suggestion:
+              "Metric must be one of: 'l2', 'cosine', 'inner_product'",
+          };
         }
 
         // P154: Verify table and column exist before attempting index creation

@@ -112,6 +112,7 @@ describe("BackupManager", () => {
       expect(filename).toContain("users");
       expect(filename).toMatch(/\.snapshot\.json\.gz$/);
       expect(adapter.describeTable).toHaveBeenCalledWith("users", "public");
+      await mgr.flush();
     });
 
     it("should return undefined for non-snapshotted tools", async () => {
@@ -140,6 +141,7 @@ describe("BackupManager", () => {
       );
 
       expect(adapter.describeTable).toHaveBeenCalledWith("users", "myschema");
+      await mgr.flush();
     });
 
     it("should include data when configured", async () => {
@@ -251,6 +253,7 @@ describe("BackupManager", () => {
 
       expect(filename).toBeDefined();
       expect(filename).toContain("unknown");
+      await mgr.flush();
     });
   });
 

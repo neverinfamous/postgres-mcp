@@ -6,7 +6,6 @@
  */
 
 import { z } from "zod";
-import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 // =============================================================================
 // Base Schemas (for MCP visibility)
@@ -108,11 +107,13 @@ export const StatsTimeSeriesSchemaBase = z.object({
     .optional()
     .describe("Parameters for $1, $2 placeholders in where clause"),
   limit: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe("Max time buckets to return (default: 100, 0 = no limit)"),
   groupBy: z.string().optional().describe("Column to group time series by"),
   groupLimit: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe(
       "Max number of groups when using groupBy (default: 20, 0 = no limit). Prevents large payloads with many groups",
     ),
@@ -123,7 +124,8 @@ export const StatsDistributionSchemaBase = z.object({
   tableName: z.string().optional().describe("Alias for table"),
   column: z.string().describe("Numeric column"),
   buckets: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe("Number of histogram buckets (default: 10)"),
   schema: z.string().optional().describe("Schema name"),
   where: z.string().optional().describe("Filter condition"),
@@ -133,7 +135,8 @@ export const StatsDistributionSchemaBase = z.object({
     .describe("Parameters for $1, $2 placeholders in where clause"),
   groupBy: z.string().optional().describe("Column to group distribution by"),
   groupLimit: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe(
       "Max number of groups when using groupBy (default: 20, 0 = no limit). Prevents large payloads with many groups",
     ),
@@ -144,10 +147,12 @@ export const StatsHypothesisSchemaBase = z.object({
   tableName: z.string().optional().describe("Alias for table"),
   column: z.string().describe("Numeric column"),
   hypothesizedMean: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe("Hypothesized population mean (default: 0)"),
   populationStdDev: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe(
       "Known population standard deviation (if provided, uses z-test; otherwise uses t-test)",
     ),
@@ -170,10 +175,12 @@ export const StatsSamplingSchemaBase = z.object({
       "Sampling method (default: random). Note: system uses page-level sampling and may return 0 rows on small tables",
     ),
   sampleSize: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe("Number of rows for random sampling (default: 20)"),
   percentage: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe("Percentage for bernoulli/system sampling (0-100)"),
   schema: z.string().optional().describe("Schema name"),
   select: z.array(z.string()).optional().describe("Columns to select"),
@@ -196,6 +203,7 @@ export const StatisticsObjectSchema = z.object({
   min: z.number().nullable().describe("Minimum value"),
   max: z.number().nullable().describe("Maximum value"),
   avg: z.number().nullable().describe("Mean/average value"),
+  mean: z.number().nullable().optional().describe("Alias for avg"),
   stddev: z.number().nullable().describe("Standard deviation"),
   variance: z.number().nullable().describe("Variance"),
   sum: z.number().nullable().describe("Sum of all values"),

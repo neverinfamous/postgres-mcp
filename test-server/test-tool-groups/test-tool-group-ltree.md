@@ -51,7 +51,7 @@ Schema objects: `test_schema`, `test_schema.order_seq` (starts at 1000), `test_o
 2. Create temporary tables with `temp_*` prefix for write operations (CREATE, INSERT, DROP, etc.)
 3. Test each tool with realistic inputs based on the schema above
 4. Clean up any `temp_*` tables after testing
-5. Report all failures, unexpected behaviors, improvement opportunities, or unnecessarily large payloads
+5. Report all failures, broken contracts, or deviations from defined standards (e.g., P154 object-existence, Split Schema validation leaks, or unoptimized payloads). Do NOT report or implement subjective "improvement opportunities" beyond these objective criteria. If the tool group meets all standards perfectly, state that 0 changes are required and stop.
 6. Do not mention what already works well or issues well documented in ServerInstructions and runtime hints which are already optimal
 7. **Error path testing**: For **every** tool, test at least **two** invalid inputs: (a) a domain error (nonexistent table, invalid column, bad parameter value) and (b) a **Zod validation error** (call the tool with `{}` empty params if it has required parameters, or pass the wrong type). Both must return a **structured handler error** (`{success: false, error: "..."}`) — NOT a raw MCP error frame. See the "Structured Error Response Pattern" section below for how to distinguish the two. This is the most common deficiency found across tool groups.
 8. **Strict Coverage Matrix**: You must create a markdown table tracking your progress in your `task.md`. For EVERY tool in the group, you must explicitly log: Direct Call (Happy Path), Domain Error (Direct Call), Zod Empty Param (Direct Call), and Alias Acceptance (if applicable). Do not proceed to the final summary until every cell in this matrix is marked with a ✅.
@@ -249,18 +249,18 @@ Paths: `electronics`, `electronics.phones`, `electronics.phones.smartphones`, `e
 
 **Checklist:**
 
-1. `pg_ltree_query({table: "test_categories", column: "path", path: "electronics"})` → verify descendants include `phones`, `smartphones`, `accessories`
-2. `pg_ltree_query({table: "test_categories", column: "path", path: "electronics", mode: "exact"})` → exactly 1 result
-3. `pg_ltree_subpath({path: "electronics.phones.smartphones", offset: 1, length: 2})` → `"phones.smartphones"`
-4. `pg_ltree_lca({paths: ["electronics.phones", "electronics.accessories"]})` → `"electronics"`
-5. `pg_ltree_match({table: "test_categories", column: "path", pattern: "electronics.*"})` → results include `phones`, `accessories`
-6. `pg_ltree_list_columns()` → verify `test_categories.path` appears
-7. 🔴 `pg_ltree_query({table: "nonexistent_xyz", column: "path", path: "a"})` → `{success: false, error: "..."}` handler error
-8. 🔴 `pg_ltree_subpath({})` → `{success: false, error: "..."}` (Zod validation)
+1. ✅ `pg_ltree_query({table: "test_categories", column: "path", path: "electronics"})` → verify descendants include `phones`, `smartphones`, `accessories`
+2. ✅ `pg_ltree_query({table: "test_categories", column: "path", path: "electronics", mode: "exact"})` → exactly 1 result
+3. ✅ `pg_ltree_subpath({path: "electronics.phones.smartphones", offset: 1, length: 2})` → `"phones.smartphones"`
+4. ✅ `pg_ltree_lca({paths: ["electronics.phones", "electronics.accessories"]})` → `"electronics"`
+5. ✅ `pg_ltree_match({table: "test_categories", column: "path", pattern: "electronics.*"})` → results include `phones`, `accessories`
+6. ✅ `pg_ltree_list_columns()` → verify `test_categories.path` appears
+7. ✅ 🔴 `pg_ltree_query({table: "nonexistent_xyz", column: "path", path: "a"})` → `{success: false, error: "..."}` handler error
+8. ✅ 🔴 `pg_ltree_subpath({})` → `{success: false, error: "..."}` (Zod validation)
 
-9. `pg_ltree_create_extension()` → verify happy path expected behavior
-10. 🔴 `pg_ltree_create_extension({})` → verify structured P154 error response or valid defaults
-11. `pg_ltree_convert_column()` → verify happy path expected behavior
-12. 🔴 `pg_ltree_convert_column({})` → verify structured P154 error response or valid defaults
-13. `pg_ltree_create_index()` → verify happy path expected behavior
-14. 🔴 `pg_ltree_create_index({})` → verify structured P154 error response or valid defaults
+9. ✅ `pg_ltree_create_extension()` → verify happy path expected behavior
+10. ✅ 🔴 `pg_ltree_create_extension({})` → verify structured P154 error response or valid defaults
+11. ✅ `pg_ltree_convert_column()` → verify happy path expected behavior
+12. ✅ 🔴 `pg_ltree_convert_column({})` → verify structured P154 error response or valid defaults
+13. ✅ `pg_ltree_create_index()` → verify happy path expected behavior
+14. ✅ 🔴 `pg_ltree_create_index({})` → verify structured P154 error response or valid defaults

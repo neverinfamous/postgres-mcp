@@ -7,23 +7,26 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
+
 import { readOnly } from "../../../../utils/annotations.js";
 
 import { getToolIcons } from "../../../../utils/icons.js";
-import { ResourceUsageAnalyzeOutputSchema } from "../../schemas/index.js";
+import {
+  SystemHealthSchemaBase,
+  SystemHealthOutputSchema,
+} from "../../schemas/index.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 
-export function createResourceUsageAnalyzeTool(
+export function createSystemHealthTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
   return {
-    name: "pg_resource_usage_analyze",
+    name: "pg_system_health",
     description:
-      "Analyze current resource usage including CPU, memory, and I/O patterns.",
+      "Analyze current system health and resource usage including CPU, memory, and I/O patterns.",
     group: "monitoring",
-    inputSchema: z.object({}).strict(),
-    outputSchema: ResourceUsageAnalyzeOutputSchema,
+    inputSchema: SystemHealthSchemaBase,
+    outputSchema: SystemHealthOutputSchema,
     annotations: readOnly("Resource Usage Analysis"),
     icons: getToolIcons("monitoring", readOnly("Resource Usage Analysis")),
     handler: async (_params: unknown, _context: RequestContext) => {
@@ -225,7 +228,7 @@ export function createResourceUsageAnalyzeTool(
         };
       } catch (err) {
         return formatHandlerErrorResponse(err, {
-          tool: "pg_resource_usage_analyze",
+          tool: "pg_system_health",
         });
       }
     },

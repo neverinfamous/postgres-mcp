@@ -387,10 +387,10 @@ describe("Handler Execution", () => {
         hint?: string;
       };
 
-      expect(result.count).toBe(100); // Default limit
+      expect(result.count).toBe(20); // Default limit
       expect(result.totalCount).toBe(150);
       expect(result.truncated).toBe(true);
-      expect(result.hint).toContain("100 of 150");
+      expect(result.hint).toContain("20 of 150");
     });
 
     it("should respect custom limit", async () => {
@@ -581,7 +581,7 @@ describe("Handler Execution", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/not found/);
+      expect(result.error).toMatch(/does not exist/);
     });
 
     it("should return structured error for indexes", async () => {

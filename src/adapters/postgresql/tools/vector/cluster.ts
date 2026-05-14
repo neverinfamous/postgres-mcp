@@ -11,7 +11,7 @@ import {
   type ToolDefinition,
   type RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
+
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -20,8 +20,11 @@ import {
   sanitizeTableName,
 } from "../../../../utils/identifiers.js";
 import { checkTableAndColumn, truncateVector } from "./data.js";
-import { VectorClusterOutputSchema } from "../../schemas/index.js";
-import { coerceNumber } from "../../../../utils/query-helpers.js";
+import {
+  VectorClusterOutputSchema,
+  VectorClusterSchemaBase,
+  VectorClusterSchema,
+} from "../../schemas/index.js";
 
 /**
  * Parse a PostgreSQL vector string to a number array.
@@ -39,55 +42,18 @@ function parseVector(vecStr: unknown): number[] | null {
 export function createVectorClusterTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  // Schema with parameter smoothing
-  const ClusterSchemaBase = z.object({
-    table: z.string().optional().describe("Table name"),
-    tableName: z.string().optional().describe("Alias for table"),
-    column: z.string().optional().describe("Vector column"),
-    col: z.string().optional().describe("Alias for column"),
-    k: z
-      .preprocess(coerceNumber, z.number().optional())
-      .describe("Number of clusters"),
-    clusters: z
-      .preprocess(coerceNumber, z.number().optional())
-      .describe("Alias for k (number of clusters)"),
-    iterations: z
-      .preprocess(coerceNumber, z.number().optional())
-      .describe("Max iterations (default: 10)"),
-    sampleSize: z
-      .preprocess(coerceNumber, z.number().optional())
-      .describe("Sample size for large tables"),
-    schema: z.string().optional().describe("Database schema (default: public)"),
-  });
-
-  const ClusterSchema = ClusterSchemaBase.transform((data) => {
-    const rawK = (data.k ?? data.clusters) as unknown;
-    const rawIterations = data.iterations as unknown;
-    const rawSampleSize = data.sampleSize as unknown;
-    return {
-      table: data.table ?? data.tableName ?? "",
-      column: data.column ?? data.col ?? "",
-      k: rawK != null ? Number(rawK) : undefined,
-      iterations: rawIterations != null ? Number(rawIterations) : undefined,
-      sampleSize: rawSampleSize != null ? Number(rawSampleSize) : undefined,
-      schema: data.schema,
-    };
-  }).refine((data) => data.k !== undefined, {
-    message: "k (or clusters alias) is required",
-  });
-
   return {
     name: "pg_vector_cluster",
     description:
       "Perform K-means clustering on vectors. Returns cluster centroids only (not row assignments). To assign rows to clusters, compare row vectors to centroids using pg_vector_distance.",
     group: "vector",
-    inputSchema: ClusterSchemaBase,
+    inputSchema: VectorClusterSchemaBase,
     outputSchema: VectorClusterOutputSchema,
     annotations: readOnly("Vector Cluster"),
     icons: getToolIcons("vector", readOnly("Vector Cluster")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = ClusterSchema.parse(params);
+        const parsed = VectorClusterSchema.parse(params);
         // Refine guarantees k is defined, but add explicit check for TypeScript
         const k = parsed.k;
         if (k === undefined) {
@@ -109,6 +75,26 @@ export function createVectorClusterTool(
             suggestion: "Provide k >= 1, typically between 2 and 20",
           };
         }
+
+        if (parsed.table === "") {
+          return {
+            success: false,
+            error: "table (or tableName) parameter is required",
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            requiredParams: ["table", "column"],
+          };
+        }
+        if (parsed.column === "") {
+          return {
+            success: false,
+            error: "column (or col) parameter is required",
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            requiredParams: ["table", "column"],
+          };
+        }
+
         const maxIter = parsed.iterations ?? 10;
         const sample = parsed.sampleSize ?? 10000;
         const schemaName = parsed.schema ?? "public";

@@ -13,14 +13,13 @@ export { normalizeOptionalParams } from "./shared.js";
 
 // pg_stat_kcache schemas
 export {
-  KcacheQueryStatsSchemaBase,
   KcacheQueryStatsSchema,
-  KcacheTopCpuSchemaBase,
-  KcacheTopIoSchemaBase,
-  KcacheDatabaseStatsSchemaBase,
+  KcacheTopCpuSchema,
+  KcacheTopIoSchema,
   KcacheDatabaseStatsSchema,
-  KcacheResourceAnalysisSchemaBase,
   KcacheResourceAnalysisSchema,
+  KcacheCreateExtensionSchema,
+  KcacheResetSchema,
   KcacheCreateExtensionOutputSchema,
   KcacheQueryStatsOutputSchema,
   KcacheTopCpuOutputSchema,
@@ -55,6 +54,8 @@ export {
 
 // ltree schemas
 export {
+  LtreeCreateExtensionSchemaBase,
+  LtreeCreateExtensionSchema,
   LtreeQuerySchemaBase,
   LtreeQuerySchema,
   LtreeSubpathSchemaBase,

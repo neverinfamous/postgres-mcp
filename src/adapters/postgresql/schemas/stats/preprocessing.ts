@@ -5,7 +5,10 @@
  * Handles tableName→table, col→column, schema.table parsing, percentile normalization, etc.
  */
 
-import { coerceNumber } from "../../../../utils/query-helpers.js";
+import {
+  coerceNumber,
+  coerceStrictNumber,
+} from "../../../../utils/query-helpers.js";
 
 // =============================================================================
 // Schema.Table Parsing
@@ -145,6 +148,17 @@ export function preprocessBasicStatsParams(input: unknown): unknown {
       // else: already in 0-1 format, no change needed
     }
   }
+  // Handle advanced stats parameters with strict coercion
+  if (result["n"] !== undefined) {
+    result["n"] = coerceStrictNumber(result["n"]);
+  }
+  if (result["limit"] !== undefined) {
+    result["limit"] = coerceStrictNumber(result["limit"]);
+  }
+  if (result["maxOutliers"] !== undefined) {
+    result["maxOutliers"] = coerceStrictNumber(result["maxOutliers"]);
+  }
+
   return result;
 }
 
@@ -417,19 +431,19 @@ export function preprocessHypothesisParams(input: unknown): unknown {
   }
 
   if (result["hypothesizedMean"] !== undefined) {
-    result["hypothesizedMean"] = coerceNumber(result["hypothesizedMean"]);
+    result["hypothesizedMean"] = coerceStrictNumber(result["hypothesizedMean"]);
   }
   if (result["populationStdDev"] !== undefined) {
-    result["populationStdDev"] = coerceNumber(result["populationStdDev"]);
+    result["populationStdDev"] = coerceStrictNumber(result["populationStdDev"]);
   }
   if (result["sigma"] !== undefined) {
-    result["sigma"] = coerceNumber(result["sigma"]);
+    result["sigma"] = coerceStrictNumber(result["sigma"]);
   }
   if (result["mean"] !== undefined) {
-    result["mean"] = coerceNumber(result["mean"]);
+    result["mean"] = coerceStrictNumber(result["mean"]);
   }
   if (result["expected"] !== undefined) {
-    result["expected"] = coerceNumber(result["expected"]);
+    result["expected"] = coerceStrictNumber(result["expected"]);
   }
 
   return result;
@@ -467,7 +481,7 @@ export function preprocessDistributionParams(input: unknown): unknown {
   }
 
   if (result["buckets"] !== undefined) {
-    result["buckets"] = coerceNumber(result["buckets"]);
+    result["buckets"] = coerceStrictNumber(result["buckets"]);
   }
   if (result["groupLimit"] !== undefined) {
     result["groupLimit"] = coerceNumber(result["groupLimit"]);
@@ -508,10 +522,10 @@ export function preprocessSamplingParams(input: unknown): unknown {
   }
 
   if (result["sampleSize"] !== undefined) {
-    result["sampleSize"] = coerceNumber(result["sampleSize"]);
+    result["sampleSize"] = coerceStrictNumber(result["sampleSize"]);
   }
   if (result["percentage"] !== undefined) {
-    result["percentage"] = coerceNumber(result["percentage"]);
+    result["percentage"] = coerceStrictNumber(result["percentage"]);
   }
 
   return result;

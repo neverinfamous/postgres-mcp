@@ -17,18 +17,6 @@ export {
   ConstraintAnalysisSchema,
   MigrationRisksSchemaBase,
   MigrationRisksSchema,
-  MigrationInitSchemaBase,
-  MigrationInitSchema,
-  MigrationRecordSchemaBase,
-  MigrationRecordSchema,
-  MigrationApplySchemaBase,
-  MigrationApplySchema,
-  MigrationRollbackSchemaBase,
-  MigrationRollbackSchema,
-  MigrationHistorySchemaBase,
-  MigrationHistorySchema,
-  MigrationStatusSchemaBase,
-  MigrationStatusSchema,
 } from "./input.js";
 
 export {
@@ -38,10 +26,4 @@ export {
   SchemaSnapshotOutputSchema,
   ConstraintAnalysisOutputSchema,
   MigrationRisksOutputSchema,
-  MigrationInitOutputSchema,
-  MigrationRecordOutputSchema,
-  MigrationApplyOutputSchema,
-  MigrationRollbackOutputSchema,
-  MigrationHistoryOutputSchema,
-  MigrationStatusOutputSchema,
 } from "./output.js";

@@ -38,6 +38,18 @@ export function preprocessTextParams(input: unknown): unknown {
   if (result["text"] !== undefined && result["value"] === undefined) {
     result["value"] = result["text"];
   }
+  // Alias: query → value (cross-tool normalization)
+  if (result["query"] !== undefined && result["value"] === undefined) {
+    result["value"] = result["query"];
+  }
+  // Alias: value → query (cross-tool normalization)
+  if (result["value"] !== undefined && result["query"] === undefined) {
+    result["query"] = result["value"];
+  }
+  // Alias: value → pattern (for like search)
+  if (result["value"] !== undefined && result["pattern"] === undefined) {
+    result["pattern"] = result["value"];
+  }
   // Alias: indexName → name (for FTS index tool)
   if (result["indexName"] !== undefined && result["name"] === undefined) {
     result["name"] = result["indexName"];
@@ -126,24 +138,238 @@ export const RegexpMatchSchemaBase = z.object({
   schema: z.string().optional().describe("Schema name (default: public)"),
 });
 
+export const TextRankSchemaBase = z.object({
+  table: z.string().optional().describe("Table name"),
+  tableName: z.string().optional().describe("Table name (alias for table)"),
+  column: z.string().optional().describe("Single column to search"),
+  columns: z
+    .array(z.string())
+    .optional()
+    .describe("Multiple columns to search (alternative to column)"),
+  query: z.string().optional(),
+  config: z.string().optional(),
+  normalization: z.any().optional(),
+  select: z.array(z.string()).optional().describe("Columns to return"),
+  limit: z.any().optional().describe("Max results"),
+  schema: z.string().optional().describe("Schema name (default: public)"),
+});
+
+export const HeadlineSchemaBase = z.object({
+  table: z.string().optional().describe("Table name"),
+  tableName: z.string().optional().describe("Table name (alias for table)"),
+  column: z.string().optional(),
+  query: z.string().optional(),
+  config: z.string().optional(),
+  options: z
+    .string()
+    .optional()
+    .describe(
+      'Headline options (e.g., "MaxWords=20, MinWords=5"). Note: MinWords must be < MaxWords.',
+    ),
+  startSel: z
+    .string()
+    .optional()
+    .describe("Start selection marker (default: <b>)"),
+  stopSel: z
+    .string()
+    .optional()
+    .describe("Stop selection marker (default: </b>)"),
+  maxWords: z.any().optional().describe("Maximum words in headline"),
+  minWords: z.any().optional().describe("Minimum words in headline"),
+  select: z
+    .array(z.string())
+    .optional()
+    .describe('Columns to return for row identification (e.g., ["id"])'),
+  limit: z.any().optional().describe("Max results"),
+  schema: z.string().optional().describe("Schema name (default: public)"),
+});
+
+export const FtsIndexSchemaBase = z.object({
+  table: z.string().optional().describe("Table name"),
+  tableName: z.string().optional().describe("Table name (alias for table)"),
+  column: z.string().optional(),
+  name: z.string().optional(),
+  config: z.string().optional(),
+  ifNotExists: z
+    .boolean()
+    .optional()
+    .describe("Skip if index already exists (default: true)"),
+  schema: z.string().optional().describe("Schema name (default: public)"),
+});
+
+export const FuzzyMatchSchemaBase = z.object({
+  table: z.string().optional().describe("Table name"),
+  tableName: z.string().optional().describe("Table name (alias for table)"),
+  column: z.string().optional(),
+  value: z.string().optional(),
+  method: z
+    .string()
+    .optional()
+    .describe(
+      "Fuzzy match method (default: levenshtein). Valid: soundex, levenshtein, damerau-levenshtein, metaphone",
+    ),
+  maxDistance: z
+    .any()
+    .optional()
+    .describe(
+      "Max Levenshtein distance (default: 3, use 5+ for longer strings)",
+    ),
+  select: z.array(z.string()).optional().describe("Columns to return"),
+  limit: z
+    .any()
+    .optional()
+    .describe("Max results (default: 100 to prevent large payloads)"),
+  where: z.string().optional().describe("Additional WHERE clause filter"),
+  schema: z.string().optional().describe("Schema name (default: public)"),
+});
+
+export const LikeSearchSchemaBase = z.object({
+  table: z.string().optional().describe("Table name"),
+  tableName: z.string().optional().describe("Table name (alias for table)"),
+  column: z.string().optional(),
+  pattern: z.string().optional(),
+  caseSensitive: z
+    .boolean()
+    .optional()
+    .describe("Use case-sensitive LIKE (default: false, uses ILIKE)"),
+  select: z.array(z.string()).optional(),
+  limit: z
+    .any()
+    .optional()
+    .describe("Max results (default: 100 to prevent large payloads)"),
+  where: z.string().optional().describe("Additional WHERE clause filter"),
+  schema: z.string().optional().describe("Schema name (default: public)"),
+});
+
+export const SentimentSchemaBase = z.object({
+  text: z.string().optional().describe("Text to analyze"),
+  returnWords: z
+    .boolean()
+    .optional()
+    .describe("Return matched sentiment words"),
+});
+
+export const NormalizeSchemaBase = z.object({
+  text: z.string().optional().describe("Text to remove accent marks from"),
+});
+
+export const ToVectorSchemaBase = z.object({
+  text: z.string().optional().describe("Text to convert to tsvector"),
+  config: z
+    .string()
+    .optional()
+    .describe("Text search configuration (default: english)"),
+});
+
+export const ToQuerySchemaBase = z.object({
+  text: z.string().optional().describe("Text to convert to tsquery"),
+  config: z
+    .string()
+    .optional()
+    .describe("Text search configuration (default: english)"),
+  mode: z
+    .string()
+    .optional()
+    .describe(
+      "Query parsing mode: plain (default), phrase (proximity), websearch (Google-like)",
+    ),
+});
+
+export const TextSearchConfigSchemaBase = z.object({}).default({});
+
 // =============================================================================
 // Full Schemas (with preprocess - for handler parsing)
 // =============================================================================
 
 export const TextSearchSchema = z.preprocess(
   preprocessTextParams,
-  TextSearchSchemaBase,
+  TextSearchSchemaBase.extend({
+    limit: z.number().optional(),
+  }),
 );
 
 export const TrigramSimilaritySchema = z.preprocess(
   preprocessTextParams,
-  TrigramSimilaritySchemaBase,
+  TrigramSimilaritySchemaBase.extend({
+    limit: z.number().optional(),
+    threshold: z.number().optional(),
+  }),
 );
 
 export const RegexpMatchSchema = z.preprocess(
   preprocessTextParams,
-  RegexpMatchSchemaBase,
+  RegexpMatchSchemaBase.extend({
+    limit: z.number().optional(),
+  }),
 );
+
+export const TextRankSchema = z.preprocess(
+  preprocessTextParams,
+  TextRankSchemaBase.extend({
+    limit: z.number().optional(),
+  }),
+);
+
+export const HeadlineSchema = z.preprocess(
+  preprocessTextParams,
+  HeadlineSchemaBase.extend({
+    limit: z.number().optional(),
+  }),
+);
+
+export const FtsIndexSchema = z.preprocess(
+  preprocessTextParams,
+  FtsIndexSchemaBase,
+);
+
+export const FuzzyMatchSchema = z.preprocess(
+  preprocessTextParams,
+  FuzzyMatchSchemaBase.extend({
+    limit: z.number().optional(),
+    maxDistance: z.number().optional(),
+  }),
+);
+
+export const LikeSearchSchema = z.preprocess(
+  preprocessTextParams,
+  LikeSearchSchemaBase.extend({
+    limit: z.number().optional(),
+  }),
+);
+
+export const SentimentSchema = z.object({
+  text: z.string().describe("Text to analyze"),
+  returnWords: z
+    .boolean()
+    .optional()
+    .describe("Return matched sentiment words"),
+});
+
+export const NormalizeSchema = z.object({
+  text: z.string().describe("Text to remove accent marks from"),
+});
+
+export const ToVectorSchema = z.object({
+  text: z.string().describe("Text to convert to tsvector"),
+  config: z
+    .string()
+    .optional()
+    .describe("Text search configuration (default: english)"),
+});
+
+export const ToQuerySchema = z.object({
+  text: z.string().describe("Text to convert to tsquery"),
+  config: z
+    .string()
+    .optional()
+    .describe("Text search configuration (default: english)"),
+  mode: z
+    .enum(["plain", "phrase", "websearch"])
+    .optional()
+    .describe(
+      "Query parsing mode: plain (default), phrase (proximity), websearch (Google-like)",
+    ),
+});
 
 // =============================================================================
 // OUTPUT SCHEMAS (MCP 2025-11-25 structuredContent)

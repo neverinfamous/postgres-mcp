@@ -235,7 +235,7 @@ describe("pg_audit_diff_backup", () => {
     )) as any;
 
     expect(result.success).toBe(true);
-    expect(result.hasDifferences).toBe(true);
+    expect(result.hasDrift).toBe(true);
     expect(
       result.diff.additions.some((line: string) => line.includes("new_col")),
     ).toBe(true);

@@ -23,6 +23,7 @@ import {
   VectorAggregateOutputSchema,
   VectorValidateOutputSchema,
 } from "../../schemas/index.js";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 export function createVectorAggregateTool(
   adapter: PostgresAdapter,
@@ -44,6 +45,9 @@ export function createVectorAggregateTool(
       .boolean()
       .optional()
       .describe("Truncate large vectors to preview (default: true)"),
+    limit: z
+      .preprocess(coerceNumber, z.number().optional())
+      .describe("Max groups to return (default: 100)"),
   });
 
   // Transformed schema applies alias resolution
@@ -55,6 +59,7 @@ export function createVectorAggregateTool(
     schema: data.schema,
     excludeNullGroups: data.excludeNullGroups,
     summarizeVector: data.summarizeVector ?? true,
+    limit: data.limit,
   }));
 
   return {
@@ -156,10 +161,14 @@ export function createVectorAggregateTool(
                 "groupBy only supports simple column names (not expressions like LOWER(column)). Use a direct column reference.",
             };
           }
+          const limitClause =
+            parsed.limit !== undefined
+              ? ` LIMIT ${String(parsed.limit)}`
+              : ` LIMIT 100`;
           const sql = `SELECT ${groupByCol} as group_key, avg(${columnName})::text as average_vector, count(*):: integer as count
                             FROM ${tableName}${whereClause}
                             GROUP BY ${groupByCol}
-                            ORDER BY ${groupByCol} `;
+                            ORDER BY ${groupByCol}${limitClause}`;
 
           const result = await adapter.executeQuery(sql);
           let groups =
@@ -269,7 +278,9 @@ export function createVectorValidateTool(
     column: z.string().optional().describe("Vector column"),
     col: z.string().optional().describe("Alias for column"),
     vector: z.array(z.number()).optional().describe("Vector to validate"),
-    dimensions: z.number().optional().describe("Expected dimensions"),
+    dimensions: z
+      .preprocess(coerceNumber, z.number().optional())
+      .describe("Expected dimensions"),
     schema: z.string().optional().describe("Database schema (default: public)"),
   });
 

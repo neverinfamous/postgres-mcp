@@ -7,7 +7,6 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -16,40 +15,18 @@ import { validatePerformanceTableExists } from "./helpers.js";
 
 import {
   PerformanceBaselineOutputSchema,
+  PerformanceBaselineSchemaBase,
+  PerformanceBaselineSchema,
   ConnectionPoolOptimizeOutputSchema,
+  ConnectionPoolOptimizeInputSchemaBase,
   PartitionStrategySuggestOutputSchema,
+  PartitionStrategySchemaBase,
+  PartitionStrategySchema,
 } from "../../schemas/index.js";
-
-// Helper to handle undefined params (allows tools to be called without {})
-const defaultToEmpty = (val: unknown): unknown => val ?? {};
-
-// Preprocess partition strategy params with tableName/name aliases
-function preprocessPartitionStrategyParams(input: unknown): unknown {
-  const normalized = defaultToEmpty(input) as Record<string, unknown>;
-  const result = { ...normalized };
-  // Alias: tableName/name → table
-  if (result["table"] === undefined) {
-    if (result["tableName"] !== undefined)
-      result["table"] = result["tableName"];
-    else if (result["name"] !== undefined) result["table"] = result["name"];
-  }
-  return result;
-}
 
 export function createPerformanceBaselineTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  // Base schema for MCP visibility (no preprocess)
-  const PerformanceBaselineSchemaBase = z.object({
-    name: z.string().optional().describe("Baseline name for reference"),
-  });
-
-  // Full schema with defaultToEmpty preprocessing for handler-side parsing
-  const PerformanceBaselineSchema = z.preprocess(
-    defaultToEmpty,
-    PerformanceBaselineSchemaBase,
-  );
-
   return {
     name: "pg_performance_baseline",
     description:
@@ -63,7 +40,9 @@ export function createPerformanceBaselineTool(
       try {
         const parsed = PerformanceBaselineSchema.parse(params);
         const baselineName =
-          parsed.name ?? `baseline_${new Date().toISOString()}`;
+          typeof parsed.name === "string"
+            ? parsed.name
+            : `baseline_${new Date().toISOString()}`;
 
         const [cacheHit, tableStats, indexStats, connections, dbSize] =
           await Promise.all([
@@ -145,7 +124,7 @@ export function createConnectionPoolOptimizeTool(
     description:
       "Analyze connection usage and provide pool optimization recommendations.",
     group: "performance",
-    inputSchema: z.object({}).strict(),
+    inputSchema: ConnectionPoolOptimizeInputSchemaBase,
     outputSchema: ConnectionPoolOptimizeOutputSchema,
     annotations: readOnly("Connection Pool Optimize"),
     icons: getToolIcons("performance", readOnly("Connection Pool Optimize")),
@@ -265,18 +244,6 @@ export function createConnectionPoolOptimizeTool(
 export function createPartitionStrategySuggestTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  // Base schema for MCP visibility (no preprocess)
-  const PartitionStrategySchemaBase = z.object({
-    table: z.string().optional().describe("Table to analyze"),
-    schema: z.string().optional().describe("Schema name"),
-  });
-
-  // Full schema with preprocessing for aliases
-  const PartitionStrategySchema = z.preprocess(
-    preprocessPartitionStrategyParams,
-    PartitionStrategySchemaBase,
-  );
-
   return {
     name: "pg_partition_strategy_suggest",
     description: "Analyze a table and suggest optimal partitioning strategy.",
@@ -290,10 +257,10 @@ export function createPartitionStrategySuggestTool(
         const parsed = PartitionStrategySchema.parse(params);
 
         // Validate required parameter
-        if (!parsed.table) {
+        if (typeof parsed.table !== "string" || !parsed.table) {
           return {
             success: false as const,
-            error: "Missing required parameter: table is required",
+            error: "Validation error: table is required",
             code: "VALIDATION_ERROR",
             category: "validation",
             recoverable: false,
@@ -301,7 +268,8 @@ export function createPartitionStrategySuggestTool(
         }
 
         // Parse schema from table if it contains a dot (e.g., 'public.users')
-        let schemaName = parsed.schema ?? "public";
+        let schemaName =
+          typeof parsed.schema === "string" ? parsed.schema : "public";
         let tableName = parsed.table;
         if (tableName.includes(".")) {
           const parts = tableName.split(".");

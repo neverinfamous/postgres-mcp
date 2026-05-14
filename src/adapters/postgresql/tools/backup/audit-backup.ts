@@ -26,6 +26,7 @@ import {
   AuditListBackupsSchemaBase,
   AuditListBackupsSchema,
   AuditRestoreBackupSchema,
+  AuditDiffBackupSchemaBase,
   AuditDiffBackupSchema,
   AuditListBackupsOutputSchema,
   AuditRestoreBackupOutputSchema,
@@ -125,7 +126,7 @@ export function createAuditListBackupsTool(
 
         return {
           success: true,
-          ...(resultSnapshots.length > 0 && { snapshots: resultSnapshots }),
+          snapshots: resultSnapshots,
           count,
           limit,
           ...(isCompact && { compact: true }),
@@ -347,7 +348,7 @@ export function createAuditDiffBackupTool(
     description:
       "Compare a backup snapshot's DDL against the current live schema to show drift since the snapshot was taken.",
     group: "backup",
-    inputSchema: AuditDiffBackupSchema,
+    inputSchema: AuditDiffBackupSchemaBase,
     outputSchema: AuditDiffBackupOutputSchema,
     annotations: readOnly("Audit Diff Backup"),
     icons: getToolIcons("backup", readOnly("Audit Diff Backup")),
@@ -404,9 +405,9 @@ export function createAuditDiffBackupTool(
               let line = `    "${col.name}" ${col.type}`;
               if (col.defaultValue !== undefined && col.defaultValue !== null) {
                 const defVal =
-                  typeof col.defaultValue === "object"
-                    ? JSON.stringify(col.defaultValue)
-                    : String(col.defaultValue as string | number | boolean);
+                  typeof col.defaultValue === "string"
+                    ? col.defaultValue
+                    : JSON.stringify(col.defaultValue);
                 line += ` DEFAULT ${defVal}`;
               }
               if (!col.nullable) line += " NOT NULL";
@@ -585,7 +586,7 @@ export function createAuditDiffBackupTool(
           }
         }
 
-        let hasDifferences = schemaDrift;
+        let hasDrift = schemaDrift;
         if (
           volumeDrift &&
           ((volumeDrift.rowCountCurrent !== undefined &&
@@ -595,14 +596,14 @@ export function createAuditDiffBackupTool(
               volumeDrift.sizeBytesSnapshot !== undefined &&
               volumeDrift.sizeBytesCurrent !== volumeDrift.sizeBytesSnapshot))
         ) {
-          hasDifferences = true;
+          hasDrift = true;
         }
 
         return {
           success: true,
           metadata: snapshot.metadata,
           objectExists,
-          hasDifferences,
+          hasDrift,
           ...(schemaDrift && {
             diff: {
               ...(additions.length > 0 && {

@@ -5,7 +5,7 @@
  *
  * TOOL COUNT NOTES:
  *   Counts and shortcut capacities are validated by unit tests in tool-filter.test.ts.
- *   The 248 "Specialized Tools" total encompasses all tools defined below,
+ *   The 278 "Specialized Tools" total encompasses all tools defined below,
  *   including Code Mode and extension utilities.
  *
  *   When adding new tools: update the group array below.
@@ -138,7 +138,7 @@ export const TOOL_GROUPS: Record<ToolGroup, string[]> = {
     "pg_uptime",
     "pg_recovery_status",
     "pg_capacity_planning",
-    "pg_resource_usage_analyze",
+    "pg_system_health",
     "pg_alert_threshold_set",
   ],
   backup: [
@@ -308,6 +308,42 @@ export const TOOL_GROUPS: Record<ToolGroup, string[]> = {
     "pg_pgcrypto_gen_random_bytes",
     "pg_pgcrypto_gen_salt",
     "pg_pgcrypto_crypt",
+  ],
+  security: [
+    "pg_security_audit",
+    "pg_security_firewall_status",
+    "pg_security_firewall_rules",
+    "pg_security_mask_data",
+    "pg_security_user_privileges",
+    "pg_security_sensitive_tables",
+    "pg_security_ssl_status",
+    "pg_security_encryption_status",
+    "pg_security_password_validate",
+  ],
+  roles: [
+    "pg_role_list",
+    "pg_role_create",
+    "pg_role_drop",
+    "pg_role_attributes",
+    "pg_role_grants",
+    "pg_role_grant",
+    "pg_role_assign",
+    "pg_role_revoke",
+    "pg_user_roles",
+    "pg_role_set",
+    "pg_role_rls_enable",
+    "pg_role_rls_policies",
+  ],
+  docstore: [
+    "pg_doc_list_collections",
+    "pg_doc_create_collection",
+    "pg_doc_drop_collection",
+    "pg_doc_collection_info",
+    "pg_doc_find",
+    "pg_doc_add",
+    "pg_doc_modify",
+    "pg_doc_remove",
+    "pg_doc_create_index",
   ],
   codemode: ["pg_execute_code"],
 };

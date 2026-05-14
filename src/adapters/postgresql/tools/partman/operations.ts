@@ -49,7 +49,7 @@ Data in default indicates partitions may be missing for certain time/value range
         // parentTable is required - provide clear error if missing
         if (!parentTable) {
           throw new ValidationError(
-            'parentTable parameter is required. Specify the parent table (e.g., "public.events") to check its default partition.',
+            'Validation error: parentTable parameter is required. Specify the parent table (e.g., "public.events") to check its default partition.',
             {
               hint: "Use pg_partman_show_config to list all partition sets first.",
             },
@@ -212,7 +212,7 @@ Creates new partitions if needed for the data being moved.`,
         // parentTable is required - provide clear error if missing
         if (!parentTable) {
           throw new ValidationError(
-            'parentTable parameter is required. Specify the parent table (e.g., "public.events") to move data from its default partition.',
+            'Validation error: parentTable parameter is required. Specify the parent table (e.g., "public.events") to move data from its default partition.',
             {
               hint: "Use pg_partman_show_config to list all partition sets first.",
             },

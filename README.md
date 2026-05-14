@@ -4,9 +4,9 @@
 
 **PostgreSQL MCP Server** binding the Model Context Protocol to a secure PostgreSQL sandbox.
 
-Features **Code Mode** — a revolutionary approach that provides access to all 248 tools through a secure, true V8 isolate (`worker_threads`), eliminating the massive token overhead of multi-step tool calls. Also includes schema introspection, migration tracking, smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE Transport, OAuth 2.1 authentication, and extension support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
+Features **Code Mode** — a revolutionary approach that provides access to all 278 tools through a secure, true V8 isolate (`worker_threads`), eliminating the massive token overhead of multi-step tool calls. Also includes schema introspection, migration tracking, smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE Transport, OAuth 2.1 authentication, and extension support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
 
-**248 Specialized Tools** · **23 Resources** · **20 AI-Powered Prompts**
+**278 Specialized Tools** · **24 Resources** · **21 AI-Powered Prompts**
 
 [![GitHub](https://img.shields.io/badge/GitHub-neverinfamous/postgres--mcp-blue?logo=github)](https://github.com/neverinfamous/postgres-mcp)
 ![GitHub Release](https://img.shields.io/github/v/release/neverinfamous/postgres-mcp)
@@ -19,7 +19,7 @@ Features **Code Mode** — a revolutionary approach that provides access to all 
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue.svg)](https://github.com/neverinfamous/postgres-mcp)
 [![E2E](https://github.com/neverinfamous/postgres-mcp/actions/workflows/e2e.yml/badge.svg)](https://github.com/neverinfamous/postgres-mcp/actions/workflows/e2e.yml)
 [![Tests](https://img.shields.io/badge/Tests-3750_passed-success.svg)](https://github.com/neverinfamous/postgres-mcp)
-[![Coverage](https://img.shields.io/badge/Coverage-96%25-brightgreen.svg)](https://github.com/neverinfamous/postgres-mcp)
+[![Coverage](https://img.shields.io/badge/Coverage-85.29%25-green.svg)](https://github.com/neverinfamous/postgres-mcp)
 
 **[Docker Hub](https://hub.docker.com/r/writenotenow/postgres-mcp)** • **[npm Package](https://www.npmjs.com/package/@neverinfamous/postgres-mcp)** • **[MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.neverinfamous/postgres-mcp)** • **[Wiki](https://github.com/neverinfamous/postgres-mcp/wiki)** • **[Tool Reference](https://github.com/neverinfamous/postgres-mcp/wiki/Tool-Reference)** • **[Changelog](https://github.com/neverinfamous/postgres-mcp/blob/main/CHANGELOG.md)**
 
@@ -29,13 +29,13 @@ Features **Code Mode** — a revolutionary approach that provides access to all 
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Code Mode (V8 Isolate)**          | **Massive Token Savings:** Execute complex, multi-step operations inside a secure, true V8 isolate (`worker_threads`). Stop burning tokens on back-and-forth tool calls and reduce your AI overhead by up to 90%.   |
 | **Deterministic Error Handling**    | No more cryptic database errors causing AI hallucinations. We intercept and translate raw SQL exceptions into clear, actionable advice so your agent knows exactly how to recover without guessing.                 |
-| **248 Token-Optimized Tools**       | The largest PostgreSQL toolset on the MCP registry. Every query uses zero-cost token estimation and smart dataset truncation, ensuring agents always see the big picture without blowing their context windows.     |
+| **278 Token-Optimized Tools**       | The largest PostgreSQL toolset on the MCP registry. Every query uses zero-cost token estimation and smart dataset truncation, ensuring agents always see the big picture without blowing their context windows.     |
 | **OAuth 2.1 + Granular Control**    | Real enterprise security. Authenticate via OAuth 2.1 and control exactly who can read, write, or administer your database with precision scopes mapped down to the specific tool layer.                             |
 | **Audit Trails & Semantic Diffing** | Total accountability. Track exactly what your AI is doing with detailed JSON logs, automatically snapshot schemas before mutations, and confidently review semantic row-by-row diffs before restoring data.         |
-| **23 Resources & 20 Prompts**       | Instant database meta-awareness. Agents automatically read real-time health, performance, and replication metrics, and can invoke built-in prompt workflows for query tuning and schema design.                     |
+| **24 Resources & 21 Prompts**       | Instant database meta-awareness. Agents automatically read real-time health, performance, and replication metrics, and can invoke built-in prompt workflows for query tuning and schema design.                     |
 | **Introspection & Migrations**      | Prevent costly mistakes. Let your AI simulate the cascade impact of schema changes, safely order foreign-key updates, and track migration history automatically.                                                    |
 | **8 Extension Ecosystems**          | Ready for advanced workloads. First-class API support for **pgvector** (AI search), **PostGIS** (geospatial), **pg_cron**, **pgcrypto**, and more—all strictly typed and validated out of the box.                  |
-| **Smart Tool Filtering**            | Give your agent exactly what it needs without overflowing IDE limits. Dynamically compile your server with any combination of our 22 distinct tool groups.                                                          |
+| **Smart Tool Filtering**            | Give your agent exactly what it needs without overflowing IDE limits. Dynamically compile your server with any combination of our 25 distinct tool groups.                                                          |
 | **Enterprise Infrastructure**       | Built for production. Blazing fast (millions of ops/sec), protected against SQL injection, features high-performance connection pooling, and supports both Streamable HTTP and Legacy SSE protocols simultaneously. |
 
 ## Suggested Rule (Add to AGENTS.md, GEMINI.md, etc)
@@ -172,7 +172,7 @@ Run `npm run bench` to execute the performance benchmark suite (10 files, 93+ sc
 > [!IMPORTANT]
 > All tool groups include **Code Mode** (`pg_execute_code`) by default. To exclude it, add `-codemode` to your filter: `--tool-filter cron,pgcrypto,-codemode`
 
-> **⭐ Code Mode** (`--tool-filter codemode`) is the recommended configuration — it exposes `pg_execute_code`, a secure, true V8 isolate sandbox providing access to all 248 tools' worth of capability with up to 90% token savings. See [Tool Filtering](#%EF%B8%8F-tool-filtering) for alternatives.
+> **💡 Code Mode** (`--tool-filter codemode`) is the recommended configuration — it exposes `pg_execute_code`, a secure, true V8 isolate sandbox providing access to all 278 tools' worth of capability with up to 90% token savings. See [Tool Filtering](#%EF%B8%8F-tool-filtering) for alternatives.
 
 - **Requires `admin` OAuth scope** — execution is logged for audit
 
@@ -189,7 +189,7 @@ The `--tool-filter` argument accepts **groups** or **tool names** — mix and ma
 | Group + Tool   | `core,+pg_stat_statements` | Extend a group            |
 | Group - Tool   | `core,-pg_drop_table`      | Remove specific tools     |
 
-### Tool Groups (22 Available)
+### Tool Groups (25 Available)
 
 | Group           | Tools | Description                                                           |
 | --------------- | ----- | --------------------------------------------------------------------- |
@@ -211,10 +211,13 @@ The `--tool-filter` argument accepts **groups** or **tool names** — mix and ma
 | `postgis`       | 16    | PostGIS (geospatial)                                                  |
 | `cron`          | 9     | pg_cron (job scheduling)                                              |
 | `partman`       | 11    | pg_partman (auto-partitioning)                                        |
-| `kcache`        | 7     | pg_stat_kcache (OS-level stats)                                       |
+| `kcache`        | 8     | pg_stat_kcache (OS-level stats)                                       |
 | `citext`        | 7     | citext (case-insensitive text)                                        |
 | `ltree`         | 9     | ltree (hierarchical data)                                             |
 | `pgcrypto`      | 10    | pgcrypto (encryption, UUIDs)                                          |
+| `security`      | 10    | Security auditing, SSL, firewall, data masking, privilege analysis    |
+| `roles`         | 13    | Role management, privileges, membership, RLS                          |
+| `docstore`      | 10    | JSONB document collections (NoSQL-style CRUD, indexing)               |
 
 ### Syntax Reference
 
@@ -431,7 +434,7 @@ The server exposes metadata at `/.well-known/oauth-protected-resource`.
 
 Prompts provide step-by-step guidance for complex database tasks. Instead of figuring out which tools to use and in what order, simply invoke a prompt and follow its workflow — great for learning PostgreSQL best practices or automating repetitive DBA tasks.
 
-This server includes **20 intelligent prompts** for guided workflows:
+This server includes **21 intelligent prompts** for guided workflows:
 
 | Prompt                     | Description                                        | Required Groups               |
 | -------------------------- | -------------------------------------------------- | ----------------------------- |
@@ -455,12 +458,13 @@ This server includes **20 intelligent prompts** for guided workflows:
 | `pg_setup_ltree`           | Complete ltree setup for hierarchical data         | core, ltree                   |
 | `pg_setup_pgcrypto`        | Complete pgcrypto setup for cryptographic funcs    | core, pgcrypto                |
 | `pg_safe_restore_workflow` | 6-step safe restore playbook with `restoreAs`      | backup                        |
+| `pg_setup_docstore`        | Complete docstore setup for document collections   | core, docstore                |
 
 ## 📦 Resources
 
 Resources give you instant snapshots of database state without writing queries. Perfect for quickly checking schema, health, or performance metrics — the AI can read these to understand your database context before suggesting changes.
 
-This server provides **23 resources** for structured data access:
+This server provides **24 resources** for structured data access:
 
 | Resource     | URI                       | Description                                        |
 | ------------ | ------------------------- | -------------------------------------------------- |
@@ -487,6 +491,7 @@ This server provides **23 resources** for structured data access:
 | Insights     | `postgres://insights`     | AI-appended business insights and observations     |
 | Audit        | `postgres://audit`        | Audit trail with token summary and top tools       |
 | Help         | `postgres://help/{group}` | Group-specific help and workflow documentation     |
+| Docstore     | `postgres://docstore`     | JSONB document collection overview                 |
 
 ## 🔧 Extension Support
 

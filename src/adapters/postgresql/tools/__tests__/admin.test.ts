@@ -1135,7 +1135,7 @@ describe("admin.ts uncovered branches", () => {
     expect(result.value).toBe("256MB");
   });
 
-  it("should use setting alias for name in pg_set_config", async () => {
+  it("should use setting alias for value in pg_set_config", async () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ set_config: "off" }],
     });
@@ -1143,17 +1143,19 @@ describe("admin.ts uncovered branches", () => {
     const tool = tools.find((t) => t.name === "pg_set_config")!;
     const result = (await tool.handler(
       {
-        setting: "enable_seqscan", // alias for name
-        value: "off",
+        name: "enable_seqscan",
+        setting: "off", // alias for value
       },
       mockContext,
     )) as {
       success: boolean;
       parameter: string;
+      value: string;
     };
 
     expect(result.success).toBe(true);
     expect(result.parameter).toBe("enable_seqscan");
+    expect(result.value).toBe("off");
   });
 
   // admin.ts L488-489: cluster preprocessor null/non-object input

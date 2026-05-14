@@ -51,7 +51,7 @@ Indexes: `idx_orders_status`, `idx_orders_date`, `idx_articles_fts` (GIN), `idx_
 2. Create temporary tables with `temp_*` prefix for write operations (CREATE, INSERT, DROP, etc.)
 3. Test each tool with realistic inputs based on the schema above
 4. Clean up any `temp_*` tables after testing
-5. Report all failures, unexpected behaviors, improvement opportunities, or unnecessarily large payloads
+5. Report all failures, broken contracts, or deviations from defined standards (e.g., P154 object-existence, Split Schema validation leaks, or unoptimized payloads). Do NOT report or implement subjective "improvement opportunities" beyond these objective criteria. If the tool group meets all standards perfectly, state that 0 changes are required and stop
 6. Do not mention what already works well or issues well documented in ServerInstructions and runtime hints which are already optimal
 7. **Error path testing**: For **every** tool, test at least **two** invalid inputs: (a) a domain error (nonexistent table, invalid column, bad parameter value) and (b) a **Zod validation error** (call the tool with `{}` empty params if it has required parameters, or pass the wrong type). Both must return a **structured handler error** (`{success: false, error: "..."}`) — NOT a raw MCP error frame. See the "Structured Error Response Pattern" section below for how to distinguish the two. This is the most common deficiency found across tool groups.
 8. **Code Mode Strict Coverage Matrix**: You must create a markdown table tracking your progress in your `task.md` in C:\Users\chris\Desktop\postgres-mcp\tmp. For EVERY tool in the group, you must explicitly log: Code Mode (Happy Path) and Code Mode (Domain Error). Do not proceed to the final summary until every cell in this matrix is marked with a ✅.
@@ -248,16 +248,19 @@ Test distance calculations between cities (e.g., New York ↔ London).
 **Checklist:**
 
 1. `pg_geocode({lat: 40.7128, lng: -74.006})` → verify `{geojson, wkt}` present
-2. `pg_geo_index_optimize({table: "test_locations"})` → verify spatial index analysis returned
-3. 🔴 `pg_geocode({})` → `{success: false, error: "..."}` (Zod validation — missing required `lat`/`lng`)
+2. `pg_geo_transform()` → verify happy path expected behavior
+3. `pg_geo_index_optimize({table: "test_locations"})` → verify spatial index analysis returned
+4. `pg_geo_cluster()` → verify happy path expected behavior
+5. `pg_geometry_buffer()` → verify happy path expected behavior
+6. `pg_geometry_intersection()` → verify happy path expected behavior
+7. `pg_geometry_transform()` → verify happy path expected behavior
 
-4. `pg_geo_transform()` → verify happy path expected behavior
-5. 🔴 `pg_geo_transform({})` → verify structured P154 error response or valid defaults
-6. `pg_geo_cluster()` → verify happy path expected behavior
-7. 🔴 `pg_geo_cluster({})` → verify structured P154 error response or valid defaults
-8. `pg_geometry_buffer()` → verify happy path expected behavior
-9. 🔴 `pg_geometry_buffer({})` → verify structured P154 error response or valid defaults
-10. `pg_geometry_intersection()` → verify happy path expected behavior
-11. 🔴 `pg_geometry_intersection({})` → verify structured P154 error response or valid defaults
-12. `pg_geometry_transform()` → verify happy path expected behavior
-13. 🔴 `pg_geometry_transform({})` → verify structured P154 error response or valid defaults
+**Domain and Zod error paths (🔴):**
+
+8. 🔴 `pg_geocode({})` → `{success: false, error: "..."}` (Zod validation — missing required `lat`/`lng`)
+9. 🔴 `pg_geo_transform({})` → verify structured P154 error response or valid defaults
+10. 🔴 `pg_geo_index_optimize({})` → verify structured P154 error response or valid defaults
+11. 🔴 `pg_geo_cluster({})` → verify structured P154 error response or valid defaults
+12. 🔴 `pg_geometry_buffer({})` → verify structured P154 error response or valid defaults
+13. 🔴 `pg_geometry_intersection({})` → verify structured P154 error response or valid defaults
+14. 🔴 `pg_geometry_transform({})` → verify structured P154 error response or valid defaults

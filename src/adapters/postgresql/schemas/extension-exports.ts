@@ -22,6 +22,8 @@ export {
   JsonbStatsSchemaBase,
   JsonbIndexSuggestSchemaBase,
   JsonbSecurityScanSchemaBase,
+  JsonbMergeSchemaBase,
+  JsonbDiffSchemaBase,
   // Full schemas (with preprocess - for handler parsing)
   JsonbExtractSchema,
   JsonbSetSchema,
@@ -37,6 +39,8 @@ export {
   JsonbStatsSchema,
   JsonbIndexSuggestSchema,
   JsonbSecurityScanSchema,
+  JsonbMergeSchema,
+  JsonbDiffSchema,
   // Preprocess function for handlers
   preprocessJsonbParams,
   // Path normalization functions (for handler use)
@@ -72,6 +76,25 @@ export {
 export {
   TextSearchSchema,
   TextSearchSchemaBase,
+  TextRankSchema,
+  TextRankSchemaBase,
+  HeadlineSchema,
+  HeadlineSchemaBase,
+  FtsIndexSchema,
+  FtsIndexSchemaBase,
+  FuzzyMatchSchema,
+  FuzzyMatchSchemaBase,
+  LikeSearchSchema,
+  LikeSearchSchemaBase,
+  SentimentSchema,
+  SentimentSchemaBase,
+  NormalizeSchema,
+  NormalizeSchemaBase,
+  ToVectorSchema,
+  ToVectorSchemaBase,
+  ToQuerySchema,
+  ToQuerySchemaBase,
+  TextSearchConfigSchemaBase,
   TrigramSimilaritySchema,
   TrigramSimilaritySchemaBase,
   RegexpMatchSchema,
@@ -92,9 +115,21 @@ export {
   // Base schemas for MCP visibility (Split Schema pattern)
   VectorSearchSchemaBase,
   VectorCreateIndexSchemaBase,
+  HybridSearchSchemaBase,
+  PerformanceSchemaBase,
+  IndexOptimizeSchemaBase,
+  VectorDimensionReduceSchemaBase,
+  EmbedSchemaBase,
+  VectorClusterSchemaBase,
   // Transformed schemas for handler validation
   VectorSearchSchema,
   VectorCreateIndexSchema,
+  HybridSearchSchema,
+  PerformanceSchema,
+  IndexOptimizeSchema,
+  VectorDimensionReduceSchema,
+  EmbedSchema,
+  VectorClusterSchema,
   // Utilities
   FiniteNumberArray,
   // Output schemas
@@ -227,6 +262,8 @@ export {
 
 // pg_partman schemas
 export {
+  PartmanCreateExtensionSchema,
+  PartmanCreateExtensionSchemaBase,
   PartmanCreateParentSchema,
   PartmanCreateParentSchemaBase,
   DEPRECATED_INTERVALS,
@@ -244,7 +281,6 @@ export {
   PartmanRetentionSchemaBase,
   PartmanUndoPartitionSchema,
   PartmanUndoPartitionSchemaBase,
-  PartmanUpdateConfigSchema,
   PartmanAnalyzeHealthSchema,
   PartmanAnalyzeHealthSchemaBase,
   // Output schemas
@@ -263,14 +299,13 @@ export {
 // Extension schemas (kcache, citext, ltree, pgcrypto)
 export {
   // pg_stat_kcache
-  KcacheQueryStatsSchemaBase,
+  KcacheCreateExtensionSchema,
   KcacheQueryStatsSchema,
-  KcacheTopCpuSchemaBase,
-  KcacheTopIoSchemaBase,
-  KcacheDatabaseStatsSchemaBase,
+  KcacheTopCpuSchema,
+  KcacheTopIoSchema,
   KcacheDatabaseStatsSchema,
-  KcacheResourceAnalysisSchemaBase,
   KcacheResourceAnalysisSchema,
+  KcacheResetSchema,
   // Kcache output schemas
   KcacheCreateExtensionOutputSchema,
   KcacheQueryStatsOutputSchema,
@@ -300,6 +335,8 @@ export {
   CitextCompareOutputSchema,
   CitextSchemaAdvisorOutputSchema,
   // ltree
+  LtreeCreateExtensionSchemaBase,
+  LtreeCreateExtensionSchema,
   LtreeQuerySchema,
   LtreeQuerySchemaBase,
   LtreeSubpathSchema,

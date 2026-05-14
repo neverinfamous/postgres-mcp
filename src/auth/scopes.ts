@@ -98,6 +98,15 @@ export const TOOL_GROUP_SCOPES: Record<ToolGroup, StandardScope> = {
   // Migration tracking (write operations)
   migration: SCOPES.WRITE,
 
+  // Security auditing and monitoring
+  security: SCOPES.READ,
+
+  // Role management (admin-level DBA operations)
+  roles: SCOPES.ADMIN,
+
+  // Document Store (read base, write overrides for mutations)
+  docstore: SCOPES.READ,
+
   // Code Mode (requires admin - can execute arbitrary operations)
   codemode: SCOPES.ADMIN,
 };
@@ -129,6 +138,27 @@ export const TOOL_SCOPE_OVERRIDES: Partial<Record<string, StandardScope>> = {
   // Backup group — read-only audit tools (group default is admin)
   pg_audit_list_backups: SCOPES.READ,
   pg_audit_diff_backup: SCOPES.READ,
+
+  // Security group — admin-level tools
+  pg_security_encryption_status: SCOPES.ADMIN,
+  pg_security_user_privileges: SCOPES.ADMIN,
+  pg_security_audit: SCOPES.ADMIN,
+  pg_security_firewall_rules: SCOPES.ADMIN,
+
+  // Roles group — read-only inspection tools
+  pg_role_list: SCOPES.READ,
+  pg_role_grants: SCOPES.READ,
+  pg_role_attributes: SCOPES.READ,
+  pg_user_roles: SCOPES.READ,
+  pg_role_rls_policies: SCOPES.READ,
+
+  // Docstore group — write/destructive operations
+  pg_doc_create_collection: SCOPES.WRITE,
+  pg_doc_drop_collection: SCOPES.ADMIN,
+  pg_doc_add: SCOPES.WRITE,
+  pg_doc_modify: SCOPES.WRITE,
+  pg_doc_remove: SCOPES.WRITE,
+  pg_doc_create_index: SCOPES.WRITE,
 };
 
 // =============================================================================

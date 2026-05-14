@@ -164,7 +164,7 @@ export function createAuditInterceptor(
             timestamp: new Date().toISOString(),
             requestId,
             tool: options?.logAs ?? toolName,
-            category: "read" as AuditCategory,
+            category: "read",
             scope,
             durationMs,
             success,

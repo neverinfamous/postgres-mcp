@@ -11,44 +11,40 @@ This directory contains the "Second-Pass" advanced tests for the `postgres-mcp` 
 
 ## Execution Parts
 
-The original monolithic advanced stress testing suite was split into 28 granular parts to preserve agent attention spans and prevent LLM context window exhaustion. Each file strictly tests one major domain or cross-domain group.
+The original monolithic advanced stress testing suite was split into 31 granular parts to preserve agent attention spans and prevent LLM context window exhaustion. Each file strictly tests one major domain or cross-domain group.
 
-| File                                       | Primary Focus | Key Validations                                                                               |
-| ------------------------------------------ | ------------- | --------------------------------------------------------------------------------------------- |
-| `test-tools-advanced-core-part1.md`        | Core          | Idempotent DDL bounds, boundary logic, empty states.                                          |
-| `test-tools-advanced-core-part2.md`        | Core          | State pollution, duplicate object detection, alias combinations.                              |
-| `test-tools-advanced-transactions.md`      | Transactions  | Transaction rollback recovery, abandoned transactions, rapid state transitions.               |
-| `test-tools-advanced-jsonb-part1.md`       | JSONB         | JSON object path mutation workflows.                                                          |
-| `test-tools-advanced-jsonb-part2.md`       | JSONB         | Nested key operations, array mutations.                                                       |
-| `test-tools-advanced-text.md`              | Text          | Full-text search edge cases, dictionary normalization limits.                                 |
-| `test-tools-advanced-stats-part1.md`       | Stats         | Statistical analysis boundary testing.                                                        |
-| `test-tools-advanced-stats-part2.md`       | Stats         | Top-N token payloads, extreme standard deviation handling.                                    |
-| `test-tools-advanced-admin.md`             | Admin         | Query logging bounds, insight memo truncation handling.                                       |
-| `test-tools-advanced-vector-part1.md`      | Vector        | Geometric correlations.                                                                       |
-| `test-tools-advanced-vector-part2.md`      | Vector        | HNSW index parameter limits.                                                                  |
-| `test-tools-advanced-performance-part1.md` | Performance   | Anomaly detection thresholds.                                                                 |
-| `test-tools-advanced-performance-part2.md` | Performance   | Explain plan payload truncations.                                                             |
-| `test-tools-advanced-postgis-part1.md`     | PostGIS       | Geometric out-of-bounds validations.                                                          |
-| `test-tools-advanced-postgis-part2.md`     | PostGIS       | Spatial intersections boundary loops.                                                         |
-| `test-tools-advanced-ltree.md`             | Ltree         | Path hierarchy node boundaries, missing l-nodes.                                              |
-| `test-tools-advanced-pgcrypto.md`          | pgcrypto      | Structured crypto errors, algorithm boundary validations.                                     |
-| `test-tools-advanced-citext.md`            | Citext        | Case-insensitive extension parity edge cases.                                                 |
-| `test-tools-advanced-cron.md`              | Cron          | Missing schema boundaries for cron job triggers.                                              |
-| `test-tools-advanced-kcache.md`            | KCache        | KCache token exhaustion safeguards.                                                           |
-| `test-tools-advanced-partman.md`           | Partman       | Idempotent partman schema routing logic boundaries.                                           |
-| `test-tools-advanced-introspection.md`     | Introspection | Object discovery filters, non-existent relation handling.                                     |
-| `test-tools-advanced-migration.md`         | Migration     | Record-vs-apply tracking logic, self-referencing cascades.                                    |
-| `test-tools-advanced-backup.md`            | Backup        | V2 Backup volumeDrift parameters, missing snapshot checks.                                    |
-| `test-tools-advanced-cross-group.md`       | Cross-Group   | Multi-group memory retention limits, cross-domain integrity chaining.                         |
-| `test-tools-advanced-monitoring.md`        | Monitoring    | Extreme limits testing for resource usage and dynamic alert thresholds limits.                |
-| `test-tools-advanced-schema.md`            | Schema        | Cascaded object dropping bounds, deep dependency checking, and extreme generation boundaries. |
-| `test-tools-advanced-partitioning.md`      | Partitioning  | Deep partition structures, edge limits for range/list boundaries, massive attach routines.    |
-
-### Test Results
-
-Token consumption metrics and final summaries from executing the above stress tests are persisted in [`test-results.md`](./test-results.md).
-
-> **Note:** The exact tool group breakdown may shift over time. Always defer to the headings within the specific `.md` files to see what groups are covered in that pass.
+| File                                       | Primary Focus | Key Validations                                                                                       |
+| ------------------------------------------ | ------------- | ----------------------------------------------------------------------------------------------------- |
+| `test-tools-advanced-core-part1.md`        | Core          | Idempotent DDL bounds, boundary logic, empty states.                                                  |
+| `test-tools-advanced-core-part2.md`        | Core          | State pollution, duplicate object detection, alias combinations.                                      |
+| `test-tools-advanced-transactions.md`      | Transactions  | Transaction rollback recovery, abandoned transactions, rapid state transitions.                       |
+| `test-tools-advanced-jsonb-part1.md`       | JSONB         | JSON object path mutation workflows.                                                                  |
+| `test-tools-advanced-jsonb-part2.md`       | JSONB         | Nested key operations, array mutations.                                                               |
+| `test-tools-advanced-text.md`              | Text          | Full-text search edge cases, dictionary normalization limits.                                         |
+| `test-tools-advanced-stats-part1.md`       | Stats         | Statistical analysis boundary testing.                                                                |
+| `test-tools-advanced-stats-part2.md`       | Stats         | Top-N token payloads, extreme standard deviation handling.                                            |
+| `test-tools-advanced-admin.md`             | Admin         | Query logging bounds, insight memo truncation handling.                                               |
+| `test-tools-advanced-vector-part1.md`      | Vector        | Geometric correlations.                                                                               |
+| `test-tools-advanced-vector-part2.md`      | Vector        | HNSW index parameter limits.                                                                          |
+| `test-tools-advanced-performance-part1.md` | Performance   | Anomaly detection thresholds.                                                                         |
+| `test-tools-advanced-performance-part2.md` | Performance   | Explain plan payload truncations.                                                                     |
+| `test-tools-advanced-postgis-part1.md`     | PostGIS       | Geometric out-of-bounds validations.                                                                  |
+| `test-tools-advanced-postgis-part2.md`     | PostGIS       | Spatial intersections boundary loops.                                                                 |
+| `test-tools-advanced-ltree.md`             | Ltree         | Path hierarchy node boundaries, missing l-nodes.                                                      |
+| `test-tools-advanced-pgcrypto.md`          | pgcrypto      | Structured crypto errors, algorithm boundary validations.                                             |
+| `test-tools-advanced-citext.md`            | Citext        | Case-insensitive extension parity edge cases.                                                         |
+| `test-tools-advanced-cron.md`              | Cron          | Missing schema boundaries for cron job triggers.                                                      |
+| `test-tools-advanced-kcache.md`            | KCache        | KCache token exhaustion safeguards.                                                                   |
+| `test-tools-advanced-partman.md`           | Partman       | Idempotent partman schema routing logic boundaries.                                                   |
+| `test-tools-advanced-introspection.md`     | Introspection | Object discovery filters, non-existent relation handling.                                             |
+| `test-tools-advanced-migration.md`         | Migration     | Record-vs-apply tracking logic, self-referencing cascades.                                            |
+| `test-tools-advanced-backup.md`            | Backup        | V2 Backup volumeDrift parameters, missing snapshot checks.                                            |
+| `test-tools-advanced-monitoring.md`        | Monitoring    | Extreme limits testing for resource usage and dynamic alert thresholds limits.                        |
+| `test-tools-advanced-schema.md`            | Schema        | Cascaded object dropping bounds, deep dependency checking, and extreme generation boundaries.         |
+| `test-tools-advanced-partitioning.md`      | Partitioning  | Deep partition structures, edge limits for range/list boundaries, massive attach routines.            |
+| `test-tools-advanced-security.md`          | Security      | Boundary audit limits, idempotency, data masking matrices, SQL injection resilience, payload bounds.  |
+| `test-tools-advanced-roles.md`             | Roles         | Duplicate role idempotency, full RBAC pipeline, RLS toggle, SQL injection resilience, payload bounds. |
+| `test-tools-advanced-docstore.md`          | Docstore      | JSONB collection boundaries, lifecycle pipelines, filter operator matrices, payload bounds.           |
 
 ## Agent Execution Protocol
 

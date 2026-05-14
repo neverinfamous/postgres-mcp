@@ -89,6 +89,7 @@ export const JsonbSetSchemaBase = z.object({
     ),
   value: z
     .unknown()
+    .optional()
     .describe("New value to set at the path (will be converted to JSONB)"),
   where: z
     .string()
@@ -166,6 +167,9 @@ const JsonbContainsSchemaRefined = JsonbContainsSchemaBase.extend({
   })
   .refine((data) => data.column !== undefined || data.col !== undefined, {
     message: "Either 'column' or 'col' is required",
+  })
+  .refine((data) => data.value !== undefined || data.contains !== undefined, {
+    message: "Either 'value' or 'contains' is required",
   });
 
 // Full schema with preprocess (for handler parsing)
@@ -256,7 +260,7 @@ export const JsonbInsertSchemaBase = z.object({
     .describe(
       "Path to insert at (for arrays). Accepts both string and array formats.",
     ),
-  value: z.unknown().describe("Value to insert"),
+  value: z.unknown().optional().describe("Value to insert"),
   where: z.string().optional().describe("WHERE clause"),
   filter: z.string().optional().describe("WHERE clause (alias for where)"),
   insertAfter: z
@@ -279,6 +283,9 @@ const JsonbInsertSchemaRefined = JsonbInsertSchemaBase.refine(
   })
   .refine((data) => data.where !== undefined || data.filter !== undefined, {
     message: "Either 'where' or 'filter' is required",
+  })
+  .refine((data) => data.value !== undefined, {
+    message: "value is required",
   });
 
 // Full schema with preprocess (for handler parsing)
@@ -415,8 +422,11 @@ export const JsonbKeysSchema = z.preprocess(
 );
 
 // ============== STRIP NULLS SCHEMA ==============
-// Base schema (for MCP inputSchema visibility - no preprocess)
 export const JsonbStripNullsSchemaBase = z.object({
+  json: z
+    .unknown()
+    .optional()
+    .describe("Raw JSON string or object to strip nulls from"),
   table: z.string().optional().describe("Table name"),
   tableName: z.string().optional().describe("Table name (alias for table)"),
   column: z.string().optional().describe("JSONB column name"),
@@ -432,11 +442,24 @@ export const JsonbStripNullsSchemaBase = z.object({
 
 // Internal schema with refine (for handler validation)
 const JsonbStripNullsSchemaRefined = JsonbStripNullsSchemaBase.refine(
-  (data) => data.table !== undefined || data.tableName !== undefined,
-  { message: "Either 'table' or 'tableName' is required" },
-).refine((data) => data.column !== undefined || data.col !== undefined, {
-  message: "Either 'column' or 'col' is required",
-});
+  (data) =>
+    data.json !== undefined ||
+    data.table !== undefined ||
+    data.tableName !== undefined,
+  {
+    message:
+      "Either 'json' (raw json) or 'table' + 'column' (table mode) is required",
+  },
+).refine(
+  (data) =>
+    data.json !== undefined ||
+    data.column !== undefined ||
+    data.col !== undefined,
+  {
+    message:
+      "Either 'json' (raw json) or 'table' + 'column' (table mode) is required",
+  },
+);
 
 // Full schema with preprocess (for handler parsing)
 export const JsonbStripNullsSchema = z.preprocess(

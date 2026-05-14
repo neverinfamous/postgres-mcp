@@ -140,24 +140,29 @@ describe("pg_detect_query_anomalies", () => {
     expect(mainQuery).toContain("3");
   });
 
-  it("should reject out-of-range threshold and minCalls with validation errors", async () => {
+  it("should clamp out-of-range threshold and minCalls to internal bounds", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ 1: 1 }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ total: 10 }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
     const tool = findTool(tools, "pg_detect_query_anomalies");
 
-    // threshold below minimum (0.5) should return a structured error
-    const resultLowThreshold = (await tool.handler(
-      { threshold: 0.1, minCalls: 10 },
+    const result = (await tool.handler(
+      { threshold: 0.001, minCalls: -5 },
       mockContext,
-    )) as { success: boolean; error: string };
-    expect(resultLowThreshold.success).toBe(false);
-    expect(resultLowThreshold.error).toContain("threshold");
+    )) as { success: boolean };
 
-    // minCalls below minimum (1) should return a structured error
-    const resultLowMinCalls = (await tool.handler(
-      { threshold: 2.0, minCalls: -5 },
-      mockContext,
-    )) as { success: boolean; error: string };
-    expect(resultLowMinCalls.success).toBe(false);
-    expect(resultLowMinCalls.error).toContain("minCalls");
+    expect(result.success).toBe(true);
+
+    const countQuery = mockAdapter.executeQuery.mock.calls[1]?.[0] as string;
+    expect(countQuery).toContain(">= 1");
+
+    const mainQuery = mockAdapter.executeQuery.mock.calls[2]?.[0] as string;
+    expect(mainQuery).toContain("* 0.01)");
   });
 
   it("should calculate critical risk for many anomalies with high z-scores", async () => {
@@ -356,14 +361,36 @@ describe("pg_detect_bloat_risk", () => {
   });
 
   it("should filter by schema when specified", async () => {
+    // Schema existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "?column?": 1 }],
+    });
     // Main query
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = findTool(tools, "pg_detect_bloat_risk");
     await tool.handler({ schema: "sales" }, mockContext);
 
-    const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
+    // Main query should be called second
+    const sql = mockAdapter.executeQuery.mock.calls[1]?.[0] as string;
     expect(sql).toContain("schemaname = 'sales'");
+  });
+
+  it("should return error for non-existent schema", async () => {
+    // Schema existence check returns empty
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = findTool(tools, "pg_detect_bloat_risk");
+    const result = (await tool.handler(
+      { schema: "nonexistent" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("does not exist");
   });
 
   it("should exclude system schemas by default", async () => {

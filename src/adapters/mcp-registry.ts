@@ -1,10 +1,12 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { z } from "zod";
+import type { ZodType } from "zod";
 import { logger } from "../utils/logger.js";
 import type {
   ToolDefinition,
   ResourceDefinition,
   PromptDefinition,
+  ToolAnnotations,
+  ToolIcon,
 } from "../types/index.js";
 import { getAuthContext } from "../auth/auth-context.js";
 import { getRequiredScope } from "../auth/scope-map.js";
@@ -37,39 +39,42 @@ export function registerSingleTool(
   server: McpServer,
   tool: ToolDefinition,
 ): void {
-  const toolOptions: Record<string, unknown> = {
+  const toolOptions: {
+    description: string;
+    title?: string;
+    inputSchema?: ZodType;
+    outputSchema?: ZodType;
+    annotations?: ToolAnnotations;
+    icons?: ToolIcon[];
+  } = {
     description: tool.description,
   };
 
   if (tool.annotations?.title) {
-    toolOptions["title"] = tool.annotations.title;
+    toolOptions.title = tool.annotations.title;
   }
 
   if (tool.inputSchema !== undefined) {
-    toolOptions["inputSchema"] = tool.inputSchema;
+    toolOptions.inputSchema = tool.inputSchema as ZodType;
   }
 
   if (tool.outputSchema !== undefined) {
-    toolOptions["outputSchema"] = tool.outputSchema;
+    toolOptions.outputSchema = tool.outputSchema as ZodType;
   }
 
   if (tool.annotations) {
-    toolOptions["annotations"] = tool.annotations;
+    toolOptions.annotations = tool.annotations;
   }
 
   if (tool.icons && tool.icons.length > 0) {
-    toolOptions["icons"] = tool.icons;
+    toolOptions.icons = tool.icons;
   }
 
   const hasOutputSchema = Boolean(tool.outputSchema);
 
   server.registerTool(
     tool.name,
-    toolOptions as {
-      description?: string;
-      inputSchema?: z.ZodType;
-      outputSchema?: z.ZodType;
-    },
+    toolOptions,
     async (args: unknown, extra: unknown) => {
       try {
         const authCtx = getAuthContext();

@@ -59,7 +59,7 @@ export const DropSchemaSchemaBase = z.object({
 export const DropSchemaSchema = z
   .preprocess(preprocessCreateSchemaParams, DropSchemaSchemaBase)
   .refine((data) => typeof data.name === "string" && data.name.length > 0, {
-    message: "name is required",
+    message: "name (or schema alias) is required",
   });
 
 // Base schema for MCP visibility (shows both name and sequenceName)
@@ -67,6 +67,7 @@ export const DropSchemaSchema = z
 export const CreateSequenceSchemaBase = z.object({
   name: z.string().optional().describe("Sequence name"),
   sequenceName: z.string().optional().describe("Alias for name"),
+  sequence: z.string().optional().describe("Alias for name"),
   schema: z.string().optional().describe("Schema name"),
   start: z.unknown().optional().describe("Start value (number)"),
   increment: z
@@ -125,13 +126,21 @@ function preprocessCreateSequenceParams(input: unknown): unknown {
   if (typeof input !== "object" || input === null) return input;
   const result = { ...(input as Record<string, unknown>) };
 
-  // Resolve sequenceName alias to name before dotted-name extraction
-  if (
-    (result["name"] === undefined || result["name"] === "") &&
-    result["sequenceName"] !== undefined &&
-    result["sequenceName"] !== ""
-  ) {
-    result["name"] = result["sequenceName"];
+  // Resolve sequenceName/sequence alias to name before dotted-name extraction
+  if (result["name"] === undefined || result["name"] === "") {
+    if (result["sequenceName"] !== undefined && result["sequenceName"] !== "") {
+      result["name"] = result["sequenceName"];
+    } else if (result["sequence"] !== undefined && result["sequence"] !== "") {
+      result["name"] = result["sequence"];
+    }
+  }
+
+  // Handle case-insensitive aliases for Postgres defaults
+  if (result["maxValue"] === undefined && result["maxvalue"] !== undefined) {
+    result["maxValue"] = result["maxvalue"];
+  }
+  if (result["minValue"] === undefined && result["minvalue"] !== undefined) {
+    result["minValue"] = result["minvalue"];
   }
 
   return extractSchemaFromDottedName(result);
@@ -144,6 +153,7 @@ export const CreateSequenceSchema = z.preprocess(
     .object({
       name: z.string().optional(),
       sequenceName: z.string().optional(),
+      sequence: z.string().optional(),
       schema: z.string().optional(),
       start: z.preprocess(coerceStrictNumber, z.number().optional()),
       increment: z.preprocess(coerceStrictNumber, z.number().optional()),
@@ -155,7 +165,7 @@ export const CreateSequenceSchema = z.preprocess(
       ifNotExists: z.boolean().optional(),
     })
     .transform((data) => ({
-      name: data.name ?? data.sequenceName ?? "",
+      name: data.name ?? data.sequenceName ?? data.sequence ?? "",
       schema: data.schema,
       start: data.start,
       increment: data.increment,
@@ -167,7 +177,7 @@ export const CreateSequenceSchema = z.preprocess(
       ifNotExists: data.ifNotExists,
     }))
     .refine((data) => data.name !== "", {
-      message: "name (or sequenceName alias) is required",
+      message: "name (or sequenceName/sequence alias) is required",
     }),
 );
 
@@ -245,6 +255,7 @@ export const DropSequenceSchemaBase = z.object({
     .optional()
     .describe("Sequence name (supports schema.name format)"),
   sequenceName: z.string().optional().describe("Alias for name"),
+  sequence: z.string().optional().describe("Alias for name"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   ifExists: z.boolean().optional().describe("Use IF EXISTS to avoid errors"),
   cascade: z.boolean().optional().describe("Drop dependent objects"),
@@ -256,12 +267,12 @@ export const DropSequenceSchemaBase = z.object({
 function preprocessDropSequenceParams(input: unknown): unknown {
   if (typeof input !== "object" || input === null) return input;
   const result = { ...(input as Record<string, unknown>) };
-  if (
-    (result["name"] === undefined || result["name"] === "") &&
-    result["sequenceName"] !== undefined &&
-    result["sequenceName"] !== ""
-  ) {
-    result["name"] = result["sequenceName"];
+  if (result["name"] === undefined || result["name"] === "") {
+    if (result["sequenceName"] !== undefined && result["sequenceName"] !== "") {
+      result["name"] = result["sequenceName"];
+    } else if (result["sequence"] !== undefined && result["sequence"] !== "") {
+      result["name"] = result["sequence"];
+    }
   }
   return extractSchemaFromDottedName(result);
 }
@@ -272,7 +283,7 @@ function preprocessDropSequenceParams(input: unknown): unknown {
 export const DropSequenceSchema = z
   .preprocess(preprocessDropSequenceParams, DropSequenceSchemaBase)
   .refine((data) => typeof data.name === "string" && data.name.length > 0, {
-    message: "name is required",
+    message: "name (or sequenceName/sequence alias) is required",
   });
 
 /**
@@ -316,7 +327,7 @@ function preprocessDropViewParams(input: unknown): unknown {
 export const DropViewSchema = z
   .preprocess(preprocessDropViewParams, DropViewSchemaBase)
   .refine((data) => typeof data.name === "string" && data.name.length > 0, {
-    message: "name is required",
+    message: "name (or viewName/view alias) is required",
   });
 
 // =============================================================================
@@ -348,6 +359,12 @@ export const ListSequencesSchema = z.preprocess(
 
 export const ListViewsSchemaBase = z.object({
   schema: z.string().optional().describe("Schema name"),
+  exclude: z
+    .array(z.string())
+    .optional()
+    .describe(
+      'Array of extension names/schemas to exclude, e.g., ["postgis", "ltree", "pgcrypto", "vector"]',
+    ),
   includeMaterialized: z
     .boolean()
     .optional()
@@ -356,7 +373,7 @@ export const ListViewsSchemaBase = z.object({
     .unknown()
     .optional()
     .describe(
-      "Max length for view definitions (number, default: 500). Use 0 for no truncation.",
+      "Max length for view definitions (number, default: 100). Use 0 for no truncation.",
     ),
   limit: z
     .unknown()
@@ -375,6 +392,7 @@ export const ListViewsSchema = z.preprocess(
   },
   z.object({
     schema: z.string().optional(),
+    exclude: z.array(z.string()).optional(),
     includeMaterialized: z.boolean().optional(),
     truncateDefinition: z.preprocess(coerceStrictNumber, z.number().optional()),
     limit: z.preprocess(coerceStrictNumber, z.number().optional()),

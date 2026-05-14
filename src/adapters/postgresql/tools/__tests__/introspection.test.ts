@@ -913,7 +913,7 @@ describe("pg_schema_snapshot", () => {
     }
 
     const tool = tools.find((t) => t.name === "pg_schema_snapshot")!;
-    await tool.handler({}, mockContext);
+    await tool.handler({ compact: false }, mockContext);
 
     // Tables query (first call) should contain pg_depend exclusion
     const tablesSql = mockAdapter.executeQuery.mock.calls[0]![0] as string;
@@ -951,7 +951,10 @@ describe("pg_schema_snapshot", () => {
     }
 
     const tool = tools.find((t) => t.name === "pg_schema_snapshot")!;
-    const result = (await tool.handler({ schema: "public" }, mockContext)) as {
+    const result = (await tool.handler(
+      { schema: "public", compact: false },
+      mockContext,
+    )) as {
       snapshot: Record<string, unknown>;
       stats: Record<string, number>;
     };
@@ -971,8 +974,8 @@ describe("pg_schema_snapshot", () => {
   });
 
   it("should omit columns from tables by default (compact: true)", async () => {
-    // Mock 9 section queries
-    for (let i = 0; i < 9; i++) {
+    // Mock 3 section queries (tables, views, indexes) since compact is true by default
+    for (let i = 0; i < 3; i++) {
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ name: `item_${String(i)}`, schema: "public" }],
       });
@@ -2257,7 +2260,7 @@ describe("pg_migration_rollback — uncovered branches", () => {
     mockContext = createMockRequestContext();
   });
 
-  it("should return error when id is NaN (coerceNumber returns undefined)", async () => {
+  it("should return validation error when id is NaN", async () => {
     const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
     const result = (await tool.handler({ id: NaN }, mockContext)) as {
       success: boolean;
@@ -2265,8 +2268,9 @@ describe("pg_migration_rollback — uncovered branches", () => {
     };
 
     expect(result.success).toBe(false);
-    // coerceNumber converts NaN → undefined, so handler sees no id/version
-    expect(result.error).toContain("Either");
+    // coerceStrictNumber properly surfaces NaN as a validation failure
+    expect(result.error).toContain("expected number");
+    expect(result.error).toContain("NaN");
   });
 
   it("should return error when migration is already rolled back", async () => {

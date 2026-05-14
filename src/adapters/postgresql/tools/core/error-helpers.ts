@@ -21,9 +21,10 @@ export type { ErrorContext } from "./error-parser.js";
  */
 function isZodLikeError(
   error: unknown,
-): error is Error & { issues: { message?: string; path?: unknown[] }[] } {
+): error is { issues: { message?: string; path?: unknown[] }[] } {
   return (
-    error instanceof Error &&
+    typeof error === "object" &&
+    error !== null &&
     "issues" in error &&
     Array.isArray((error as Record<string, unknown>)["issues"])
   );

@@ -11,11 +11,13 @@ import {
   type RequestContext,
   ValidationError,
 } from "../../../../types/index.js";
-import { z } from "zod";
+
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
+  LtreeCreateExtensionSchemaBase,
+  LtreeCreateExtensionSchema,
   LtreeQuerySchema,
   LtreeQuerySchemaBase,
   LtreeSubpathSchema,
@@ -50,14 +52,32 @@ function createLtreeExtensionTool(adapter: PostgresAdapter): ToolDefinition {
     description:
       "Enable the ltree extension for hierarchical tree-structured labels.",
     group: "ltree",
-    inputSchema: z.object({}).strict(),
+    inputSchema: LtreeCreateExtensionSchemaBase,
     outputSchema: LtreeCreateExtensionOutputSchema,
     annotations: write("Create Ltree Extension"),
     icons: getToolIcons("ltree", write("Create Ltree Extension")),
-    handler: async (_params: unknown, _context: RequestContext) => {
+    handler: async (params: unknown, _context: RequestContext) => {
       try {
-        await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS ltree");
-        return { success: true, message: "ltree extension enabled" };
+        const { schema } = LtreeCreateExtensionSchema.parse(params);
+        const schemaName = schema ?? "public";
+
+        const schemaCheck = await adapter.executeQuery(
+          `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
+          [schemaName],
+        );
+        if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
+          throw new ValidationError(`Schema "${schemaName}" does not exist.`, {
+            schema: schemaName,
+          });
+        }
+
+        await adapter.executeQuery(
+          `CREATE EXTENSION IF NOT EXISTS ltree SCHEMA "${schemaName}"`,
+        );
+        return {
+          success: true,
+          message: `ltree extension enabled in schema ${schemaName}`,
+        };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
           tool: "pg_ltree_create_extension",
@@ -81,6 +101,13 @@ function createLtreeQueryTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         const { table, column, path, mode, schema, limit } =
           LtreeQuerySchema.parse(params);
+
+        if (limit !== undefined && limit < 1) {
+          throw new ValidationError(
+            `Limit must be at least 1, received: ${String(limit)}`,
+            { limit },
+          );
+        }
 
         if (path === "") {
           throw new ValidationError(
@@ -180,7 +207,7 @@ function createLtreeQueryTool(adapter: PostgresAdapter): ToolDefinition {
         };
 
         if (resultCount > 0) {
-          response["results"] = result.rows;
+          response["rows"] = result.rows;
         }
 
         // Add truncation indicators when limit is applied
@@ -218,6 +245,13 @@ function createLtreeSubpathTool(adapter: PostgresAdapter): ToolDefinition {
           [path],
         );
         const pathDepth = depthResult.rows?.[0]?.["depth"] as number;
+
+        if (length !== undefined && length < 0) {
+          throw new ValidationError(
+            `Invalid length: ${String(length)}. Length cannot be negative.`,
+            { length },
+          );
+        }
 
         // Validate offset is within bounds
         const effectiveOffset = offset < 0 ? pathDepth + offset : offset;
@@ -276,6 +310,9 @@ function createLtreeLcaTool(adapter: PostgresAdapter): ToolDefinition {
         // (Postgres lca() natively returns the parent if given identical paths)
         const allIdentical = paths.every((p) => p === paths[0]);
         if (allIdentical) {
+          // Validate syntax by casting to ltree
+          await adapter.executeQuery(`SELECT $1::ltree`, [paths[0]]);
+
           return {
             success: true,
             paths,
@@ -317,6 +354,19 @@ function createLtreeListColumnsTool(adapter: PostgresAdapter): ToolDefinition {
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const { schema } = LtreeListColumnsSchema.parse(params);
+
+        if (schema !== undefined) {
+          const schemaCheck = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
+            [schema],
+          );
+          if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
+            throw new ValidationError(`Schema "${schema}" does not exist.`, {
+              schema,
+            });
+          }
+        }
+
         const conditions: string[] = [
           "udt_name = 'ltree'",
           "table_schema NOT IN ('pg_catalog', 'information_schema')",
@@ -330,8 +380,14 @@ function createLtreeListColumnsTool(adapter: PostgresAdapter): ToolDefinition {
         const result = await adapter.executeQuery(sql, queryParams);
         const count = result.rows?.length ?? 0;
         const response: Record<string, unknown> = { success: true, count };
-        if (count > 0) {
-          response["columns"] = result.rows;
+        if (count > 0 && result.rows) {
+          response["columns"] = result.rows.map((row) => ({
+            schema: row["table_schema"],
+            table: row["table_name"],
+            column: row["column_name"],
+            isNullable: row["is_nullable"],
+            columnDefault: row["column_default"],
+          }));
         }
         return response;
       } catch (error: unknown) {

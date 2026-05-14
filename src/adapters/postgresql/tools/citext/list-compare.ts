@@ -88,6 +88,28 @@ Useful for auditing case-insensitive columns.`,
           }
         }
 
+        // Validate table existence when specified
+        if (table !== undefined) {
+          const schemaCondition =
+            schema !== undefined ? "AND table_schema = $2" : "";
+          const queryParams: unknown[] = [table];
+          if (schema !== undefined) queryParams.push(schema);
+
+          const tableCheck = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.tables 
+             WHERE table_name = $1 ${schemaCondition}`,
+            queryParams,
+          );
+          if (!tableCheck.rows || tableCheck.rows.length === 0) {
+            throw new ValidationError(
+              schema !== undefined
+                ? `Table "${schema}"."${table}" does not exist. Verify the table name and schema.`
+                : `Table "${table}" does not exist. Verify the table name.`,
+              { code: "TABLE_NOT_FOUND" },
+            );
+          }
+        }
+
         const conditions: string[] = [
           "udt_name = 'citext'",
           "table_schema NOT IN ('pg_catalog', 'information_schema')",
@@ -122,11 +144,11 @@ Useful for auditing case-insensitive columns.`,
 
         const sql = `
                 SELECT
-                    table_schema,
-                    table_name,
-                    column_name,
-                    is_nullable,
-                    column_default
+                    table_schema as "schema",
+                    table_name as "tableName",
+                    column_name as "columnName",
+                    is_nullable as "isNullable",
+                    column_default as "columnDefault"
                 FROM information_schema.columns
                 WHERE ${whereClause}
                 ORDER BY table_schema, table_name, ordinal_position

@@ -30,6 +30,8 @@ import {
   JsonbDiffOutputSchema,
   // Base schemas for MCP visibility (Split Schema pattern)
   JsonbNormalizeSchemaBase,
+  JsonbMergeSchema,
+  JsonbDiffSchemaBase,
   // Full schemas (with preprocess - for handler parsing)
   JsonbNormalizeSchema,
 } from "../../schemas/index.js";
@@ -181,20 +183,6 @@ function deepMergeObjects(
   return result;
 }
 
-// Schema for pg_jsonb_merge - direct schema for MCP visibility
-const JsonbMergeSchema = z.object({
-  base: z.unknown().describe("Base JSONB document (required)"),
-  overlay: z.unknown().describe("JSONB to merge on top (required)"),
-  deep: z
-    .boolean()
-    .optional()
-    .describe("Deep merge nested objects (default: true)"),
-  mergeArrays: z
-    .boolean()
-    .optional()
-    .describe("Concatenate arrays instead of replacing (default: false)"),
-});
-
 /**
  * Preprocess merge params to parse JSON strings and validate objects
  */
@@ -206,8 +194,8 @@ function parseMergeParams(params: unknown): {
 } {
   const parsed = JsonbMergeSchema.parse(params);
   // Parse JSON strings if needed
-  let base = parsed.base;
-  let overlay = parsed.overlay;
+  let base = parsed.base ?? parsed.json1;
+  let overlay = parsed.overlay ?? parsed.json2;
   if (typeof base === "string") {
     try {
       base = JSON.parse(base);
@@ -605,23 +593,9 @@ export function createJsonbNormalizeTool(
  * Diff two JSONB documents
  * Note: Uses jsonb_each() which requires object inputs, not arrays or primitives
  */
-// Schema for pg_jsonb_diff - requires objects (not arrays or primitives)
-// Base schema for MCP visibility — z.unknown() to avoid SDK-level Zod rejection
-// of non-object types (arrays, primitives). Handler validates internally.
-const JsonbDiffSchemaBase = z.object({
-  doc1: z.unknown().optional().describe("First JSONB object to compare"),
-  doc2: z.unknown().optional().describe("Second JSONB object to compare"),
-});
 
-// Internal schema for handler validation (required fields)
-const JsonbDiffSchema = z.object({
-  doc1: z
-    .record(z.string(), z.unknown())
-    .describe("First JSONB object to compare"),
-  doc2: z
-    .record(z.string(), z.unknown())
-    .describe("Second JSONB object to compare"),
-});
+// Internal schema for handler validation is no longer needed since we
+// handle validation and parsing of doc1 and doc2 manually below.
 
 export function createJsonbDiffTool(adapter: PostgresAdapter): ToolDefinition {
   return {
@@ -637,8 +611,45 @@ export function createJsonbDiffTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         let parsed;
         try {
-          parsed = JsonbDiffSchema.parse(params);
+          parsed = JsonbDiffSchemaBase.parse(params);
         } catch {
+          throw new ValidationError(
+            "pg_jsonb_diff requires doc1 and doc2 parameters.",
+          );
+        }
+
+        let doc1 = parsed.doc1;
+        let doc2 = parsed.doc2;
+
+        if (doc1 === undefined || doc2 === undefined) {
+          throw new ValidationError(
+            "pg_jsonb_diff requires doc1 and doc2 parameters.",
+          );
+        }
+
+        if (typeof doc1 === "string") {
+          try {
+            doc1 = JSON.parse(doc1);
+          } catch {
+            /* ignore */
+          }
+        }
+        if (typeof doc2 === "string") {
+          try {
+            doc2 = JSON.parse(doc2);
+          } catch {
+            /* ignore */
+          }
+        }
+
+        if (
+          typeof doc1 !== "object" ||
+          doc1 === null ||
+          Array.isArray(doc1) ||
+          typeof doc2 !== "object" ||
+          doc2 === null ||
+          Array.isArray(doc2)
+        ) {
           throw new ValidationError(
             "pg_jsonb_diff requires two JSONB objects. Arrays and primitive values are not supported. Use {} format for both doc1 and doc2.",
           );
@@ -663,8 +674,8 @@ export function createJsonbDiffTool(adapter: PostgresAdapter): ToolDefinition {
             `;
 
         const result = await adapter.executeQuery(sql, [
-          toJsonString(parsed.doc1),
-          toJsonString(parsed.doc2),
+          toJsonString(doc1),
+          toJsonString(doc2),
         ]);
 
         const response: {

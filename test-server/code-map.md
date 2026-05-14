@@ -2,7 +2,7 @@
 
 > **Agent-optimized navigation reference.** Read this before searching the codebase. Covers directory layout, handler→tool mapping, type/schema locations, error hierarchy, and key constants.
 >
-> Last updated: March 31, 2026
+> Last updated: May 7, 2026
 
 ---
 
@@ -36,7 +36,7 @@ src/
 │
 ├── constants/
 │   ├── server-instructions.ts      # Generated: generateInstructions() + HELP_CONTENT map (composable, filter-aware)
-│   └── server-instructions/        # Source .md files for each help resource (22 files: overview, gotchas, jsonb, text, stats, etc.)
+│   └── server-instructions/        # Source .md files for each help resource (26 files: overview, gotchas, jsonb, text, stats, docstore, etc.)
 │
 ├── filtering/
 │   ├── tool-constants.ts           # TOOL_GROUPS arrays, group→tools map
@@ -66,7 +66,7 @@ src/
 │   └── resource-suggestions.ts     # Threshold-based actionable suggestions for resources (vacuum POC)
 │
 ├── pool/
-│   └── connection-pool.ts          # PostgreSQL connection pool manager (pg)
+│   └── connection-pool.ts          # PostgreSQL connection pool manager (pg), initializationSql support
 │
 ├── auth/                           # OAuth 2.1 implementation (11 files)
 │   ├── transport-agnostic.ts       # Transport-agnostic auth (createAuthenticatedContext, validateAuth, formatOAuthError)
@@ -130,7 +130,7 @@ src/
 
 ## Handler → Tool Mapping
 
-248 tools across 22 groups. Each handler file registers tools with `group` labels.
+278 tools across 25 groups. Each handler file registers tools with `group` labels.
 
 ### Tool Handlers (`src/adapters/postgresql/tools/`)
 
@@ -233,8 +233,18 @@ src/
 | **introspection** | `introspection/graph.ts`             | 3     | `pg_dependency_graph`, `pg_topological_sort`, `pg_cascade_simulator`                                                                                                                                                             |
 |                   | `introspection/analysis.ts`          | 2     | `pg_constraint_analysis`, `pg_migration_risks`                                                                                                                                                                                   |
 |                   | `introspection/snapshot.ts`          | 1     | `pg_schema_snapshot`                                                                                                                                                                                                             |
-| **migration**     | `introspection/migration.ts`         | 3     | `pg_migration_init`, `pg_migration_record`, `pg_migration_apply`                                                                                                                                                                 |
-|                   | `introspection/migration-query.ts`   | 3     | `pg_migration_rollback`, `pg_migration_history`, `pg_migration_status`                                                                                                                                                           |
+| **migration**     | `migration/migration.ts`             | 3     | `pg_migration_init`, `pg_migration_record`, `pg_migration_apply`                                                                                                                                                                 |
+|                   | `migration/migration-query.ts`       | 3     | `pg_migration_rollback`, `pg_migration_history`, `pg_migration_status`                                                                                                                                                           |
+| **security**      | `security/audit.ts`                  | 3     | `pg_security_audit`, `pg_security_firewall_status`, `pg_security_firewall_rules`                                                                                                                                                 |
+|                   | `security/encryption.ts`             | 3     | `pg_security_ssl_status`, `pg_security_encryption_status`, `pg_security_password_validate`                                                                                                                                       |
+|                   | `security/data-protection.ts`        | 3     | `pg_security_mask_data`, `pg_security_user_privileges`, `pg_security_sensitive_tables`                                                                                                                                           |
+| **roles**         | `roles/management.ts`                | 4     | `pg_role_list`, `pg_role_create`, `pg_role_drop`, `pg_role_attributes`                                                                                                                                                           |
+|                   | `roles/privileges.ts`                | 4     | `pg_role_grants`, `pg_role_grant`, `pg_role_assign`, `pg_role_revoke`                                                                                                                                                            |
+|                   | `roles/session.ts`                   | 4     | `pg_user_roles`, `pg_role_set`, `pg_role_rls_enable`, `pg_role_rls_policies`                                                                                                                                                     |
+| **docstore**      | `docstore/collection.ts`             | 4     | `pg_doc_list_collections`, `pg_doc_create_collection`, `pg_doc_drop_collection`, `pg_doc_collection_info`                                                                                                                        |
+|                   | `docstore/documents.ts`              | 4     | `pg_doc_find`, `pg_doc_add`, `pg_doc_modify`, `pg_doc_remove`                                                                                                                                                                    |
+|                   | `docstore/indexes.ts`                | 1     | `pg_doc_create_index`                                                                                                                                                                                                            |
+|                   | `docstore/helpers.ts`                | —     | Shared docstore helpers (identifier regex, filter parser, collection existence checks, table ref escaping)                                                                                                                       |
 
 ---
 
@@ -242,50 +252,53 @@ src/
 
 Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 
-| Subdirectory / File                                                                                             | Groups Covered                                                                    |
-| --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `index.ts`                                                                                                      | Barrel (re-exports `core-exports.ts` + `extension-exports.ts`)                    |
-| `core-exports.ts`                                                                                               | Core schema barrel exports                                                        |
-| `extension-exports.ts`                                                                                          | Extension schema barrel exports                                                   |
-| `error-response-fields.ts`                                                                                      | Shared `ErrorResponseFields` — merged into all 100 output schemas via `.extend()` |
-| `core/queries.ts`                                                                                               | Core read/write query schemas                                                     |
-| `core/transactions.ts`                                                                                          | Transaction schemas                                                               |
-| `core/index-schemas.ts`                                                                                         | Index operation schemas                                                           |
-| `jsonb/basic.ts`                                                                                                | JSONB read/write/transform schemas                                                |
-| `jsonb/advanced.ts`                                                                                             | JSONB analytics/validation schemas                                                |
-| `jsonb/pretty.ts`                                                                                               | JSONB pretty-print schemas                                                        |
-| `jsonb/utils.ts`                                                                                                | Path normalization, preprocessing helpers                                         |
-| `extensions/citext.ts`                                                                                          | Citext schemas                                                                    |
-| `extensions/ltree.ts`                                                                                           | Ltree schemas                                                                     |
-| `extensions/pgcrypto.ts`                                                                                        | pgcrypto schemas                                                                  |
-| `extensions/kcache.ts`                                                                                          | pg_stat_kcache schemas                                                            |
-| `extensions/shared.ts`                                                                                          | Shared extension schemas                                                          |
-| `stats/base-schemas.ts`                                                                                         | Statistics base schemas                                                           |
-| `stats/input.ts`                                                                                                | Statistics input schemas                                                          |
-| `stats/output.ts`                                                                                               | Statistics output schemas                                                         |
-| `stats/preprocessing.ts`                                                                                        | Statistics preprocessing helpers                                                  |
-| `stats/window.ts`                                                                                               | Window function schemas                                                           |
-| `stats/advanced.ts`                                                                                             | Advanced analysis + outlier detection schemas                                     |
-| `introspection/input.ts`                                                                                        | Introspection input schemas                                                       |
-| `introspection/output.ts`                                                                                       | Introspection output schemas                                                      |
-| `partitioning/range.ts`                                                                                         | Range partitioning schemas                                                        |
-| `partitioning/list.ts`                                                                                          | List partitioning schemas                                                         |
-| `partitioning/preprocess.ts`                                                                                    | Alias resolution, bounds construction                                             |
-| `postgis/basic.ts`                                                                                              | PostGIS basic schemas                                                             |
-| `postgis/advanced.ts`                                                                                           | PostGIS advanced input schemas                                                    |
-| `postgis/output.ts`                                                                                             | PostGIS output schemas (16 schemas)                                               |
-| `postgis/utils.ts`                                                                                              | Preprocessing, coordinate helpers                                                 |
-| `partman/input.ts`                                                                                              | Partman input schemas                                                             |
-| `partman/output.ts`                                                                                             | Partman output schemas                                                            |
-| `vector/input.ts`                                                                                               | Vector input schemas                                                              |
-| `vector/output.ts`                                                                                              | Vector output schemas                                                             |
-| Plus: `admin.ts`, `backup.ts`, `cron.ts`, `monitoring.ts`, `performance.ts`, `schema-mgmt.ts`, `text-search.ts` |
+| Subdirectory / File                                                                                                                                       | Groups Covered                                                                    |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `index.ts`                                                                                                                                                | Barrel (re-exports `core-exports.ts` + `extension-exports.ts`)                    |
+| `core-exports.ts`                                                                                                                                         | Core schema barrel exports                                                        |
+| `extension-exports.ts`                                                                                                                                    | Extension schema barrel exports                                                   |
+| `error-response-fields.ts`                                                                                                                                | Shared `ErrorResponseFields` — merged into all 100 output schemas via `.extend()` |
+| `core/queries.ts`                                                                                                                                         | Core read/write query schemas                                                     |
+| `core/transactions.ts`                                                                                                                                    | Transaction schemas                                                               |
+| `core/index-schemas.ts`                                                                                                                                   | Index operation schemas                                                           |
+| `jsonb/basic.ts`                                                                                                                                          | JSONB read/write/transform schemas                                                |
+| `jsonb/advanced.ts`                                                                                                                                       | JSONB analytics/validation schemas                                                |
+| `jsonb/pretty.ts`                                                                                                                                         | JSONB pretty-print schemas                                                        |
+| `jsonb/utils.ts`                                                                                                                                          | Path normalization, preprocessing helpers                                         |
+| `extensions/citext.ts`                                                                                                                                    | Citext schemas                                                                    |
+| `extensions/ltree.ts`                                                                                                                                     | Ltree schemas                                                                     |
+| `extensions/pgcrypto.ts`                                                                                                                                  | pgcrypto schemas                                                                  |
+| `extensions/kcache.ts`                                                                                                                                    | pg_stat_kcache schemas                                                            |
+| `extensions/shared.ts`                                                                                                                                    | Shared extension schemas                                                          |
+| `stats/base-schemas.ts`                                                                                                                                   | Statistics base schemas                                                           |
+| `stats/input.ts`                                                                                                                                          | Statistics input schemas                                                          |
+| `stats/output.ts`                                                                                                                                         | Statistics output schemas                                                         |
+| `stats/preprocessing.ts`                                                                                                                                  | Statistics preprocessing helpers                                                  |
+| `stats/window.ts`                                                                                                                                         | Window function schemas                                                           |
+| `stats/advanced.ts`                                                                                                                                       | Advanced analysis + outlier detection schemas                                     |
+| `introspection/input.ts`                                                                                                                                  | Introspection input schemas                                                       |
+| `introspection/output.ts`                                                                                                                                 | Introspection output schemas                                                      |
+| `migration/index.ts`                                                                                                                                      | Migration tracking schema barrel exports                                          |
+| `migration/input.ts`                                                                                                                                      | Migration tracking input schemas                                                  |
+| `migration/output.ts`                                                                                                                                     | Migration tracking output schemas                                                 |
+| `partitioning/range.ts`                                                                                                                                   | Range partitioning schemas                                                        |
+| `partitioning/list.ts`                                                                                                                                    | List partitioning schemas                                                         |
+| `partitioning/preprocess.ts`                                                                                                                              | Alias resolution, bounds construction                                             |
+| `postgis/basic.ts`                                                                                                                                        | PostGIS basic schemas                                                             |
+| `postgis/advanced.ts`                                                                                                                                     | PostGIS advanced input schemas                                                    |
+| `postgis/output.ts`                                                                                                                                       | PostGIS output schemas (16 schemas)                                               |
+| `postgis/utils.ts`                                                                                                                                        | Preprocessing, coordinate helpers                                                 |
+| `partman/input.ts`                                                                                                                                        | Partman input schemas                                                             |
+| `partman/output.ts`                                                                                                                                       | Partman output schemas                                                            |
+| `vector/input.ts`                                                                                                                                         | Vector input schemas                                                              |
+| `vector/output.ts`                                                                                                                                        | Vector output schemas                                                             |
+| Plus: `admin.ts`, `backup.ts`, `cron.ts`, `docstore.ts`, `monitoring.ts`, `performance.ts`, `roles.ts`, `schema-mgmt.ts`, `security.ts`, `text-search.ts` |
 
 ---
 
 ## Prompts (`src/adapters/postgresql/prompts/`)
 
-20 prompt definitions:
+21 prompt definitions:
 
 | File                 | Prompts                                                                                                                                          |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -303,12 +316,13 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 | `pgvector.ts`        | `pg_setup_pgvector`                                                                                                                              |
 | `postgis.ts`         | `pg_setup_postgis`                                                                                                                               |
 | `safe-restore.ts`    | `pg_safe_restore_workflow`                                                                                                                       |
+| `docstore.ts`        | `pg_setup_docstore`                                                                                                                              |
 
 ---
 
 ## Resources (`src/adapters/postgresql/resources/`)
 
-22 data resources + 21 help resources providing read-only metadata and agent guidance:
+23 data resources + 22 help resources providing read-only metadata and agent guidance:
 
 ### Data Resources
 
@@ -336,6 +350,7 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 | `crypto.ts`       | `postgres://crypto/{info}`       |
 | `insights.ts`     | `postgres://insights`            |
 | `audit.ts`        | `postgres://audit`               |
+| `docstore.ts`     | `postgres://docstore`            |
 
 ### Help Resources (registered dynamically by McpServer)
 
@@ -344,7 +359,7 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 | `postgres://help`         | `server-instructions/overview.md` + `gotchas.md` | Gotchas, aliases, Code Mode API — always available     |
 | `postgres://help/{group}` | `server-instructions/{group}.md`                 | Per-group tool reference — filtered by `--tool-filter` |
 
-20 group-specific help resources. Only groups enabled by `--tool-filter` are registered. The `core` and `codemode` tools are covered by the global `postgres://help` resource.
+21 group-specific help resources. Only groups enabled by `--tool-filter` are registered. The `core` and `codemode` tools are covered by the global `postgres://help` resource.
 
 ---
 
@@ -394,7 +409,7 @@ throw new ExtensionNotAvailableError("pgvector");
 
 | What                               | Where                                  | Notes                                                                                                                                                                                                   |
 | ---------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Server instructions (agent prompt) | `src/constants/server-instructions.ts` | Generated: `generateInstructions(enabledGroups, level, toolCount)` + `HELP_CONTENT` map. Composable segments gated by tool groups and `InstructionLevel`. Source: `server-instructions/*.md` (22 files) |
+| Server instructions (agent prompt) | `src/constants/server-instructions.ts` | Generated: `generateInstructions(enabledGroups, level, toolCount)` + `HELP_CONTENT` map. Composable segments gated by tool groups and `InstructionLevel`. Source: `server-instructions/*.md` (26 files) |
 | Tool group arrays                  | `src/filtering/tool-constants.ts`      | `TOOL_GROUPS` map                                                                                                                                                                                       |
 | Tool filter logic                  | `src/filtering/tool-filter.ts`         | `ToolFilter` class, `getEnabledGroups()` utility                                                                                                                                                        |
 | Connection pool                    | `src/pool/connection-pool.ts`          | pg-native pool wrapper                                                                                                                                                                                  |
@@ -415,7 +430,7 @@ throw new ExtensionNotAvailableError("pgvector");
 | **P154 Pattern**      | All tools verify object existence before operating. Returns structured error for missing tables/schemas.                                                                                                                                                                                                                                |
 | **Adapter Pattern**   | `DatabaseAdapter` (abstract) → `PostgresAdapter`. Single adapter (no WASM variant).                                                                                                                                                                                                                                                     |
 | **Schema Cache**      | Metadata caching via `schema-operations/` (describe + list).                                                                                                                                                                                                                                                                            |
-| **Connection Pool**   | `ConnectionPool` wraps `pg` module. Managed lifecycle with health checks and centralized 30,000ms default timeout.                                                                                                                                                                                                                      |
+| **Connection Pool**   | `ConnectionPool` wraps `pg` module. Managed lifecycle with health checks, centralized 30,000ms default timeout, and optional `initializationSql` for per-connection session setup.                                                                                                                                                      |
 | **Code Mode Bridge**  | `pg.*` API in sandbox. Dual-mode: VM (default, `sandbox.ts`) or Worker (`worker-sandbox.ts` + `worker-script.ts`). Factory in `sandbox-factory.ts`. Unique `api/` subdir with alias resolution + group-api generation. Security constants in `SecurityConfig`. Returns `metrics.tokenEstimate` for per-execution burn-rate feedback.    |
 | **Tool Aliases**      | postgres-mcp has a dedicated alias system (`codemode/api/aliases.ts`, 15KB) for Code Mode.                                                                                                                                                                                                                                              |
 | **Per-Group Schemas** | Zod schemas separated into `schemas/` subdir organized by group (vs mysql-mcp's monolithic file).                                                                                                                                                                                                                                       |
@@ -444,9 +459,8 @@ throw new ExtensionNotAvailableError("pgvector");
 | `test-server/README.md`                    | Agent testing orchestration doc                                                                                         |
 | `test-server/test-database.sql`            | Core seed DDL+DML (16 tables, ~700+ rows)                                                                               |
 | `test-server/reset-database.ps1`           | Reset Docker container DB from seed data                                                                                |
-| `test-server/Tool-Reference.md`            | Complete 248-tool inventory with descriptions                                                                           |
-| `test-server/tool-groups-list.md`          | Canonical tool inventory (22 groups)                                                                                    |
-| `test-server/test-tool-groups/`            | Per-group deterministic direct MCP tool call checklists (21 groups)                                                     |
+| `test-server/Tool-Reference.md`            | Complete 278-tool inventory with descriptions                                                                           |
+| `test-server/test-tool-groups/`            | Per-group deterministic direct MCP tool call checklists (25 groups)                                                     |
 | `test-server/test-tool-groups-codemode/`   | Code Mode execution mappings for the standard groups                                                                    |
 | `test-server/test-advanced/`               | Advanced stress tests (boundary, edge cases, cross-group optimization) split into 22 granular parts                     |
 | `test-server/test-resources.md`            | Resource testing plan (20 resources)                                                                                    |

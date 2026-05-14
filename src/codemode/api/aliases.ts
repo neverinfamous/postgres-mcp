@@ -520,4 +520,105 @@ export const TOP_LEVEL_ALIASES: readonly {
     bindingName: "cronCleanupHistory",
     methodName: "cleanupHistory",
   },
+  // security
+  {
+    group: "security",
+    bindingName: "securitySslStatus",
+    methodName: "sslStatus",
+  },
+  {
+    group: "security",
+    bindingName: "securityEncryptionStatus",
+    methodName: "encryptionStatus",
+  },
+  {
+    group: "security",
+    bindingName: "securityPasswordValidate",
+    methodName: "passwordValidate",
+  },
+  {
+    group: "security",
+    bindingName: "securityMaskData",
+    methodName: "maskData",
+  },
+  {
+    group: "security",
+    bindingName: "securityUserPrivileges",
+    methodName: "userPrivileges",
+  },
+  {
+    group: "security",
+    bindingName: "securitySensitiveTables",
+    methodName: "sensitiveTables",
+  },
+  {
+    group: "security",
+    bindingName: "securityAudit",
+    methodName: "audit",
+  },
+  {
+    group: "security",
+    bindingName: "securityFirewallStatus",
+    methodName: "firewallStatus",
+  },
+  {
+    group: "security",
+    bindingName: "securityFirewallRules",
+    methodName: "firewallRules",
+  },
+  // roles
+  { group: "roles", bindingName: "roleList", methodName: "list" },
+  { group: "roles", bindingName: "roleCreate", methodName: "create" },
+  { group: "roles", bindingName: "roleDrop", methodName: "drop" },
+  {
+    group: "roles",
+    bindingName: "roleAttributes",
+    methodName: "attributes",
+  },
+  { group: "roles", bindingName: "roleGrants", methodName: "grants" },
+  { group: "roles", bindingName: "roleGrant", methodName: "grant" },
+  { group: "roles", bindingName: "roleAssign", methodName: "assign" },
+  { group: "roles", bindingName: "roleRevoke", methodName: "revoke" },
+  { group: "roles", bindingName: "userRoles", methodName: "userRoles" },
+  { group: "roles", bindingName: "roleSet", methodName: "set" },
+  {
+    group: "roles",
+    bindingName: "roleRlsEnable",
+    methodName: "rlsEnable",
+  },
+  {
+    group: "roles",
+    bindingName: "roleRlsPolicies",
+    methodName: "rlsPolicies",
+  },
+  // docstore
+  {
+    group: "docstore",
+    bindingName: "docListCollections",
+    methodName: "listCollections",
+  },
+  {
+    group: "docstore",
+    bindingName: "docCreateCollection",
+    methodName: "createCollection",
+  },
+  {
+    group: "docstore",
+    bindingName: "docDropCollection",
+    methodName: "dropCollection",
+  },
+  {
+    group: "docstore",
+    bindingName: "docCollectionInfo",
+    methodName: "collectionInfo",
+  },
+  { group: "docstore", bindingName: "docFind", methodName: "find" },
+  { group: "docstore", bindingName: "docAdd", methodName: "add" },
+  { group: "docstore", bindingName: "docModify", methodName: "modify" },
+  { group: "docstore", bindingName: "docRemove", methodName: "remove" },
+  {
+    group: "docstore",
+    bindingName: "docCreateIndex",
+    methodName: "createIndex",
+  },
 ];

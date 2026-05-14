@@ -185,6 +185,34 @@ export const JsonbSecurityScanSchema = z.preprocess(
   JsonbSecurityScanSchemaRefined,
 );
 
+// ============== MERGE SCHEMA ==============
+// Base schema (for MCP inputSchema visibility - no preprocess)
+export const JsonbMergeSchemaBase = z.object({
+  base: z.unknown().optional().describe("Base JSONB document"),
+  json1: z.unknown().optional().describe("Alias for base document"),
+  overlay: z.unknown().optional().describe("JSONB to merge on top"),
+  json2: z.unknown().optional().describe("Alias for overlay document"),
+  deep: z
+    .boolean()
+    .optional()
+    .describe("Deep merge nested objects (default: true)"),
+  mergeArrays: z
+    .boolean()
+    .optional()
+    .describe("Concatenate arrays instead of replacing (default: false)"),
+});
+
+export const JsonbMergeSchema = JsonbMergeSchemaBase;
+
+// ============== DIFF SCHEMA ==============
+// Base schema (for MCP inputSchema visibility - no preprocess)
+export const JsonbDiffSchemaBase = z.object({
+  doc1: z.unknown().optional().describe("First JSONB object to compare"),
+  doc2: z.unknown().optional().describe("Second JSONB object to compare"),
+});
+
+export const JsonbDiffSchema = JsonbDiffSchemaBase;
+
 // ============== OUTPUT SCHEMAS (MCP 2025-11-25 structuredContent) ==============
 
 // Output schema for pg_jsonb_extract
@@ -327,6 +355,10 @@ export const JsonbKeysOutputSchema = z
 // Uses combined schema with optional fields instead of union with z.literal() to avoid Zod validation issues
 export const JsonbStripNullsOutputSchema = z
   .object({
+    result: z
+      .unknown()
+      .optional()
+      .describe("Stripped JSON (if raw json provided)"),
     // Update mode fields
     rowsAffected: z.number().optional().describe("Number of rows updated"),
     // Preview mode fields

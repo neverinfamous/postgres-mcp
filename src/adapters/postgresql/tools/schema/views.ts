@@ -14,6 +14,7 @@ import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { sanitizeIdentifier } from "../../../../utils/identifiers.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import {
   CreateViewSchemaBase,
   CreateViewSchema,
@@ -42,7 +43,13 @@ export function createListViewsTool(adapter: PostgresAdapter): ToolDefinition {
     icons: getToolIcons("schema", readOnly("List Views")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = ListViewsSchema.parse(params ?? {});
+        const parsed = ListViewsSchema.parse(params ?? {}) as {
+          schema?: string;
+          exclude?: string[];
+          includeMaterialized?: boolean;
+          truncateDefinition?: number;
+          limit?: number;
+        };
         const queryParams: unknown[] = [];
 
         // Validate schema existence when filtering by schema
@@ -52,26 +59,53 @@ export function createListViewsTool(adapter: PostgresAdapter): ToolDefinition {
             [parsed.schema],
           );
           if ((schemaCheck.rows?.length ?? 0) === 0) {
-            return {
-              success: false,
-              error: `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
-              code: "QUERY_ERROR",
-              category: "query",
-              recoverable: false,
-            };
+            throw new ValidationError(
+              `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
+            );
           }
         }
 
-        const schemaClause = parsed.schema
-          ? (queryParams.push(parsed.schema),
-            `AND n.nspname = $${String(queryParams.length)}`)
-          : "";
-        const kindClause =
-          parsed.includeMaterialized !== false ? "IN ('v', 'm')" : "= 'v'";
+        const conditions: string[] = [
+          `c.relkind ${parsed.includeMaterialized !== false ? "IN ('v', 'm')" : "= 'v'"}`,
+          "n.nspname NOT IN ('pg_catalog', 'information_schema')",
+        ];
 
-        // Default truncation: 500 chars, 0 = no truncation (safe coercion)
+        if (parsed.schema) {
+          queryParams.push(parsed.schema);
+          conditions.push(`n.nspname = $${String(queryParams.length)}`);
+        }
+
+        if (Array.isArray(parsed.exclude) && parsed.exclude.length > 0) {
+          const EXTENSION_ALIASES: Record<string, string> = {
+            pgvector: "vector",
+            vector: "vector",
+            partman: "pg_partman",
+            fuzzymatch: "fuzzystrmatch",
+            fuzzy: "fuzzystrmatch",
+          };
+          const normalizedExclude = parsed.exclude.flatMap((s: unknown) => {
+            const str = String(s);
+            const alias = EXTENSION_ALIASES[str];
+            return alias ? [str, alias] : [str];
+          });
+          const excludePlaceholders = normalizedExclude.map((s: string) => {
+            queryParams.push(s);
+            return `$${String(queryParams.length)}`;
+          });
+          const excludeList = excludePlaceholders.join(", ");
+          conditions.push(`n.nspname NOT IN (${excludeList})`);
+          conditions.push(`NOT EXISTS (
+                      SELECT 1 FROM pg_depend d
+                      JOIN pg_extension e ON d.refobjid = e.oid
+                      WHERE d.objid = c.oid
+                      AND d.deptype = 'e'
+                      AND e.extname IN (${excludeList})
+                  )`);
+        }
+
+        // Default truncation: 100 chars, 0 = no truncation (safe coercion)
         const rawTruncate = Number(parsed.truncateDefinition);
-        const truncateLimit = Number.isFinite(rawTruncate) ? rawTruncate : 500;
+        const truncateLimit = Number.isFinite(rawTruncate) ? rawTruncate : 100;
 
         // Default limit: 50, 0 = no limit (safe coercion)
         const rawLimit = Number(parsed.limit);
@@ -83,9 +117,7 @@ export function createListViewsTool(adapter: PostgresAdapter): ToolDefinition {
                           TRIM(pg_get_viewdef(c.oid, true)) as definition
                           FROM pg_class c
                           JOIN pg_namespace n ON n.oid = c.relnamespace
-                          WHERE c.relkind ${kindClause}
-                          AND n.nspname NOT IN ('pg_catalog', 'information_schema')
-                          ${schemaClause}
+                          WHERE ${conditions.join(" AND ")}
                           ORDER BY n.nspname, c.relname
                           ${limitClause}`;
 
@@ -134,19 +166,12 @@ export function createListViewsTool(adapter: PostgresAdapter): ToolDefinition {
         response["truncated"] = hasMore;
         if (hasMore) {
           // Get total count
-          const countParams: unknown[] = [];
-          const countSchemaClause = parsed.schema
-            ? (countParams.push(parsed.schema),
-              `AND n.nspname = $${String(countParams.length)}`)
-            : "";
           const countSql = `SELECT COUNT(*)::int as total FROM pg_class c
                             JOIN pg_namespace n ON n.oid = c.relnamespace
-                            WHERE c.relkind ${kindClause}
-                            AND n.nspname NOT IN ('pg_catalog', 'information_schema')
-                            ${countSchemaClause}`;
+                            WHERE ${conditions.join(" AND ")}`;
           const countResult =
-            countParams.length > 0
-              ? await adapter.executeQuery(countSql, countParams)
+            queryParams.length > 0
+              ? await adapter.executeQuery(countSql, queryParams)
               : await adapter.executeQuery(countSql);
           response["totalCount"] =
             countResult.rows?.[0]?.["total"] ?? views.length;
@@ -307,6 +332,7 @@ export function createDropViewTool(adapter: PostgresAdapter): ToolDefinition {
         } catch (error: unknown) {
           return formatHandlerErrorResponse(error, {
             tool: "pg_drop_view",
+            objectType: "view",
             ...(schema !== undefined && { schema }),
           });
         }

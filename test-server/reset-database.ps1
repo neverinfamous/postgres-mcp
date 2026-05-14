@@ -36,9 +36,9 @@ $SqlFile = Join-Path $ScriptDir "test-database.sql"
 
 # Colors for output
 function Write-Step { param($Step, $Message) Write-Host "`n[$Step/10] " -ForegroundColor Cyan -NoNewline; Write-Host $Message -ForegroundColor White }
-function Write-Success { param($Message) Write-Host "  ✓ " -ForegroundColor Green -NoNewline; Write-Host $Message }
-function Write-Info { param($Message) Write-Host "  → " -ForegroundColor DarkGray -NoNewline; Write-Host $Message -ForegroundColor DarkGray }
-function Write-Error { param($Message) Write-Host "  ✗ " -ForegroundColor Red -NoNewline; Write-Host $Message -ForegroundColor Red }
+function Write-Success { param($Message) Write-Host "  OK " -ForegroundColor Green -NoNewline; Write-Host $Message }
+function Write-Info { param($Message) Write-Host "  -> " -ForegroundColor DarkGray -NoNewline; Write-Host $Message -ForegroundColor DarkGray }
+function Write-Error { param($Message) Write-Host "  ERR " -ForegroundColor Red -NoNewline; Write-Host $Message -ForegroundColor Red }
 
 Write-Host "`n╔════════════════════════════════════════════════════════════╗" -ForegroundColor Magenta
 Write-Host "║           PostgreSQL MCP Test Database Reset               ║" -ForegroundColor Magenta
@@ -183,14 +183,21 @@ DO `$`$
 DECLARE r RECORD;
 BEGIN
     -- Delete partman configs for test_* tables (prevents orphaned configs)
-    IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'part_config' AND schemaname IN ('public', 'partman')) THEN
-        -- Clean sub-partition configs first (FK to part_config)
-        IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'part_config_sub' AND schemaname IN ('public', 'partman')) THEN
-            DELETE FROM public.part_config_sub WHERE sub_parent LIKE 'public.test_%';
-            DELETE FROM public.part_config_sub WHERE sub_parent LIKE 'public.temp_%';
-        END IF;
-        DELETE FROM public.part_config WHERE parent_table LIKE 'public.test_%';
-        DELETE FROM public.part_config WHERE parent_table LIKE 'public.temp_%';
+    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_partman') THEN
+        DECLARE
+            v_schema TEXT;
+        BEGIN
+            SELECT extnamespace::regnamespace::text INTO v_schema FROM pg_extension WHERE extname = 'pg_partman';
+            -- Clean sub-partition configs first (FK to part_config)
+            IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'part_config_sub' AND schemaname = v_schema) THEN
+                EXECUTE format('DELETE FROM %I.part_config_sub WHERE sub_parent LIKE ''public.test_%%''', v_schema);
+                EXECUTE format('DELETE FROM %I.part_config_sub WHERE sub_parent LIKE ''public.temp_%%''', v_schema);
+            END IF;
+            IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'part_config' AND schemaname = v_schema) THEN
+                EXECUTE format('DELETE FROM %I.part_config WHERE parent_table LIKE ''public.test_%%''', v_schema);
+                EXECUTE format('DELETE FROM %I.part_config WHERE parent_table LIKE ''public.temp_%%''', v_schema);
+            END IF;
+        END;
     END IF;
 
     -- Drop template tables created by partman for test tables
@@ -394,6 +401,7 @@ if (-not $SkipVerify) {
         "test_assignments" = 3
         "test_audit_log" = 3
         "test_lock_target" = 1
+        "test_documents" = 5
     }
 
     Write-Host "`n  Table verification:" -ForegroundColor Yellow
@@ -434,7 +442,7 @@ if (-not $SkipVerify) {
         Write-Host "`n  ✓ " -ForegroundColor Green -NoNewline
         Write-Host "All tables verified successfully"
     } else {
-        Write-Host "`n  ⚠ " -ForegroundColor Yellow -NoNewline
+        Write-Host "`n  WARN " -ForegroundColor Yellow -NoNewline
         Write-Host "Some tables have unexpected row counts" -ForegroundColor Yellow
     }
 
@@ -459,7 +467,7 @@ if (-not $SkipVerify) {
     }
 
     if ($unexpectedTables.Count -gt 0) {
-        Write-Host "    ⚠ Found $($unexpectedTables.Count) unexpected table(s) — possible stale test artifacts:" -ForegroundColor Yellow
+        Write-Host "    WARN Found $($unexpectedTables.Count) unexpected table(s) — possible stale test artifacts:" -ForegroundColor Yellow
         foreach ($ut in $unexpectedTables) {
             Write-Host "    [stale] " -ForegroundColor Yellow -NoNewline
             Write-Host $ut -ForegroundColor Gray

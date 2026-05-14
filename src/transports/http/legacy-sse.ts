@@ -44,7 +44,7 @@ export async function handleLegacySSERequest(
 
   // Connect MCP server to this transport (must complete before client sends messages)
   if (onConnect) {
-    await onConnect(transport as unknown as Transport);
+    await onConnect(transport);
   }
 }
 

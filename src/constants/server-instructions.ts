@@ -57,6 +57,7 @@ Some highlights include:
 - **Core Operations**: \`core\`, \`transactions\`, \`migration\`, \`schema\`
 - **Data Types**: \`jsonb\`, \`text\`, \`vector\`, \`postgis\`, \`citext\`, \`ltree\`
 - **Introspection/Health**: \`introspection\`, \`monitoring\`, \`performance\`, \`kcache\`
+- **Access Control**: \`security\`, \`roles\`
 - **Scale/Maintenance**: \`partitioning\`, \`partman\`, \`cron\`, \`backup\`, \`admin\`
 - **Analytics**: \`stats\`, \`pgcrypto\`
 
@@ -78,7 +79,7 @@ Sandbox: No \`setTimeout\`, \`setInterval\`, \`fetch\`, or network access. Use \
 /**
  * All group keys that have help content (for dynamic help pointer generation).
  */
-const HELP_GROUP_KEYS: readonly string[] = ["admin","backup","citext","cron","introspection","jsonb","kcache","ltree","migration","monitoring","partitioning","partman","performance","pgcrypto","postgis","schema","stats","text","transactions","vector"]
+const HELP_GROUP_KEYS: readonly string[] = ["admin","backup","citext","cron","docstore","introspection","jsonb","kcache","ltree","migration","monitoring","partitioning","partman","performance","pgcrypto","postgis","roles","schema","security","stats","text","transactions","vector"]
 
 /**
  * Build dynamic help pointers listing only the enabled groups.
@@ -245,6 +246,22 @@ Core: \`createExtension()\`, \`schedule()\`, \`scheduleInDatabase()\`, \`unsched
 - \`pg_cron_create_extension\`: Enable pg_cron extension (idempotent). Requires superuser
 
 **Discovery**: \`pg.cron.help()\` returns \`{methods, methodAliases, examples}\` object`],
+  ["docstore", `# Document Store (\`pg_doc_*\`)
+
+- **Collection creation**: \`pg_doc_create_collection\` creates a JSONB document collection. Use \`ifNotExists: true\` (default) to avoid errors when the collection already exists. Returns \`{ success: false, error }\` if collection already exists (without \`ifNotExists\`). Accepts optional \`schema\` parameter.
+- **Collection drop**: \`pg_doc_drop_collection\` removes a collection. With \`ifExists: true\` (default), returns \`{ success: true, message: "Collection did not exist" }\` when the collection was already absent.
+- **Collection detection**: Tools identify document collections as tables containing a \`doc JSONB\` column with an \`_id\` text column. Manually created JSONB tables with this pattern may appear in collection listings.
+- **Nonexistent collection handling**: \`pg_doc_collection_info\`, \`pg_doc_add\`, \`pg_doc_find\`, \`pg_doc_modify\`, \`pg_doc_remove\`, and \`pg_doc_create_index\` return \`{ success: false, error }\` when the target collection does not exist.
+- **Nonexistent schema handling**: All docstore tools that accept a \`schema\` parameter return a structured error when a nonexistent schema is explicitly provided, matching the P154 pattern.
+- **Index creation**: \`pg_doc_create_index\` creates PostgreSQL expression indexes on JSONB paths. Returns \`{ success: false, error }\` if the index already exists. Supports typed indexes (\`TEXT\`, \`INT\`, \`DOUBLE\`, \`DATE\`, \`TIMESTAMP\`, \`BOOLEAN\`).
+- **Filter Syntax** (for \`pg_doc_find\`, \`pg_doc_modify\`, \`pg_doc_remove\`):
+  - **By _id**: Pass the 32-character hex _id directly: \`filter: "686dd247b9724bcfa08ce6f1efed8b77"\`
+  - **By field value**: Use \`field=value\` format: \`filter: "name=Alice"\` or \`filter: "age=30"\`
+  - **By existence**: Use JSON path: \`filter: "$.address"\` (matches docs where address field exists)
+  - ❌ Incorrect: \`filter: "$.name == 'Alice'"\` (comparison operators not supported in path)
+  - ✅ Correct: \`filter: "name=Alice"\` (field=value format)
+- **Find Filters** (\`pg_doc_find\`): The filter parameter supports _id, field=value, and JSON path existence (e.g., \`$.address.zip\`). The path must be a valid JSON path; invalid paths return \`{ success: false, error }\`.
+- **PostgreSQL-specific**: Uses JSONB operators (\`@>\`, \`?\`, \`->\`, \`->>\`), \`jsonb_set()\` for modifications, \`#-\` for field removal, and expression indexes instead of generated columns.`],
   ["gotchas", `# postgres-mcp Code Mode
 
 ## ⚠️ Critical Gotchas
@@ -560,6 +577,78 @@ Core: \`createExtension()\`, \`hash()\`, \`hmac()\`, \`encrypt()\`, \`decrypt()\
 - \`pg_geo_index_optimize\`: Analyze spatial indexes. Without \`table\` param, analyzes all spatial indexes. Returns structured error (\`TABLE_NOT_FOUND\`) if specified table has no spatial columns or indexes
 
 **Code Mode Aliases:** \`pg.postgis.addColumn()\` → \`geometryColumn\`, \`pg.postgis.indexOptimize()\` → \`geoIndexOptimize\`, \`pg.postgis.geoCluster()\` → \`pg_geo_cluster\`, \`pg.postgis.geoTransform()\` → \`pg_geo_transform\`. Note: \`pg.{group}.help()\` returns \`{methods, methodAliases, examples}\``],
+  ["roles", `# Role Management Tools
+
+PostgreSQL role CRUD, privilege management, membership, session control, and row-level security.
+
+## Tools (12)
+
+| Tool | Description |
+|------|-------------|
+| \`pg_role_list\` | List all roles with optional pattern filter and attributes |
+| \`pg_role_create\` | Create a new role with optional attributes (LOGIN, PASSWORD, SUPERUSER, etc.) |
+| \`pg_role_drop\` | Drop a role (with IF EXISTS safety by default) |
+| \`pg_role_attributes\` | Get detailed role attributes and settings (OID, inherit, connection limit, expiration) |
+| \`pg_role_grants\` | Show privileges and memberships for a role |
+| \`pg_role_grant\` | Grant privileges (SELECT, INSERT, ALL, etc.) on tables/schemas/sequences to a role |
+| \`pg_role_assign\` | Grant role membership to a user/role (with optional ADMIN OPTION) |
+| \`pg_role_revoke\` | Revoke role membership or object privileges from a user/role |
+| \`pg_user_roles\` | List roles assigned to a user (including admin and SET options) |
+| \`pg_role_set\` | Set session's active role (SET ROLE / RESET ROLE) |
+| \`pg_role_rls_enable\` | Enable/disable row-level security on a table (with optional FORCE) |
+| \`pg_role_rls_policies\` | List RLS policies for a table (name, command, USING/WITH CHECK expressions) |
+
+## Key Concepts
+
+- **Unified Role Model**: PostgreSQL uses roles for both users and groups. A role with \`LOGIN\` is a "user"; a role without is a "group." Use \`pg_role_create\` with \`login: true\` for user-like roles.
+- **Role Attributes**: \`SUPERUSER\`, \`CREATEDB\`, \`CREATEROLE\`, \`REPLICATION\`, \`BYPASSRLS\`, \`LOGIN\`, \`INHERIT\`, \`CONNECTION LIMIT\`, \`VALID UNTIL\`.
+- **Membership**: \`pg_role_assign\` grants membership (equivalent to MySQL's role assignment). Use \`withAdminOption: true\` to allow re-granting.
+- **Row-Level Security (RLS)**: Must be enabled per-table with \`pg_role_rls_enable\`. Use \`force: true\` to apply RLS even to the table owner. Policies are created via SQL and inspected via \`pg_role_rls_policies\`.
+- **SET ROLE**: Temporarily switch the session's effective role. Reversible with \`pg_role_set({ reset: true })\`.
+
+## Code Mode
+
+\`\`\`javascript
+// List all roles
+const roles = await pg.roles.list();
+
+// Create a login role
+await pg.roles.create({ name: "webapp", login: true, password: "secure123" });
+
+// Create a group role
+await pg.roles.create({ name: "readonly" });
+
+// Grant SELECT on all tables in public schema
+await pg.roles.grant({ role: "readonly", privileges: ["SELECT"], table: "*" });
+
+// Assign role to user
+await pg.roles.assign({ role: "readonly", user: "webapp" });
+
+// Inspect role memberships
+const memberships = await pg.roles.userRoles({ user: "webapp" });
+
+// Inspect role attributes
+const attrs = await pg.roles.attributes({ role: "webapp" });
+
+// Revoke membership
+await pg.roles.revoke({ role: "readonly", user: "webapp" });
+
+// Enable RLS on a table
+await pg.roles.rlsEnable({ table: "users" });
+
+// List RLS policies
+const policies = await pg.roles.rlsPolicies({ table: "users" });
+
+// Switch session role
+await pg.roles.set({ role: "readonly" });
+await pg.roles.set({ reset: true }); // restore original
+\`\`\`
+
+## Permissions
+
+- \`pg_role_list\`, \`pg_role_attributes\`, \`pg_role_grants\`, \`pg_user_roles\`, \`pg_role_rls_policies\`: Require **read** scope
+- \`pg_role_create\`, \`pg_role_drop\`, \`pg_role_grant\`, \`pg_role_assign\`, \`pg_role_revoke\`, \`pg_role_set\`, \`pg_role_rls_enable\`: Require **admin** scope
+- All tools perform existence checks (P154) before executing mutations`],
   ["schema", `# Schema Tools
 
 Core: \`listSchemas()\`, \`createSchema()\`, \`dropSchema()\`, \`listViews()\`, \`createView()\`, \`dropView()\`, \`listSequences()\`, \`createSequence()\`, \`dropSequence()\`, \`listFunctions()\`, \`listTriggers()\`, \`listConstraints()\`
@@ -582,6 +671,62 @@ Response Structures:
 📦 **AI-Optimized Payloads**: \`listViews\`, \`listSequences\`, \`listFunctions\`, \`listTriggers\`, and \`listConstraints\` all default to a 50-row limit. Returns \`truncated: true\` + \`totalCount\` when applicable (for views and sequences) or \`limit\` parameter to indicate sizing. Use \`limit: 0\` for all
 
 **Discovery**: \`pg.schema.help()\` returns \`{methods, methodAliases, examples}\` object`],
+  ["security", `# Security Tools
+
+PostgreSQL security auditing, monitoring, and data protection.
+
+## Tools (9)
+
+| Tool | Description |
+|------|-------------|
+| \`pg_security_audit\` | Comprehensive security posture audit (SSL, password encryption, superusers, logging, HBA rules) |
+| \`pg_security_firewall_status\` | pg_hba.conf rule summary — PostgreSQL's host-based authentication firewall |
+| \`pg_security_firewall_rules\` | Detailed pg_hba.conf rule listing with user/type filtering |
+| \`pg_security_ssl_status\` | SSL/TLS connection status for active connections |
+| \`pg_security_encryption_status\` | Encryption configuration (SSL settings, password encryption, pgcrypto) |
+| \`pg_security_password_validate\` | Password strength validation (local analysis, no DB query) |
+| \`pg_security_mask_data\` | Data masking for email, phone, SSN, credit card, partial formats |
+| \`pg_security_user_privileges\` | Role privilege report (attributes, membership, object grants) |
+| \`pg_security_sensitive_tables\` | Detect columns with potentially sensitive data by name pattern |
+
+## Key Concepts
+
+- **pg_hba.conf**: PostgreSQL's host-based authentication file controls who can connect and how. The firewall tools read \`pg_hba_file_rules\` (PG 10+, requires superuser).
+- **SSL/TLS**: PostgreSQL supports native SSL. \`pg_stat_ssl\` shows per-connection SSL details.
+- **Password Encryption**: \`scram-sha-256\` is the recommended method (PG 10+). \`md5\` is legacy.
+- **Role System**: PostgreSQL uses roles (not separate users/groups). Roles can have LOGIN, SUPERUSER, CREATEDB, CREATEROLE, REPLICATION, BYPASSRLS attributes.
+
+## Code Mode
+
+\`\`\`javascript
+// Quick audit
+const audit = await pg.security.audit();
+
+// Check SSL status
+const ssl = await pg.security.sslStatus();
+
+// Mask sensitive data
+const masked = await pg.security.maskData({ value: "user@example.com", type: "email" });
+
+// Check user privileges
+const privs = await pg.security.userPrivileges({ user: "webapp" });
+
+// Find sensitive columns
+const sensitive = await pg.security.sensitiveTables({ schema: "public" });
+
+// HBA rules
+const hba = await pg.security.firewallStatus();
+const rules = await pg.security.firewallRules({ type: "hostssl" });
+
+// Password strength
+const strength = await pg.security.passwordValidate({ password: "MyP@ssw0rd!" });
+\`\`\`
+
+## Permissions
+
+- \`pg_security_audit\`, \`pg_security_encryption_status\`, \`pg_security_user_privileges\`, \`pg_security_firewall_rules\`: Require **admin** scope
+- \`pg_security_ssl_status\`, \`pg_security_firewall_status\`, \`pg_security_mask_data\`, \`pg_security_sensitive_tables\`, \`pg_security_password_validate\`: Require **read** scope
+- HBA tools gracefully degrade if the user lacks superuser or \`pg_read_all_settings\` role`],
   ["stats", `# Stats Tools
 
 - All stats tools support \`schema.table\` format (auto-parsed, embedded schema takes priority over explicit \`schema\` param)
@@ -598,7 +743,7 @@ Response Structures:
 **Window Functions (6 tools):**
 
 - \`pg_stats_row_number({ table, orderBy, partitionBy?, selectColumns?, where?, limit? })\`: Sequential numbering within ordered result. \`partitionBy\` restarts numbering per group. Default \`limit: 20\` (max: 100). Returns \`{success, rowCount, rows}\`
-- \`pg_stats_rank({ table, orderBy, rankType?, partitionBy?, selectColumns?, where?, limit? })\`: Rank within ordered set. \`rankType\`: 'rank' (default, with gaps), 'dense_rank' (no gaps), 'percent_rank' (0-1). Default \`limit: 20\` (max: 100). Returns \`{success, rankType, rowCount, rows}\`
+- \`pg_stats_rank({ table, orderBy, method?, partitionBy?, selectColumns?, where?, limit? })\`: Rank within ordered set. \`method\`: 'rank' (default, with gaps), 'dense_rank' (no gaps), 'percent_rank' (0-1). Default \`limit: 20\` (max: 100). Returns \`{success, rankType, rowCount, rows}\`
 - \`pg_stats_lag_lead({ table, column, orderBy, direction, offset?, defaultValue?, partitionBy?, selectColumns?, where?, limit? })\`: Access previous (\`lag\`) or next (\`lead\`) row values. \`direction\`: 'lag' or 'lead'. \`offset\` (default: 1) = number of rows to look back/ahead. \`defaultValue\` fills when no row exists. Default \`limit: 20\` (max: 100). Returns \`{success, direction, offset, rowCount, rows}\`
 - \`pg_stats_running_total({ table, column, orderBy, partitionBy?, selectColumns?, where?, limit? })\`: Cumulative running total using \`SUM OVER\`. \`partitionBy\` resets total per group. Default \`limit: 20\` (max: 100). Returns \`{success, valueColumn, rowCount, rows}\`
 - \`pg_stats_moving_avg({ table, column, orderBy, windowSize, partitionBy?, selectColumns?, where?, limit? })\`: Moving average over sliding window. \`windowSize\` = number of rows in window (default: 3). Default \`limit: 20\` (max: 100). Returns \`{success, valueColumn, windowSize, rowCount, rows}\`

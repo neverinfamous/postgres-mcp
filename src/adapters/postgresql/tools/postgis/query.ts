@@ -45,7 +45,7 @@ export function createPointInPolygonTool(
   return {
     name: "pg_point_in_polygon",
     description:
-      "Check if a point is within any polygon in a table. The geometry column should contain POLYGON or MULTIPOLYGON geometries.",
+      "Check if a point is within any polygon in a table. The geometry column should contain POLYGON or MULTIPOLYGON geometries. Default limit: 10 rows.",
     group: "postgis",
     inputSchema: PointInPolygonSchemaBase, // Base schema for MCP visibility
     outputSchema: PointInPolygonOutputSchema,
@@ -53,9 +53,8 @@ export function createPointInPolygonTool(
     icons: getToolIcons("postgis", readOnly("Point in Polygon")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { table, column, point, schema } = PointInPolygonSchema.parse(
-          params ?? {},
-        );
+        const { table, column, point, limit, schema } =
+          PointInPolygonSchema.parse(params ?? {});
         const schemaName = schema ?? "public";
         const tableName = sanitizeTableName(
           table,
@@ -93,9 +92,14 @@ export function createPointInPolygonTool(
             ? `${nonGeomCols}, ST_AsText(${columnName}) as geometry_text`
             : `ST_AsText(${columnName}) as geometry_text`;
 
+        const effectiveLimit = limit ?? 10;
+        const limitClause =
+          effectiveLimit > 0 ? ` LIMIT ${String(effectiveLimit)}` : "";
+
         const sql = `SELECT ${selectCols}
                           FROM ${tableName}
-                          WHERE ST_Contains(${columnName}, ST_SetSRID(ST_MakePoint($1, $2), 4326))`;
+                          WHERE ST_Contains(${columnName}, ST_SetSRID(ST_MakePoint($1, $2), 4326))
+                          ${limitClause}`;
 
         const result = await adapter.executeQuery(sql, [point.lng, point.lat]);
 
@@ -104,6 +108,20 @@ export function createPointInPolygonTool(
           containingPolygons: result.rows,
           count: result.rows?.length ?? 0,
         };
+
+        if (effectiveLimit > 0) {
+          const countSql = `SELECT COUNT(*) as cnt FROM ${tableName} WHERE ST_Contains(${columnName}, ST_SetSRID(ST_MakePoint($1, $2), 4326))`;
+          const countResult = await adapter.executeQuery(countSql, [
+            point.lng,
+            point.lat,
+          ]);
+          const totalCount = Number(countResult.rows?.[0]?.["cnt"] ?? 0);
+          if (totalCount > effectiveLimit) {
+            response["truncated"] = true;
+            response["totalCount"] = totalCount;
+            response["limit"] = effectiveLimit;
+          }
+        }
 
         // Add warning if geometry type is not polygon
         if (!isPolygonType && geomType !== undefined) {
@@ -228,7 +246,7 @@ export function createDistanceTool(adapter: PostgresAdapter): ToolDefinition {
         const result = await adapter.executeQuery(sql, [point.lng, point.lat]);
         return {
           success: true,
-          results: result.rows,
+          rows: result.rows,
           count: result.rows?.length ?? 0,
         };
       } catch (error: unknown) {
@@ -311,7 +329,7 @@ export function createBufferTool(adapter: PostgresAdapter): ToolDefinition {
         // Build response with truncation indicators if default limit was applied
         const response: Record<string, unknown> = {
           success: true,
-          results: result.rows,
+          rows: result.rows,
         };
 
         // Check if results were truncated (works for both default and explicit limits)
@@ -352,7 +370,7 @@ export function createIntersectionTool(
   return {
     name: "pg_intersection",
     description:
-      "Find geometries that intersect with a given geometry. Auto-detects SRID from target column if not specified.",
+      "Find geometries that intersect with a given geometry. Auto-detects SRID from target column if not specified. Default limit: 10 rows.",
     group: "postgis",
     inputSchema: IntersectionSchemaBase, // Base schema for MCP visibility
     outputSchema: IntersectionOutputSchema,
@@ -429,10 +447,9 @@ export function createIntersectionTool(
           geomExpr = `ST_GeomFromText($1)`;
         }
 
+        const effectiveLimit = parsed.limit ?? 10;
         const limitClause =
-          parsed.limit !== undefined && parsed.limit > 0
-            ? ` LIMIT ${String(parsed.limit)}`
-            : "";
+          effectiveLimit > 0 ? ` LIMIT ${String(effectiveLimit)}` : "";
 
         const sql = `SELECT ${selectCols}
                           FROM ${qualifiedTable}
@@ -440,12 +457,26 @@ export function createIntersectionTool(
                           ${limitClause}`;
 
         const result = await adapter.executeQuery(sql, [parsed.geometry]);
-        return {
+        const response: Record<string, unknown> = {
           success: true,
           intersecting: result.rows,
           count: result.rows?.length ?? 0,
           sridUsed: srid ?? "none (explicit SRID in geometry or GeoJSON)",
         };
+
+        if (effectiveLimit > 0) {
+          const countSql = `SELECT COUNT(*) as cnt FROM ${qualifiedTable} WHERE ST_Intersects(${columnName}, ${geomExpr})`;
+          const countResult = await adapter.executeQuery(countSql, [
+            parsed.geometry,
+          ]);
+          const totalCount = Number(countResult.rows?.[0]?.["cnt"] ?? 0);
+          if (totalCount > effectiveLimit) {
+            response["truncated"] = true;
+            response["totalCount"] = totalCount;
+            response["limit"] = effectiveLimit;
+          }
+        }
+        return response;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
           tool: "pg_intersection",
@@ -464,7 +495,7 @@ export function createBoundingBoxTool(
   return {
     name: "pg_bounding_box",
     description:
-      "Find geometries within a bounding box. Swapped min/max values are auto-corrected.",
+      "Find geometries within a bounding box. Swapped min/max values are auto-corrected. Default limit: 10 rows.",
     group: "postgis",
     inputSchema: BoundingBoxSchemaBase, // Base schema for MCP visibility
     outputSchema: BoundingBoxOutputSchema,
@@ -528,10 +559,9 @@ export function createBoundingBoxTool(
           corrections.push("minLat/maxLat were swapped");
         }
 
+        const effectiveLimit = parsed.limit ?? 10;
         const limitClause =
-          parsed.limit !== undefined && parsed.limit > 0
-            ? ` LIMIT ${String(parsed.limit)}`
-            : "";
+          effectiveLimit > 0 ? ` LIMIT ${String(effectiveLimit)}` : "";
 
         const sql = `SELECT ${selectCols}, ST_AsText(${columnName}) as geometry_text
                           FROM ${qualifiedTable}
@@ -547,9 +577,25 @@ export function createBoundingBoxTool(
 
         const response: Record<string, unknown> = {
           success: true,
-          results: result.rows,
+          rows: result.rows,
           count: result.rows?.length ?? 0,
         };
+
+        if (effectiveLimit > 0) {
+          const countSql = `SELECT COUNT(*) as cnt FROM ${qualifiedTable} WHERE ${columnName} && ST_MakeEnvelope($1, $2, $3, $4, 4326)`;
+          const countResult = await adapter.executeQuery(countSql, [
+            actualMinLng,
+            actualMinLat,
+            actualMaxLng,
+            actualMaxLat,
+          ]);
+          const totalCount = Number(countResult.rows?.[0]?.["cnt"] ?? 0);
+          if (totalCount > effectiveLimit) {
+            response["truncated"] = true;
+            response["totalCount"] = totalCount;
+            response["limit"] = effectiveLimit;
+          }
+        }
 
         if (corrections.length > 0) {
           response["note"] = `Auto-corrected: ${corrections.join(", ")}`;

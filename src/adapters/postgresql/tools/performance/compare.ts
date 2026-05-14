@@ -10,11 +10,14 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
-import { QueryPlanCompareOutputSchema } from "../../schemas/index.js";
+import {
+  QueryPlanCompareOutputSchema,
+  QueryPlanCompareSchemaBase,
+  QueryPlanCompareSchema,
+} from "../../schemas/index.js";
 
 /**
  * Recursively strip zero-value block stats, empty Triggers arrays,
@@ -59,47 +62,6 @@ export function createQueryPlanCompareTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
   // Base schema for MCP visibility (no preprocess)
-  const QueryPlanCompareSchemaBase = z.object({
-    query1: z.string().optional().describe("First SQL query"),
-    query2: z.string().optional().describe("Second SQL query"),
-    sql1: z.string().optional().describe("Alias for query1"),
-    sql2: z.string().optional().describe("Alias for query2"),
-    sqlA: z.string().optional().describe("Alias for query1"),
-    sqlB: z.string().optional().describe("Alias for query2"),
-    params1: z
-      .array(z.unknown())
-      .optional()
-      .describe("Parameters for first query ($1, $2, etc.)"),
-    params2: z
-      .array(z.unknown())
-      .optional()
-      .describe("Parameters for second query ($1, $2, etc.)"),
-    analyze: z
-      .boolean()
-      .optional()
-      .describe("Run EXPLAIN ANALYZE (executes queries)"),
-    compact: z
-      .boolean()
-      .optional()
-      .describe("Omit full execution plans from output to save tokens"),
-  });
-
-  // Preprocess for sql1/sql2 → query1/query2 aliases
-  const QueryPlanCompareSchema = z.preprocess((input) => {
-    if (typeof input !== "object" || input === null) return input;
-    const obj = input as Record<string, unknown>;
-    const result = { ...obj };
-    // Alias: sql1/sqlA → query1, sql2/sqlB → query2
-    if (result["query1"] === undefined) {
-      if (result["sql1"] !== undefined) result["query1"] = result["sql1"];
-      else if (result["sqlA"] !== undefined) result["query1"] = result["sqlA"];
-    }
-    if (result["query2"] === undefined) {
-      if (result["sql2"] !== undefined) result["query2"] = result["sql2"];
-      else if (result["sqlB"] !== undefined) result["query2"] = result["sqlB"];
-    }
-    return result;
-  }, QueryPlanCompareSchemaBase);
 
   return {
     name: "pg_query_plan_compare",
@@ -115,11 +77,15 @@ export function createQueryPlanCompareTool(
         const parsed = QueryPlanCompareSchema.parse(params);
 
         // Validate required parameters
-        if (!parsed.query1 || !parsed.query2) {
+        if (
+          typeof parsed.query1 !== "string" ||
+          !parsed.query1 ||
+          typeof parsed.query2 !== "string" ||
+          !parsed.query2
+        ) {
           return {
             success: false as const,
-            error:
-              "Missing required parameters: both query1 and query2 are required",
+            error: "Validation error: both query1 and query2 are required",
             code: "VALIDATION_ERROR",
             category: "validation",
             recoverable: false,
@@ -134,11 +100,11 @@ export function createQueryPlanCompareTool(
         const [result1, result2] = await Promise.all([
           adapter.executeQuery(
             `${explainType} ${parsed.query1}`,
-            parsed.params1 ?? [],
+            Array.isArray(parsed.params1) ? parsed.params1 : [],
           ),
           adapter.executeQuery(
             `${explainType} ${parsed.query2}`,
-            parsed.params2 ?? [],
+            Array.isArray(parsed.params2) ? parsed.params2 : [],
           ),
         ]);
 
@@ -180,7 +146,7 @@ export function createQueryPlanCompareTool(
                 : null,
             recommendation: "",
           },
-          ...(parsed.compact
+          ...(parsed.compact === true
             ? {}
             : {
                 fullPlans: {

@@ -9,11 +9,13 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
+
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import {
   DumpSchemaSchema,
+  DumpTableSchemaBase,
+  DumpTableSchema,
   // Output schemas
   DumpTableOutputSchema,
   DumpSchemaOutputSchema,
@@ -23,7 +25,6 @@ import {
   sanitizeIdentifier,
   sanitizeTableName,
 } from "../../../../utils/identifiers.js";
-import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
   return {
@@ -31,30 +32,13 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
     description:
       "Generate DDL for a table or sequence. Returns CREATE TABLE for tables, CREATE SEQUENCE for sequences.",
     group: "backup",
-    inputSchema: z.object({
-      table: z.string().optional().describe("Table or sequence name"),
-      schema: z.string().optional().describe("Schema name (default: public)"),
-      includeData: z
-        .boolean()
-        .optional()
-        .describe("Include INSERT statements for table data"),
-      limit: z
-        .preprocess(coerceNumber, z.number().optional())
-        .describe(
-          "Maximum rows to include when includeData is true (default: 500, use 0 for all rows)",
-        ),
-    }),
+    inputSchema: DumpTableSchemaBase,
     outputSchema: DumpTableOutputSchema,
     annotations: readOnly("Dump Table"),
     icons: getToolIcons("backup", readOnly("Dump Table")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = params as {
-          table: string;
-          schema?: string;
-          includeData?: boolean;
-          limit?: number;
-        };
+        const parsed = DumpTableSchema.parse(params);
 
         // Validate required table parameter
         if (!parsed.table || parsed.table.trim() === "") {
@@ -134,6 +118,7 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
               const cycle = seq["cycle"] === true ? " CYCLE" : "";
               const ddl = `CREATE SEQUENCE ${sanitizeTableName(tableName, schemaName)}${startValue}${increment}${minValue}${maxValue}${cycle};`;
               return {
+                success: true,
                 ddl,
                 type: "sequence",
                 note: "Use pg_list_sequences to see all sequences.",
@@ -148,6 +133,7 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
           }
           // Fallback if pg_sequence query fails
           return {
+            success: true,
             ddl: `CREATE SEQUENCE ${sanitizeTableName(tableName, schemaName)};`,
             type: "sequence",
             note: "Basic CREATE SEQUENCE. Use pg_list_sequences for details.",
@@ -173,6 +159,7 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
               const createType = relkind === "m" ? "MATERIALIZED VIEW" : "VIEW";
               const ddl = `CREATE ${createType} ${sanitizeTableName(tableName, schemaName)} AS\n${definition.trim()}`;
               return {
+                success: true,
                 ddl,
                 type: relkind === "m" ? "materialized_view" : "view",
                 note: `Use pg_list_views to see all views.`,
@@ -184,6 +171,7 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
           // Fallback for views
           const createType = relkind === "m" ? "MATERIALIZED VIEW" : "VIEW";
           return {
+            success: true,
             ddl: `-- Unable to retrieve ${createType.toLowerCase()} definition\nCREATE ${createType} ${sanitizeTableName(tableName, schemaName)} AS SELECT ...;`,
             type: relkind === "m" ? "materialized_view" : "view",
             note: "View definition could not be retrieved. Use pg_list_views for details.",
@@ -301,11 +289,13 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
         const createTable = `${sequenceDdls}CREATE TABLE ${sanitizeTableName(tableName, schemaName)} (\n${columns}\n)${partitionClause};`;
 
         const result: {
+          success: boolean;
           ddl: string;
           type?: string;
           insertStatements?: string;
           note: string;
         } = {
+          success: true,
           ddl: createTable,
           type: isPartitionedTable ? "partitioned_table" : "table",
           note: isPartitionedTable
@@ -379,9 +369,7 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
   };
 }
 
-export function createDumpSchemaTool(
-  _adapter: PostgresAdapter,
-): ToolDefinition {
+export function createDumpSchemaTool(adapter: PostgresAdapter): ToolDefinition {
   return {
     name: "pg_dump_schema",
     description: "Get the pg_dump command for a schema or database.",
@@ -390,9 +378,42 @@ export function createDumpSchemaTool(
     outputSchema: DumpSchemaOutputSchema,
     annotations: readOnly("Dump Schema"),
     icons: getToolIcons("backup", readOnly("Dump Schema")),
-    handler: (params: unknown, _context: RequestContext) => {
+    handler: async (params: unknown, _context: RequestContext) => {
       try {
         const { table, schema, filename } = DumpSchemaSchema.parse(params);
+
+        if (schema) {
+          // Verify schema exists
+          const schemaResult = await adapter.executeQuery(
+            "SELECT 1 FROM pg_namespace WHERE nspname = $1",
+            [schema],
+          );
+          if (schemaResult.rows?.length === 0) {
+            throw new Error(`Schema "${schema}" does not exist`);
+          }
+        }
+
+        if (table) {
+          // Verify table exists
+          const checkSchema = schema ?? "public";
+          let tableNamePart = table;
+          let schemaNamePart = checkSchema;
+
+          if (table.includes(".")) {
+            const parts = table.split(".");
+            if (parts.length === 2 && parts[0] && parts[1]) {
+              schemaNamePart = parts[0];
+              tableNamePart = parts[1];
+            }
+          }
+          const tableExists = await adapter.executeQuery(
+            "SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relname = $1 AND n.nspname = $2",
+            [tableNamePart, schemaNamePart],
+          );
+          if (tableExists.rows === undefined || tableExists.rows.length === 0) {
+            throw new Error(`relation "${tableNamePart}" does not exist`);
+          }
+        }
 
         let command = "pg_dump";
         command += " --format=custom";
@@ -414,7 +435,8 @@ export function createDumpSchemaTool(
         command += ` --file="${outputFilename}"`;
         command += " $POSTGRES_CONNECTION_STRING";
 
-        return Promise.resolve({
+        return {
+          success: true,
           command,
           ...(schema !== undefined &&
             table !== undefined && {
@@ -428,11 +450,9 @@ export function createDumpSchemaTool(
             "Add --data-only to exclude schema",
             "Add --schema-only to exclude data",
           ],
-        });
+        };
       } catch (error: unknown) {
-        return Promise.resolve(
-          formatHandlerErrorResponse(error, { tool: "pg_dump_schema" }),
-        );
+        return formatHandlerErrorResponse(error, { tool: "pg_dump_schema" });
       }
     },
   };

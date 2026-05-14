@@ -57,6 +57,17 @@ function preprocessLtreeTableParams(input: unknown): unknown {
 /**
  * Base schema for MCP visibility - shows all parameters including aliases.
  */
+export const LtreeCreateExtensionSchemaBase = z.object({
+  schema: z.string().optional().describe("Schema name (default: public)"),
+});
+
+export const LtreeCreateExtensionSchema = z.object({
+  schema: z.string().optional().describe("Schema name (default: public)"),
+});
+
+/**
+ * Base schema for MCP visibility - shows all parameters including aliases.
+ */
 export const LtreeQuerySchemaBase = z.object({
   table: z.string().optional().describe("Table name"),
   tableName: z.string().optional().describe("Alias for table"),
@@ -78,6 +89,7 @@ export const LtreeQuerySchemaBase = z.object({
     .describe("Alias for mode"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   limit: z.number().optional().describe("Maximum results"),
+  maxResults: z.number().optional().describe("Alias for limit"),
 });
 
 /**
@@ -99,6 +111,7 @@ export const LtreeSubpathSchemaBase = z.object({
     .optional()
     .describe("Number of labels (omit for rest of path)"),
   len: z.number().optional().describe("Alias for length"),
+  end: z.number().optional().describe("End index (calculates length)"),
 });
 
 /**
@@ -169,6 +182,10 @@ export const LtreeQuerySchema = z.preprocess(
     if ("type" in result && !("mode" in result)) {
       result["mode"] = result["type"];
     }
+    // Alias: maxResults -> limit
+    if (result["maxResults"] !== undefined && result["limit"] === undefined) {
+      result["limit"] = result["maxResults"];
+    }
     return result;
   },
   z.object({
@@ -184,11 +201,7 @@ export const LtreeQuerySchema = z.preprocess(
         "Query mode: ancestors (@>), descendants (<@), or exact (default: descendants)",
       ),
     schema: z.string().optional().describe("Schema name (default: public)"),
-    limit: z
-      .number()
-      .min(1)
-      .default(50)
-      .describe("Maximum results (default: 50)"),
+    limit: z.number().default(50).describe("Maximum results (default: 50)"),
   }),
 );
 
@@ -288,11 +301,7 @@ export const LtreeMatchSchema = z.preprocess(
       .string()
       .describe('lquery pattern (e.g., "*.Science.*" or "Top.*{1,3}.Stars")'),
     schema: z.string().optional().describe("Schema name (default: public)"),
-    limit: z
-      .number()
-      .min(1)
-      .default(50)
-      .describe("Maximum results (default: 50)"),
+    limit: z.number().default(50).describe("Maximum results (default: 50)"),
   }),
 );
 
@@ -364,7 +373,7 @@ export const LtreeQueryOutputSchema = z
     path: z.string().optional().describe("Query path"),
     mode: z.string().optional().describe("Query mode"),
     isPattern: z.boolean().optional().describe("Whether query uses patterns"),
-    results: z
+    rows: z
       .array(z.record(z.string(), z.unknown()))
       .optional()
       .describe("Query results"),
@@ -415,7 +424,7 @@ export const LtreeMatchOutputSchema = z
   .object({
     success: z.boolean().optional().describe("Whether match succeeded"),
     pattern: z.string().optional().describe("Query pattern"),
-    results: z
+    rows: z
       .array(z.record(z.string(), z.unknown()))
       .optional()
       .describe("Matching results"),

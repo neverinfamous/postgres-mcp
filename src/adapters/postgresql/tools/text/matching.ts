@@ -10,7 +10,7 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
+
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -27,13 +27,11 @@ import {
   TrigramSimilaritySchemaBase,
   RegexpMatchSchema,
   RegexpMatchSchemaBase,
-  preprocessTextParams,
+  FuzzyMatchSchema,
+  FuzzyMatchSchemaBase,
   // Output schemas
   TextRowsOutputSchema,
 } from "../../schemas/index.js";
-
-// Fuzzy match method type (validated by zod enum in schema)
-type FuzzyMethod = "levenshtein" | "soundex" | "metaphone";
 
 // =============================================================================
 // pg_trigram_similarity
@@ -62,7 +60,13 @@ export function createTrigramSimilarityTool(
             : isNaN(rawThresh)
               ? 0.3
               : rawThresh;
-        const safeLimit = parsed.limit as number | undefined;
+
+        if (thresh < 0 || thresh > 1) {
+          throw new ValidationError("threshold must be between 0 and 1", {
+            code: "VALIDATION_ERROR",
+          });
+        }
+        const safeLimit = parsed.limit;
         let limitVal = 100;
         if (safeLimit !== undefined) {
           if (safeLimit < 0) {
@@ -113,6 +117,7 @@ export function createTrigramSimilarityTool(
         const count = result.rows?.length ?? 0;
         const truncated = limitVal !== null && count === limitVal;
         return {
+          success: true,
           rows: result.rows,
           count,
           ...(truncated
@@ -136,39 +141,6 @@ export function createTrigramSimilarityTool(
 // =============================================================================
 
 export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
-  // Base schema for MCP visibility (no preprocess)
-  const FuzzyMatchSchemaBase = z.object({
-    table: z.string().optional().describe("Table name"),
-    tableName: z.string().optional().describe("Table name (alias for table)"),
-    column: z.string().optional(),
-    value: z.string().optional(),
-    method: z
-      .string()
-      .optional()
-      .describe(
-        "Fuzzy match method (default: levenshtein). Valid: soundex, levenshtein, metaphone",
-      ),
-    maxDistance: z
-      .any()
-      .optional()
-      .describe(
-        "Max Levenshtein distance (default: 3, use 5+ for longer strings)",
-      ),
-    select: z.array(z.string()).optional().describe("Columns to return"),
-    limit: z
-      .any()
-      .optional()
-      .describe("Max results (default: 100 to prevent large payloads)"),
-    where: z.string().optional().describe("Additional WHERE clause filter"),
-    schema: z.string().optional().describe("Schema name (default: public)"),
-  });
-
-  // Full schema with preprocess for handler parsing
-  const FuzzyMatchSchema = z.preprocess(
-    preprocessTextParams,
-    FuzzyMatchSchemaBase,
-  );
-
   return {
     name: "pg_fuzzy_match",
     description:
@@ -183,18 +155,19 @@ export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
         const parsed = FuzzyMatchSchema.parse(params);
 
         // Validate method (moved from z.enum to handler for structured error)
-        const VALID_METHODS: FuzzyMethod[] = [
+        const VALID_METHODS = [
           "levenshtein",
+          "damerau-levenshtein",
           "soundex",
           "metaphone",
         ];
         const rawMethod = parsed.method ?? "levenshtein";
-        if (!VALID_METHODS.includes(rawMethod as FuzzyMethod)) {
+        if (!VALID_METHODS.includes(rawMethod)) {
           throw new ValidationError(
             `Invalid method "${rawMethod}". Valid methods: ${VALID_METHODS.join(", ")}`,
           );
         }
-        const method: FuzzyMethod = rawMethod as FuzzyMethod;
+        const method = rawMethod;
 
         const rawMaxDist = Number(parsed.maxDistance);
         const maxDist =
@@ -203,7 +176,7 @@ export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
             : isNaN(rawMaxDist)
               ? 3
               : rawMaxDist;
-        const safeLimit = parsed.limit as number | undefined;
+        const safeLimit = parsed.limit;
         let limitVal = 100;
         if (safeLimit !== undefined) {
           if (safeLimit < 0) {
@@ -250,6 +223,8 @@ export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
           sql = `SELECT ${selectCols}, soundex(${columnName}) as code FROM ${tableName} WHERE soundex(${columnName}) = soundex($1)${additionalWhere}${limitClause}`;
         } else if (method === "metaphone") {
           sql = `SELECT ${selectCols}, metaphone(${columnName}, 10) as code FROM ${tableName} WHERE metaphone(${columnName}, 10) = metaphone($1, 10)${additionalWhere}${limitClause}`;
+        } else if (method === "damerau-levenshtein") {
+          sql = `SELECT ${selectCols}, levenshtein_less_equal(${columnName}, $1, ${String(maxDist)}) as distance FROM ${tableName} WHERE levenshtein_less_equal(${columnName}, $1, ${String(maxDist)}) <= ${String(maxDist)}${additionalWhere} ORDER BY distance${limitClause}`;
         } else {
           sql = `SELECT ${selectCols}, levenshtein(${columnName}, $1) as distance FROM ${tableName} WHERE levenshtein(${columnName}, $1) <= ${String(maxDist)}${additionalWhere} ORDER BY distance${limitClause}`;
         }
@@ -258,6 +233,7 @@ export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
         const count = result.rows?.length ?? 0;
         const truncated = limitVal !== null && count === limitVal;
         return {
+          success: true,
           rows: result.rows,
           count,
           ...(truncated
@@ -315,7 +291,7 @@ export function createRegexpMatchTool(
         const additionalWhere = parsed.where
           ? ` AND (${sanitizeWhereClause(parsed.where)})`
           : "";
-        const safeLimit = parsed.limit as number | undefined;
+        const safeLimit = parsed.limit;
         let limitVal = 100;
         if (safeLimit !== undefined) {
           if (safeLimit < 0) {
@@ -342,6 +318,7 @@ export function createRegexpMatchTool(
         const count = result.rows?.length ?? 0;
         const truncated = limitVal !== null && count === limitVal;
         return {
+          success: true,
           rows: result.rows,
           count,
           ...(truncated

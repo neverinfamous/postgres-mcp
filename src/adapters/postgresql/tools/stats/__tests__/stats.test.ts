@@ -3751,8 +3751,8 @@ describe("pg_stats_frequency", () => {
     // Mock frequency data
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [
-        { value: "active", frequency: "70", percentage: "70.00" },
-        { value: "inactive", frequency: "30", percentage: "30.00" },
+        { value: "active", count: "70", percentage: "70.00" },
+        { value: "inactive", count: "30", percentage: "30.00" },
       ],
     });
     // Mock distinct count
@@ -3770,7 +3770,7 @@ describe("pg_stats_frequency", () => {
       distinctValues: number;
       distribution: Array<{
         value: string;
-        frequency: number;
+        count: number;
         percentage: number;
       }>;
     };
@@ -3779,7 +3779,7 @@ describe("pg_stats_frequency", () => {
     expect(result.column).toBe("status");
     expect(result.distinctValues).toBe(2);
     expect(result.distribution).toHaveLength(2);
-    expect(result.distribution[0].frequency).toBe(70);
+    expect(result.distribution[0].count).toBe(70);
     expect(result.distribution[0].percentage).toBe(70);
   });
 });
@@ -3797,6 +3797,10 @@ describe("pg_stats_summary", () => {
   });
 
   it("should return summary statistics for specified columns", async () => {
+    // Mock table existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "?column?": 1 }],
+    });
     // Mock column validation
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [
@@ -3841,6 +3845,10 @@ describe("pg_stats_summary", () => {
   });
 
   it("should auto-detect numeric columns when none specified", async () => {
+    // Mock table existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "?column?": 1 }],
+    });
     // Mock column discovery
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ column_name: "price" }, { column_name: "quantity" }],
@@ -3877,6 +3885,10 @@ describe("pg_stats_summary", () => {
   });
 
   it("should throw validation error when explicitly specified column is not numeric", async () => {
+    // Mock table existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "?column?": 1 }],
+    });
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [
         { column_name: "price", data_type: "numeric" },
@@ -3895,6 +3907,10 @@ describe("pg_stats_summary", () => {
   });
 
   it("should throw validation error when explicitly specified column does not exist", async () => {
+    // Mock table existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "?column?": 1 }],
+    });
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ column_name: "price", data_type: "numeric" }],
     });

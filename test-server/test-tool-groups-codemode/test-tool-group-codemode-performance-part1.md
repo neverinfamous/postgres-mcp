@@ -20,7 +20,7 @@
 
 ## Test Database Schema
 
-The test database (`postgres`) contains these tables:
+The test database (`postgres`) contains these tables:Please examine
 
 | Table               | Rows | Key Columns                                                                        | JSONB Columns            | Tool Groups           |
 | ------------------- | ---- | ---------------------------------------------------------------------------------- | ------------------------ | --------------------- |
@@ -51,7 +51,7 @@ Indexes: `idx_orders_status`, `idx_orders_date`, `idx_articles_fts` (GIN), `idx_
 2. Create temporary tables with `temp_*` prefix for write operations (CREATE, INSERT, DROP, etc.)
 3. Test each tool with realistic inputs based on the schema above
 4. Clean up any `temp_*` tables after testing
-5. Report all failures, unexpected behaviors, improvement opportunities, or unnecessarily large payloads
+5. Report all failures, broken contracts, or deviations from defined standards (e.g., P154 object-existence, Split Schema validation leaks, or unoptimized payloads). Do NOT report or implement subjective "improvement opportunities" beyond these objective criteria. If the tool group meets all standards perfectly, state that 0 changes are required and stop
 6. Do not mention what already works well or issues well documented in ServerInstructions and runtime hints which are already optimal
 7. **Error path testing**: For **every** tool, test at least **two** invalid inputs: (a) a domain error (nonexistent table, invalid column, bad parameter value) and (b) a **Zod validation error** (call the tool with `{}` empty params if it has required parameters, or pass the wrong type). Both must return a **structured handler error** (`{success: false, error: "..."}`) — NOT a raw MCP error frame. See the "Structured Error Response Pattern" section below for how to distinguish the two. This is the most common deficiency found across tool groups.
 8. **Code Mode Strict Coverage Matrix**: You must create a markdown table tracking your progress in your `task.md` in C:\Users\chris\Desktop\postgres-mcp\tmp. For EVERY tool in the group, you must explicitly log: Code Mode (Happy Path) and Code Mode (Domain Error). Do not proceed to the final summary until every cell in this matrix is marked with a ✅.
@@ -247,36 +247,24 @@ performance Tool Group (24 tools +1 code mode)
 3. `pg_table_stats({limit: 3})` → verify `{tables: [...], count: 3, truncated: true, totalCount: N}`
 4. `pg_index_stats({limit: 3})` → verify `{indexes: [...], count: 3, truncated: true, totalCount: N}`
 
-**Diagnostics tool:**
-
-**Anomaly detection tools — pg_detect_query_anomalies:**
-
-**Anomaly detection tools — pg_detect_bloat_risk:**
-
-**Anomaly detection tools — pg_detect_connection_spike:**
-
 **Domain error paths (🔴):**
 
-21. 🔴 `pg_table_stats({})` → verify returns handler error (not MCP error) for empty params or returns valid results
-22. 🔴 `pg_explain({})` → `{success: false, error: "..."}` (Zod validation — missing required `sql`)
+5. 🔴 `pg_table_stats({})` → verify returns handler error (not MCP error) for empty params or returns valid results
+6. 🔴 `pg_explain({})` → `{success: false, error: "..."}` (Zod validation — missing required `sql`)
 
 **Wrong-type numeric param coercion (🔴):**
 
-23. 🔴 `pg_table_stats({limit: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `limit` (wrong-type numeric param)
+7. 🔴 `pg_table_stats({limit: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `limit` (wrong-type numeric param)
 
-**Code mode parity (anomaly detection):**
+**Remaining tools:**
 
-28. `pg_execute_code({code: "return await pg.performance.detectQueryAnomalies()"})` → verify returns same structure as item 11
-29. `pg_execute_code({code: "return await pg.performance.detectBloatRisk({schema: 'public'})"})` → verify returns same structure as item 15
-30. `pg_execute_code({code: "return await pg.performance.detectConnectionSpike()"})` → verify returns same structure as item 18
-
-31. `pg_explain_analyze()` → verify happy path expected behavior
-32. 🔴 `pg_explain_analyze({})` → verify structured P154 error response or valid defaults
-33. `pg_explain_buffers()` → verify happy path expected behavior
-34. 🔴 `pg_explain_buffers({})` → verify structured P154 error response or valid defaults
-35. `pg_locks()` → verify happy path expected behavior
-36. 🔴 `pg_locks({})` → verify structured P154 error response or valid defaults
-37. `pg_stat_statements()` → verify happy path expected behavior
-38. 🔴 `pg_stat_statements({})` → verify structured P154 error response or valid defaults
-39. `pg_stat_activity()` → verify happy path expected behavior
-40. 🔴 `pg_stat_activity({})` → verify structured P154 error response or valid defaults
+8. `pg_explain_analyze()` → verify happy path expected behavior
+9. 🔴 `pg_explain_analyze({})` → verify structured P154 error response or valid defaults
+10. `pg_explain_buffers()` → verify happy path expected behavior
+11. 🔴 `pg_explain_buffers({})` → verify structured P154 error response or valid defaults
+12. `pg_locks()` → verify happy path expected behavior
+13. 🔴 `pg_locks({})` → verify structured P154 error response or valid defaults
+14. `pg_stat_statements()` → verify happy path expected behavior
+15. 🔴 `pg_stat_statements({})` → verify structured P154 error response or valid defaults
+16. `pg_stat_activity()` → verify happy path expected behavior
+17. 🔴 `pg_stat_activity({})` → verify structured P154 error response or valid defaults

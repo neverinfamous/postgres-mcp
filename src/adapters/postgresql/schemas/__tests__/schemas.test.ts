@@ -417,7 +417,7 @@ describe("BufferSchema", () => {
         distance: 0,
       }),
     ).toThrow(
-      "distance (or radius/meters alias) is required and must be positive",
+      "distance (or radius/meters alias) is required and cannot be zero",
     );
   });
 
@@ -538,7 +538,7 @@ describe("CreateSequenceSchema", () => {
 
   it("should require name", () => {
     expect(() => CreateSequenceSchema.parse({})).toThrow(
-      "name (or sequenceName alias) is required",
+      "name (or sequenceName/sequence alias) is required",
     );
   });
 
@@ -2946,7 +2946,7 @@ describe("BufferSchema", () => {
         column: "geom",
         distance: 0,
       }),
-    ).toThrow("must be positive");
+    ).toThrow("cannot be zero");
   });
 });
 
@@ -3010,13 +3010,12 @@ describe("GeometryTransformSchema (standalone)", () => {
     ).toThrow("geometry (or wkt/geojson alias) is required");
   });
 
-  it("should reject missing fromSrid", () => {
-    expect(() =>
-      GeometryTransformSchema.parse({
-        geometry: "POINT(0 0)",
-        toSrid: 3857,
-      }),
-    ).toThrow("fromSrid (or sourceSrid alias) is required");
+  it("should default fromSrid to 4326 if missing", () => {
+    const result = GeometryTransformSchema.parse({
+      geometry: "POINT(0 0)",
+      toSrid: 3857,
+    });
+    expect(result.fromSrid).toBe(4326);
   });
 });
 
@@ -3049,7 +3048,7 @@ describe("GeometryBufferSchema (standalone)", () => {
         geometry: "POINT(0 0)",
         distance: 0,
       }),
-    ).toThrow("must be positive");
+    ).toThrow("cannot be zero");
   });
 });
 
@@ -3742,7 +3741,7 @@ describe("CreateSequenceSchema", () => {
 
   it("should reject missing name", () => {
     expect(() => CreateSequenceSchema.parse({})).toThrow(
-      "name (or sequenceName alias) is required",
+      "name (or sequenceName/sequence alias) is required",
     );
   });
 

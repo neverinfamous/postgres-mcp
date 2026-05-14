@@ -195,12 +195,12 @@ Looks for common patterns like email, username, name, slug, etc.`,
 
         const sql = `
                 SELECT
-                    table_schema,
-                    table_name,
-                    column_name,
-                    data_type,
-                    character_maximum_length,
-                    is_nullable
+                    table_schema as "schema",
+                    table_name as "tableName",
+                    column_name as "columnName",
+                    data_type as "dataType",
+                    character_maximum_length as "maxLength",
+                    is_nullable as "isNullable"
                 FROM information_schema.columns
                 WHERE ${whereClause}
                 ORDER BY table_schema, table_name, ordinal_position
@@ -219,7 +219,7 @@ Looks for common patterns like email, username, name, slug, etc.`,
         let mediumConfidenceCount = 0;
 
         for (const row of candidates) {
-          const colName = (row["column_name"] as string).toLowerCase();
+          const colName = (row["columnName"] as string).toLowerCase();
           if (
             colName.includes("email") ||
             colName.includes("username") ||
@@ -305,7 +305,7 @@ Requires the 'table' parameter to specify which table to analyze.`,
 
         if (!tableCheck.rows || tableCheck.rows.length === 0) {
           throw new ValidationError(
-            `Table ${qualifiedTable} not found. Verify the table name and schema.`,
+            `Table ${qualifiedTable} does not exist. Verify the table name and schema.`,
             { code: "TABLE_NOT_FOUND" },
           );
         }
@@ -313,11 +313,11 @@ Requires the 'table' parameter to specify which table to analyze.`,
         const colResult = await adapter.executeQuery(
           `
                 SELECT
-                    column_name,
-                    data_type,
-                    udt_name,
-                    is_nullable,
-                    character_maximum_length
+                    column_name as "columnName",
+                    data_type as "dataType",
+                    udt_name as "udtName",
+                    is_nullable as "isNullable",
+                    character_maximum_length as "maxLength"
                 FROM information_schema.columns
                 WHERE table_schema = $1
                   AND table_name = $2
@@ -354,13 +354,13 @@ Requires the 'table' parameter to specify which table to analyze.`,
         ];
 
         for (const col of columns) {
-          const colName = (col["column_name"] as string).toLowerCase();
-          const dataType = col["data_type"] as string;
-          const udtName = col["udt_name"] as string;
+          const colName = (col["columnName"] as string).toLowerCase();
+          const dataType = col["dataType"] as string;
+          const udtName = col["udtName"] as string;
 
           if (udtName === "citext") {
             recommendations.push({
-              column: col["column_name"] as string,
+              column: col["columnName"] as string,
               currentType: "citext",
               previousType: "text or varchar (converted)",
               recommendation: "already_citext",
@@ -379,7 +379,7 @@ Requires the 'table' parameter to specify which table to analyze.`,
 
           if (isHighConfidence) {
             recommendations.push({
-              column: col["column_name"] as string,
+              column: col["columnName"] as string,
               currentType: dataType,
               recommendation: "convert",
               confidence: "high",
@@ -387,7 +387,7 @@ Requires the 'table' parameter to specify which table to analyze.`,
             });
           } else if (isMediumConfidence) {
             recommendations.push({
-              column: col["column_name"] as string,
+              column: col["columnName"] as string,
               currentType: dataType,
               recommendation: "convert",
               confidence: "medium",
@@ -395,7 +395,7 @@ Requires the 'table' parameter to specify which table to analyze.`,
             });
           } else if (!compact) {
             recommendations.push({
-              column: col["column_name"] as string,
+              column: col["columnName"] as string,
               currentType: dataType,
               recommendation: "keep",
               confidence: "low",
