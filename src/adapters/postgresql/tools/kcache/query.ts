@@ -46,6 +46,8 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
         const parsed = z
           .object({
             limit: z.coerce.number().optional(),
+            dbname: z.string().optional(),
+            username: z.string().optional(),
             orderBy: z.string().optional(),
             minCalls: z.coerce.number().optional(),
             queryPreviewLength: z.coerce.number().optional(),
@@ -62,6 +64,8 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
         const orderBy = parsed.orderBy;
         const minCalls = parsed.minCalls;
         const queryPreviewLength = parsed.queryPreviewLength;
+        const dbname = parsed.dbname;
+        const username = parsed.username;
 
         // Validate orderBy inside handler for structured error response
         const VALID_ORDER_BY = [
@@ -101,10 +105,27 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
 
         const conditions: string[] = [];
         const queryParams: unknown[] = [];
-        const paramIndex = 1;
+        let paramIndex = 1;
+
+        let joinClause = `
+                JOIN pg_stat_kcache() k ON s.queryid = k.queryid
+                    AND s.userid = k.userid
+                    AND s.dbid = k.dbid`;
+
+        if (dbname !== undefined) {
+          joinClause += `\n                JOIN pg_database d ON s.dbid = d.oid`;
+          conditions.push(`d.datname = $${String(paramIndex++)}`);
+          queryParams.push(dbname);
+        }
+
+        if (username !== undefined) {
+          joinClause += `\n                JOIN pg_roles r ON s.userid = r.oid`;
+          conditions.push(`r.rolname = $${String(paramIndex++)}`);
+          queryParams.push(username);
+        }
 
         if (minCalls !== undefined) {
-          conditions.push(`s.calls >= $${String(paramIndex)}`);
+          conditions.push(`s.calls >= $${String(paramIndex++)}`);
           queryParams.push(minCalls);
         }
 
@@ -115,9 +136,7 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
         const countSql = `
                 SELECT COUNT(*) as total
                 FROM pg_stat_statements s
-                JOIN pg_stat_kcache() k ON s.queryid = k.queryid
-                    AND s.userid = k.userid
-                    AND s.dbid = k.dbid
+                ${joinClause}
                 ${whereClause}
             `;
         const countResult = await adapter.executeQuery(countSql, queryParams);
@@ -145,9 +164,7 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
                     k.${cols.minflts} as minor_page_faults,
                     k.${cols.majflts} as major_page_faults
                 FROM pg_stat_statements s
-                JOIN pg_stat_kcache() k ON s.queryid = k.queryid
-                    AND s.userid = k.userid
-                    AND s.dbid = k.dbid
+                ${joinClause}
                 ${whereClause}
                 ORDER BY ${orderColumn} DESC
                 LIMIT ${String(effectiveLimit)}

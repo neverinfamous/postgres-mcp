@@ -22,6 +22,14 @@ export const KcacheQueryStatsSchema = z.object({
     .describe(
       "Maximum number of queries to return (default: 5, min: 1, max: 100).",
     ),
+  dbname: z
+    .unknown()
+    .optional()
+    .describe("Filter by database name"),
+  username: z
+    .unknown()
+    .optional()
+    .describe("Filter by username"),
   orderBy: z
     .unknown()
     .optional()
