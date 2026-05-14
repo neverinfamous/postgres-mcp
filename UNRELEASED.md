@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **ltree**: Fixed global error parser to correctly intercept and identify `EXTENSION_MISSING` errors for ltree functions instead of falling back to the generic `OBJECT_NOT_FOUND` message.
+
+
+
 - **Monitoring Tools**: Fixed a Split Schema Zod validation leak across multiple tools (`pg_database_size`, `pg_connection_stats`, `pg_table_sizes`, `pg_show_settings`, `pg_alert_threshold_set`, `pg_capacity_planning`) by migrating string and numeric parameters in their base schemas to `z.unknown().optional()`, ensuring type mismatches bypass framework-level `-32602` exceptions and gracefully return structured handler validation errors.
 - **Citext Tools**: Added a P154 object existence check for tables in `pg_citext_list_columns` to correctly return a structured error when filtering by a nonexistent table.
 - **Partman Tools**: Fixed missing handler-side Zod strict parsing in `pg_partman_create_extension` to prevent parameter leaks.

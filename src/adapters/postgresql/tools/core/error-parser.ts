@@ -75,6 +75,16 @@ export function parsePostgresError(
     );
   }
 
+  if (
+    context.tool?.startsWith("pg_ltree_") &&
+    /(?:type|operator|function|relation|class) ["']?(?:ltree|lquery|ltxtquery|lca|nlevel|subpath|gist_ltree_ops)["']?(?:(?:\(\))?) does not exist/i.test(msg)
+  ) {
+    throw new Error(
+      `Extension "ltree" is not available. Ensure it is installed and enabled.`,
+      { cause: error },
+    );
+  }
+
   // 42P01 — relation does not exist (table, view, sequence)
   // Regex anchored: must NOT be preceded by "of " (which indicates 42703 column errors)
   if (
