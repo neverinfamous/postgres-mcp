@@ -7,7 +7,31 @@
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
 
-export const IDENTIFIER_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+export const IDENTIFIER_RE = /^[a-zA-Z_][a-zA-Z0-9_.]*$/;
+
+function buildJsonPathCastFloat(field: string): string {
+  const parts = field.split('.');
+  if (parts.length === 1) return `(doc->>'${parts[0] ?? ''}')::float`;
+  const last = parts.pop() ?? '';
+  return `(doc` + parts.map(p => `->'${p}'`).join('') + `->>'${last}')::float`;
+}
+
+function buildJsonPath(field: string): string {
+  const parts = field.split('.');
+  if (parts.length === 1) return `doc->>'${parts[0] ?? ''}'`;
+  const last = parts.pop() ?? '';
+  return `doc` + parts.map(p => `->'${p}'`).join('') + `->>'${last}'`;
+}
+
+function hasNestedOperators(obj: Record<string, unknown>): boolean {
+  for (const [key, val] of Object.entries(obj)) {
+    if (key.startsWith('$')) return true;
+    if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+      if (hasNestedOperators(val as Record<string, unknown>)) return true;
+    }
+  }
+  return false;
+}
 
 // Valid JSON path: $, $.field, $.field.sub, $.field[0], $[0], $[*]
 export const JSON_PATH_RE =
@@ -67,12 +91,12 @@ export function parseDocFilter(
               if (sqlOp !== "=" && !isArrayOp) {
                 if (typeof opVal === "number") {
                   return {
-                    where: `(doc->>'${field}')::float ${sqlOp} $${String(paramOffset + 1)}::float`,
+                    where: `${buildJsonPathCastFloat(field)} ${sqlOp} $${String(paramOffset + 1)}::float`,
                     params: [String(opVal)],
                   };
                 } else {
                   return {
-                    where: `doc->>'${field}' ${sqlOp} $${String(paramOffset + 1)}`,
+                    where: `${buildJsonPath(field)} ${sqlOp} $${String(paramOffset + 1)}`,
                     params: [String(opVal)],
                   };
                 }
@@ -80,17 +104,21 @@ export function parseDocFilter(
                 if (opVal.every(v => typeof v === "number")) {
                   const placeholders = opVal.map((_, i) => `$${String(paramOffset + 1 + i)}::float`).join(", ");
                   return {
-                    where: `(doc->>'${field}')::float ${sqlOp} (${placeholders})`,
+                    where: `${buildJsonPathCastFloat(field)} ${sqlOp} (${placeholders})`,
                     params: opVal.map(String)
                   };
                 } else {
                   const placeholders = opVal.map((_, i) => `$${String(paramOffset + 1 + i)}`).join(", ");
                   return {
-                    where: `doc->>'${field}' ${sqlOp} (${placeholders})`,
+                    where: `${buildJsonPath(field)} ${sqlOp} (${placeholders})`,
                     params: opVal.map(String)
                   };
                 }
               }
+            }
+            
+            if (hasNestedOperators(value as Record<string, unknown>)) {
+              throw new Error("Unsupported filter structure: Nested operators are not supported. Use dot-notation (e.g., {'address.city': {'$gt': 'A'}}).");
             }
             
             // Nested object without a matching operator -> containment check
@@ -110,7 +138,7 @@ export function parseDocFilter(
           }
           
           return {
-            where: `doc->>'${field}' = $${String(paramOffset + 1)}`,
+            where: `${buildJsonPath(field)} = $${String(paramOffset + 1)}`,
             params: [String(value)],
           };
         }
@@ -124,7 +152,7 @@ export function parseDocFilter(
   }
 
   // Check for simple field=value pattern
-  const eqMatch = /^([a-zA-Z_][a-zA-Z0-9_]*)=(.+)$/.exec(filter);
+  const eqMatch = /^([a-zA-Z_][a-zA-Z0-9_.]*)=(.+)$/.exec(filter);
   if (eqMatch) {
     const field = eqMatch[1] ?? "";
     const value = eqMatch[2] ?? "";
@@ -134,7 +162,7 @@ export function parseDocFilter(
       );
     }
     return {
-      where: `doc->>'${field}' = $${String(paramOffset + 1)}`,
+      where: `${buildJsonPath(field)} = $${String(paramOffset + 1)}`,
       params: [value],
     };
   }

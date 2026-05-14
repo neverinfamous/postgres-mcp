@@ -295,7 +295,8 @@ export function createModifyTool(adapter: PostgresAdapter): ToolDefinition {
               );
             }
             // jsonb_set(doc, '{path}', $N::jsonb, true)
-            docExpr = `jsonb_set(${docExpr}, '{${path}}', $${String(paramIdx)}::jsonb, true)`;
+            const pgPath = path.split('.').join(',');
+            docExpr = `jsonb_set(${docExpr}, '{${pgPath}}', $${String(paramIdx)}::jsonb, true)`;
             updateParams.push(JSON.stringify(value));
             paramIdx++;
           }
@@ -312,7 +313,8 @@ export function createModifyTool(adapter: PostgresAdapter): ToolDefinition {
               );
             }
             // doc #- '{path}'
-            docExpr = `${docExpr} #- '{${path}}'`;
+            const pgPath = path.split('.').join(',');
+            docExpr = `${docExpr} #- '{${pgPath}}'`;
           }
         }
 
