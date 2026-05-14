@@ -36,9 +36,9 @@ $SqlFile = Join-Path $ScriptDir "test-database.sql"
 
 # Colors for output
 function Write-Step { param($Step, $Message) Write-Host "`n[$Step/10] " -ForegroundColor Cyan -NoNewline; Write-Host $Message -ForegroundColor White }
-function Write-Success { param($Message) Write-Host "  ✓ " -ForegroundColor Green -NoNewline; Write-Host $Message }
-function Write-Info { param($Message) Write-Host "  → " -ForegroundColor DarkGray -NoNewline; Write-Host $Message -ForegroundColor DarkGray }
-function Write-Error { param($Message) Write-Host "  ✗ " -ForegroundColor Red -NoNewline; Write-Host $Message -ForegroundColor Red }
+function Write-Success { param($Message) Write-Host "  OK " -ForegroundColor Green -NoNewline; Write-Host $Message }
+function Write-Info { param($Message) Write-Host "  -> " -ForegroundColor DarkGray -NoNewline; Write-Host $Message -ForegroundColor DarkGray }
+function Write-Error { param($Message) Write-Host "  ERR " -ForegroundColor Red -NoNewline; Write-Host $Message -ForegroundColor Red }
 
 Write-Host "`n╔════════════════════════════════════════════════════════════╗" -ForegroundColor Magenta
 Write-Host "║           PostgreSQL MCP Test Database Reset               ║" -ForegroundColor Magenta
@@ -435,7 +435,7 @@ if (-not $SkipVerify) {
         Write-Host "`n  ✓ " -ForegroundColor Green -NoNewline
         Write-Host "All tables verified successfully"
     } else {
-        Write-Host "`n  ⚠ " -ForegroundColor Yellow -NoNewline
+        Write-Host "`n  WARN " -ForegroundColor Yellow -NoNewline
         Write-Host "Some tables have unexpected row counts" -ForegroundColor Yellow
     }
 
@@ -460,7 +460,7 @@ if (-not $SkipVerify) {
     }
 
     if ($unexpectedTables.Count -gt 0) {
-        Write-Host "    ⚠ Found $($unexpectedTables.Count) unexpected table(s) — possible stale test artifacts:" -ForegroundColor Yellow
+        Write-Host "    WARN Found $($unexpectedTables.Count) unexpected table(s) — possible stale test artifacts:" -ForegroundColor Yellow
         foreach ($ut in $unexpectedTables) {
             Write-Host "    [stale] " -ForegroundColor Yellow -NoNewline
             Write-Host $ut -ForegroundColor Gray
