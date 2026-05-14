@@ -70,6 +70,15 @@ function createPgcryptoExtensionTool(adapter: PostgresAdapter): ToolDefinition {
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const { schema } = PgcryptoCreateExtensionSchema.parse(params);
+        if (schema) {
+          const checkResult = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
+            [schema]
+          );
+          if (checkResult.rows?.length === 0) {
+            throw new ValidationError(`Schema "${schema}" does not exist`);
+          }
+        }
         const schemaClause = schema ? ` SCHEMA ${schema}` : "";
         await adapter.executeQuery(
           `CREATE EXTENSION IF NOT EXISTS pgcrypto${schemaClause}`,
